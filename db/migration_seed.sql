@@ -1,0 +1,13 @@
+-- Agregar columna es_ejemplo a todas las tablas
+-- Ejecutar en Supabase SQL Editor ANTES de usar el botón "Cargar datos de ejemplo"
+
+ALTER TABLE clients        ADD COLUMN IF NOT EXISTS es_ejemplo BOOLEAN DEFAULT FALSE;
+ALTER TABLE projects       ADD COLUMN IF NOT EXISTS es_ejemplo BOOLEAN DEFAULT FALSE;
+ALTER TABLE tasks          ADD COLUMN IF NOT EXISTS es_ejemplo BOOLEAN DEFAULT FALSE;
+ALTER TABLE invoices       ADD COLUMN IF NOT EXISTS es_ejemplo BOOLEAN DEFAULT FALSE;
+ALTER TABLE expenses       ADD COLUMN IF NOT EXISTS es_ejemplo BOOLEAN DEFAULT FALSE;
+ALTER TABLE studio_bookings ADD COLUMN IF NOT EXISTS es_ejemplo BOOLEAN DEFAULT FALSE;
+ALTER TABLE contacts       ADD COLUMN IF NOT EXISTS es_ejemplo BOOLEAN DEFAULT FALSE;
+ALTER TABLE notes          ADD COLUMN IF NOT EXISTS es_ejemplo BOOLEAN DEFAULT FALSE;
+ALTER TABLE episodes       ADD COLUMN IF NOT EXISTS es_ejemplo BOOLEAN DEFAULT FALSE;
+ALTER TABLE goals          ADD COLUMN IF NOT EXISTS es_ejemplo BOOLEAN DEFAULT FALSE;
