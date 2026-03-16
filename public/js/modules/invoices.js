@@ -184,7 +184,7 @@ async function previewInvoice(id) {
     <div style="background:white;color:#1a1a1a;padding:32px;border-radius:8px;font-family:'Outfit',sans-serif;">
       <div style="display:flex;justify-content:space-between;margin-bottom:32px;">
         <div>
-          <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#1a1a1a;">VOCAI</div>
+          <img src="/img/logo.png" alt="VOCAI" style="height:48px;mix-blend-mode:multiply;">
           <div style="font-size:12px;color:#666;margin-top:4px;">Camino del Faro 37, Cabo las Huertas<br>Alicante, España</div>
         </div>
         <div style="text-align:right;">

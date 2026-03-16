@@ -196,7 +196,7 @@ function previewProposal(id) {
     <div style="background:white;color:#1a1a1a;padding:32px;border-radius:8px;font-family:'Outfit',sans-serif;">
       <div style="display:flex;justify-content:space-between;margin-bottom:32px;align-items:flex-start;">
         <div>
-          <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;">VOCAI</div>
+          <img src="/img/logo.png" alt="VOCAI" style="height:48px;mix-blend-mode:multiply;">
           <div style="font-size:12px;color:#666;">Alicante, España · www.vocai.es</div>
         </div>
         <div style="text-align:right;">
