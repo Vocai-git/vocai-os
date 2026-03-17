@@ -1059,3 +1059,11 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 .text-xs { font-size: 12px; }
 .font-bold { font-weight: 700; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ============================================================
+   SCROLLBAR SIDEBAR
+   ============================================================ */
+#sidebar::-webkit-scrollbar { width: 4px; }
+#sidebar::-webkit-scrollbar-track { background: transparent; }
+#sidebar::-webkit-scrollbar-thumb { background: #333333; border-radius: 2px; }
+#sidebar::-webkit-scrollbar-thumb:hover { background: #444444; }
