@@ -192,7 +192,8 @@ function initRevenueChart(months) {
 }
 
 function formatMoneyShort(n) {
-  if (!n) return '€0';
-  if (n >= 1000) return '€' + (n/1000).toFixed(1).replace('.0','') + 'k';
-  return '€' + n;
+  const sym = '<span style="font-size:14px;color:#888888;font-family:Outfit,sans-serif;font-weight:400;">€</span>';
+  if (!n) return sym + '0';
+  if (n >= 1000) return sym + (n/1000).toFixed(1).replace('.0','') + 'k';
+  return sym + n;
 }
