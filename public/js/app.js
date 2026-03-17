@@ -81,7 +81,38 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 function badge(status) {
-  return `<span class="badge badge-${status}">${status.replace('_', ' ')}</span>`;
+  const map = {
+    activo:     ['#00C48C22','#00C48C','#00C48C44'],
+    cobrada:    ['#00C48C22','#00C48C','#00C48C44'],
+    completada: ['#00C48C22','#00C48C','#00C48C44'],
+    completado: ['#00C48C22','#00C48C','#00C48C44'],
+    confirmada: ['#00C48C22','#00C48C','#00C48C44'],
+    confirmado: ['#00C48C22','#00C48C','#00C48C44'],
+    publicado:  ['#00C48C22','#00C48C','#00C48C44'],
+    aceptada:   ['#00C48C22','#00C48C','#00C48C44'],
+    enviada:    ['#2979FF22','#2979FF','#2979FF44'],
+    en_curso:   ['#2979FF22','#2979FF','#2979FF44'],
+    prospecto:  ['#2979FF22','#2979FF','#2979FF44'],
+    editando:   ['#2979FF22','#2979FF','#2979FF44'],
+    normal:     ['#2979FF22','#2979FF','#2979FF44'],
+    urgente:    ['#FF6B6B22','#FF6B6B','#FF6B6B44'],
+    vencida:    ['#FF6B6B22','#FF6B6B','#FF6B6B44'],
+    cancelada:  ['#FF6B6B22','#FF6B6B','#FF6B6B44'],
+    cancelado:  ['#FF6B6B22','#FF6B6B','#FF6B6B44'],
+    rechazada:  ['#FF6B6B22','#FF6B6B','#FF6B6B44'],
+    error:      ['#FF6B6B22','#FF6B6B','#FF6B6B44'],
+    alta:       ['#FF8C4222','#FF8C42','#FF8C4244'],
+    pausado:    ['#FF8C4222','#FF8C42','#FF8C4244'],
+    revision:   ['#FF8C4222','#FF8C42','#FF8C4244'],
+    grabado:    ['#9D7FE822','#9D7FE8','#9D7FE844'],
+    borrador:   ['rgba(255,255,255,0.06)','#888888','rgba(255,255,255,0.12)'],
+    pendiente:  ['rgba(255,255,255,0.06)','#888888','rgba(255,255,255,0.12)'],
+    inactivo:   ['rgba(255,255,255,0.06)','#888888','rgba(255,255,255,0.12)'],
+    baja:       ['rgba(255,255,255,0.06)','#888888','rgba(255,255,255,0.12)'],
+  };
+  const [bg, color, border] = map[status] || ['rgba(255,255,255,0.06)','#888888','rgba(255,255,255,0.12)'];
+  const label = status.replace(/_/g,' ');
+  return `<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;white-space:nowrap;background:${bg};color:${color};border:1px solid ${border};">${label}</span>`;
 }
 function responsablePill(r) {
   if (!r) return '—';
