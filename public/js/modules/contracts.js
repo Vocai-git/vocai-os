@@ -120,7 +120,7 @@ function previewContract(type) {
   createModal('contractPreviewModal', t.nombre, `
     <div id="contractDoc" style="background:white;color:#1a1a1a;padding:40px;font-family:'Outfit',sans-serif;line-height:1.8;">
       <div style="text-align:center;margin-bottom:40px;">
-        <img src="/img/logo.png" alt="VOCAI" style="height:56px;mix-blend-mode:multiply;">
+        <img src="/img/logo.png" alt="VOCAI" style="height:56px;">
         <div style="font-size:18px;font-weight:600;margin:12px 0;">${escHtml(t.nombre)}</div>
         <div style="font-size:13px;color:#666;">Alicante, ${formatDate(fecha)}</div>
       </div>

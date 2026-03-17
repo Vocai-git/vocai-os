@@ -184,7 +184,7 @@ async function previewInvoice(id) {
     <div style="background:white;color:#1a1a1a;padding:32px;border-radius:8px;font-family:'Outfit',sans-serif;">
       <div style="display:flex;justify-content:space-between;margin-bottom:32px;">
         <div>
-          <img src="/img/logo.png" alt="VOCAI" style="height:48px;mix-blend-mode:multiply;">
+          <img src="/img/logo.png" alt="VOCAI" style="height:48px;">
           <div style="font-size:12px;color:#666;margin-top:4px;">Camino del Faro 37, Cabo las Huertas<br>Alicante, España</div>
         </div>
         <div style="text-align:right;">
@@ -208,8 +208,8 @@ async function previewInvoice(id) {
       </table>
       <div style="border-top:1px solid #e0e0e0;padding-top:16px;max-width:240px;margin-left:auto;">
         <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px;"><span>Subtotal</span><span>${formatMoney(inv.importe)}</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px;color:#059669;"><span>IVA (21%)</span><span>+${formatMoney(inv.iva)}</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:14px;color:#dc2626;"><span>IRPF (15%)</span><span>-${formatMoney(inv.irpf)}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px;color:#888;"><span>IVA (21%)</span><span>+${formatMoney(inv.iva)}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:14px;color:#FF6B6B;"><span>IRPF (15%)</span><span>-${formatMoney(inv.irpf)}</span></div>
         <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;border-top:2px solid #1a1a1a;padding-top:10px;"><span>TOTAL</span><span>${formatMoney(inv.total)}</span></div>
       </div>
     </div>

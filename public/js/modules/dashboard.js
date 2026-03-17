@@ -41,7 +41,7 @@ async function renderDashboard(el) {
             <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;">Ingresos últimos 6 meses</div>
             <div style="font-size:13px;color:var(--text-muted);">Facturas cobradas</div>
           </div>
-          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;">
             ${formatMoney(kpis.monthlyRevenue)}
           </div>
         </div>
@@ -94,7 +94,7 @@ async function renderDashboard(el) {
 
       <div class="card" style="display:flex;flex-direction:column;justify-content:center;">
         <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Facturado este mes</div>
-        <div style="font-family:'Syne',sans-serif;font-size:52px;font-weight:800;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;margin-bottom:8px;">
+        <div style="font-family:'Syne',sans-serif;font-size:52px;font-weight:800;color:#fff;line-height:1;margin-bottom:8px;">
           ${formatMoney(kpis.monthlyRevenue)}
         </div>
         <div style="font-size:13px;color:var(--text-muted);">cobrado y confirmado</div>
@@ -144,11 +144,11 @@ function initRevenueChart(months) {
         data: months.map(m => m.total),
         backgroundColor: months.map((m, i) =>
           i === months.length - 1
-            ? 'rgba(41,121,255,0.9)'
-            : 'rgba(255,107,107,0.5)'
+            ? '#2979FF'
+            : 'rgba(255,107,107,0.4)'
         ),
         borderColor: months.map((m, i) =>
-          i === months.length - 1 ? '#2979FF' : '#FF6B6B'
+          i === months.length - 1? '#2979FF' : '#FF6B6B'
         ),
         borderWidth: 0,
         borderRadius: 8,
@@ -162,7 +162,7 @@ function initRevenueChart(months) {
         legend: { display: false },
         tooltip: {
           backgroundColor: '#1e1e1e',
-          borderColor: '#333',
+          borderColor: '#2a2a2a',
           borderWidth: 1,
           titleColor: '#f0f0f0',
           bodyColor: '#aaa',

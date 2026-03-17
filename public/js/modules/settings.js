@@ -11,13 +11,13 @@ async function renderSettings(el) {
       <div class="card">
         <div class="card-title" style="margin-bottom:20px;">👤 Mi perfil</div>
         <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
-          <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--violet));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:24px;font-weight:700;color:white;">
+          <div style="width:60px;height:60px;border-radius:50%;background:#FF6B6B;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:24px;font-weight:700;color:white;">
             ${(user.nombre||user.email||'U').charAt(0).toUpperCase()}
           </div>
           <div>
             <div style="font-weight:600;font-size:16px;">${escHtml(user.nombre||'—')}</div>
             <div style="font-size:13px;color:var(--text-muted);">${escHtml(user.email||'—')}</div>
-            <span class="badge badge-violet" style="margin-top:4px;">Fundador</span>
+            <span class="badge" style="margin-top:4px;background:var(--coral-dim);color:var(--coral);">Fundador</span>
           </div>
         </div>
         <div class="form-group">
@@ -93,8 +93,8 @@ async function renderSettings(el) {
     </div>
 
     <!-- Datos de ejemplo -->
-    <div class="card" style="border-color:var(--violet);margin-top:20px;">
-      <div class="card-title" style="color:var(--violet);margin-bottom:16px;">🧪 Datos de ejemplo</div>
+    <div class="card" style="margin-top:20px;">
+      <div class="card-title" style="margin-bottom:16px;">🧪 Datos de ejemplo</div>
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:12px;background:var(--bg);border-radius:8px;">
           <div>
