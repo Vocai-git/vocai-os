@@ -71,9 +71,10 @@ html, body {
   transition: transform var(--transition);
 }
 
-.sidebar::-webkit-scrollbar { width: 3px; }
-.sidebar::-webkit-scrollbar-track { background: transparent; }
-.sidebar::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+*::-webkit-scrollbar { width: 4px; height: 4px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
 
 .sidebar-logo {
   padding: 20px 16px 16px;
@@ -209,9 +210,7 @@ html, body {
   flex-direction: column;
 }
 
-.main-content::-webkit-scrollbar { width: 5px; }
-.main-content::-webkit-scrollbar-track { background: transparent; }
-.main-content::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+/* main-content scrollbar handled by global rule above */
 
 .topbar {
   height: var(--header-height);
@@ -505,55 +504,55 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
   white-space: nowrap;
 }
 
-/* Base — todos en gris neutro */
-.badge-gray,
-.badge-blue,
-.badge-teal,
-.badge-violet  { background: rgba(255,255,255,0.06); color: var(--text-muted); }
+/* ── Clientes ──────────────────────────────────────────────── */
+.badge-activo    { background: rgba(0,196,140,0.15);  color: #00C48C; }
+.badge-prospecto { background: rgba(41,121,255,0.15); color: #2979FF; }
+.badge-pausado   { background: rgba(255,140,66,0.15); color: #FF8C42; }
+.badge-inactivo  { background: rgba(255,255,255,0.05); color: var(--text-muted); }
 
-/* Acento coral para estados negativos o de alerta */
-.badge-rose,
-.badge-amber   { background: var(--coral-dim); color: var(--coral); }
+/* ── Facturas ──────────────────────────────────────────────── */
+.badge-cobrada  { background: rgba(0,196,140,0.15);  color: #00C48C; }
+.badge-enviada  { background: rgba(41,121,255,0.15); color: #2979FF; }
+.badge-vencida  { background: rgba(255,107,107,0.15); color: #FF6B6B; }
+.badge-borrador { background: rgba(255,255,255,0.05); color: var(--text-muted); }
 
-/* Estados positivos — gris más claro */
-.badge-activo    { background: rgba(255,255,255,0.08); color: #ccc; }
-.badge-prospecto { background: rgba(255,255,255,0.05); color: var(--text-muted); }
-.badge-pausado   { background: var(--coral-dim); color: var(--coral); }
-.badge-inactivo  { background: rgba(255,255,255,0.04); color: var(--text-dim); }
-
-/* Facturas */
-.badge-cobrada  { background: rgba(255,255,255,0.08); color: #ccc; }
-.badge-enviada  { background: rgba(255,255,255,0.05); color: var(--text-muted); }
-.badge-vencida  { background: var(--coral-dim); color: var(--coral); }
-.badge-borrador { background: rgba(255,255,255,0.04); color: var(--text-dim); }
-
-/* Tareas */
+/* ── Tareas — estado ───────────────────────────────────────── */
 .badge-pendiente  { background: rgba(255,255,255,0.05); color: var(--text-muted); }
-.badge-en_curso   { background: rgba(255,255,255,0.08); color: #ccc; }
-.badge-completada { background: rgba(255,255,255,0.08); color: #ccc; }
-.badge-urgente    { background: var(--coral-dim); color: var(--coral); }
-.badge-alta       { background: var(--coral-dim); color: var(--coral); }
-.badge-normal     { background: rgba(255,255,255,0.05); color: var(--text-muted); }
-.badge-baja       { background: rgba(255,255,255,0.04); color: var(--text-dim); }
+.badge-en_curso   { background: rgba(41,121,255,0.15); color: #2979FF; }
+.badge-completada { background: rgba(0,196,140,0.15);  color: #00C48C; }
 
-/* Episodios */
-.badge-publicado { background: rgba(255,255,255,0.08); color: #ccc; }
-.badge-editando  { background: rgba(255,255,255,0.05); color: var(--text-muted); }
-.badge-revision  { background: var(--coral-dim); color: var(--coral); }
-.badge-grabado   { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+/* ── Tareas — prioridad ────────────────────────────────────── */
+.badge-urgente { background: rgba(255,107,107,0.15); color: #FF6B6B; }
+.badge-alta    { background: rgba(255,140,66,0.15);  color: #FF8C42; }
+.badge-normal  { background: rgba(41,121,255,0.15);  color: #2979FF; }
+.badge-baja    { background: rgba(255,255,255,0.05); color: var(--text-muted); }
 
-/* Reservas */
-.badge-confirmada  { background: rgba(255,255,255,0.08); color: #ccc; }
-.badge-cancelada   { background: var(--coral-dim); color: var(--coral); }
-.badge-completado  { background: rgba(255,255,255,0.08); color: #ccc; }
+/* ── Episodios ─────────────────────────────────────────────── */
+.badge-publicado { background: rgba(0,196,140,0.15);   color: #00C48C; }
+.badge-editando  { background: rgba(41,121,255,0.15);  color: #2979FF; }
+.badge-revision  { background: rgba(255,140,66,0.15);  color: #FF8C42; }
+.badge-grabado   { background: rgba(157,127,232,0.15); color: #9D7FE8; }
 
-/* Propuestas */
-.badge-aceptada  { background: rgba(255,255,255,0.08); color: #ccc; }
-.badge-rechazada { background: var(--coral-dim); color: var(--coral); }
+/* ── Reservas ──────────────────────────────────────────────── */
+.badge-confirmada { background: rgba(0,196,140,0.15);  color: #00C48C; }
+.badge-cancelada  { background: rgba(255,107,107,0.15); color: #FF6B6B; }
+.badge-completado { background: rgba(255,255,255,0.05); color: var(--text-muted); }
 
-/* Agentes */
-.badge-activo.badge-agent { background: rgba(255,255,255,0.06); color: #ccc; }
-.badge-error { background: var(--coral-dim); color: var(--coral); }
+/* ── Propuestas / Contratos ────────────────────────────────── */
+.badge-aceptada  { background: rgba(0,196,140,0.15);  color: #00C48C; }
+.badge-rechazada { background: rgba(255,107,107,0.15); color: #FF6B6B; }
+.badge-enviada-p { background: rgba(41,121,255,0.15); color: #2979FF; }
+
+/* ── Agentes ───────────────────────────────────────────────── */
+.badge-error { background: rgba(255,107,107,0.15); color: #FF6B6B; }
+
+/* ── Genéricos heredados ───────────────────────────────────── */
+.badge-gray   { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+.badge-blue   { background: rgba(41,121,255,0.15);  color: #2979FF; }
+.badge-teal   { background: rgba(0,196,140,0.15);   color: #00C48C; }
+.badge-violet { background: rgba(157,127,232,0.15); color: #9D7FE8; }
+.badge-rose   { background: rgba(255,107,107,0.15); color: #FF6B6B; }
+.badge-amber  { background: rgba(255,140,66,0.15);  color: #FF8C42; }
 
 /* ============================================================
    MODAL
@@ -782,9 +781,15 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
   transition: width 0.5s ease;
 }
 
-.progress-fill.teal, .progress-fill.gradient { background: var(--coral); }
-.progress-fill.amber { background: #888; }
-.progress-fill.rose  { background: var(--coral); }
+.progress-fill.green    { background: #00C48C; }
+.progress-fill.blue     { background: #2979FF; }
+.progress-fill.orange   { background: #FF8C42; }
+.progress-fill.coral    { background: #FF6B6B; }
+.progress-fill.violet   { background: #9D7FE8; }
+.progress-fill.teal     { background: #00C48C; }
+.progress-fill.gradient { background: linear-gradient(90deg, #2979FF, #FF6B6B); }
+.progress-fill.amber    { background: #FF8C42; }
+.progress-fill.rose     { background: #FF6B6B; }
 
 /* ============================================================
    EMPTY STATE
@@ -1060,10 +1065,4 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 .font-bold { font-weight: 700; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ============================================================
-   SCROLLBAR SIDEBAR
-   ============================================================ */
-#sidebar::-webkit-scrollbar { width: 4px; }
-#sidebar::-webkit-scrollbar-track { background: transparent; }
-#sidebar::-webkit-scrollbar-thumb { background: #333333; border-radius: 2px; }
-#sidebar::-webkit-scrollbar-thumb:hover { background: #444444; }
+/* sidebar scrollbar handled by global rule */
