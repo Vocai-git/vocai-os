@@ -634,10 +634,12 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
    ============================================================ */
 
 .kanban-board {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
   gap: 16px;
   align-items: start;
+  padding-bottom: 8px;
 }
 
 .kanban-col {
@@ -645,6 +647,8 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  min-width: 240px;
+  flex: 1 0 240px;
 }
 
 .kanban-col-header {
@@ -1029,7 +1033,8 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
   .kpi-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
   .kpi-value { font-size: 24px; }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .kanban-board { grid-template-columns: 1fr; }
+  .kanban-board { gap: 12px; }
+  .kanban-col { min-width: 200px; flex: 1 0 200px; }
   .form-row { grid-template-columns: 1fr; }
   .topbar { padding: 0 16px; }
   .page-content { padding: 16px; }
