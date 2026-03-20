@@ -180,7 +180,7 @@ async function saveProject(id) {
     await API.put(`/projects/${id}`, {
       estado: document.getElementById('pe_estado').value,
       progreso: parseInt(document.getElementById('pe_progreso').value),
-      responsable: document.getElementById('pe_responsable').value,
+      responsable: document.getElementById('pe_responsable').value || null,
       fecha_entrega: document.getElementById('pe_fecha').value || null,
       descripcion: document.getElementById('pe_desc').value
     });

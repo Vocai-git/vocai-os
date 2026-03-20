@@ -171,7 +171,7 @@ async function saveClient(id) {
     tipo_servicio: document.getElementById('cf_tipo').value,
     estado: document.getElementById('cf_estado').value,
     mrr: parseFloat(document.getElementById('cf_mrr').value) || 0,
-    responsable: document.getElementById('cf_responsable').value,
+    responsable: document.getElementById('cf_responsable').value || null,
     ultimo_contacto: document.getElementById('cf_contacto').value || null,
     cumpleanos: document.getElementById('cf_cumple').value || null,
     notas: document.getElementById('cf_notas').value
