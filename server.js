@@ -26,7 +26,6 @@ app.use('/api/proposals', require('./routes/proposals'));
 app.use('/api/goals', require('./routes/goals'));
 app.use('/api/episodes', require('./routes/episodes'));
 app.use('/api/agents', require('./routes/agents'));
-app.use('/api/seed', require('./routes/seed'));
 
 // SPA fallback
 app.get('/app', (req, res) => {

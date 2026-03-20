@@ -92,28 +92,6 @@ async function renderSettings(el) {
       </div>
     </div>
 
-    <!-- Datos de ejemplo -->
-    <div class="card" style="margin-top:20px;">
-      <div class="card-title" style="margin-bottom:16px;">🧪 Datos de ejemplo</div>
-      <div style="display:flex;flex-direction:column;gap:12px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:12px;background:var(--bg);border-radius:8px;">
-          <div>
-            <div style="font-weight:500;">Cargar datos de ejemplo</div>
-            <div style="font-size:13px;color:var(--text-muted);">Llena el sistema con clientes, proyectos, facturas y más para explorar la app</div>
-          </div>
-          <button class="btn btn-secondary" onclick="loadSeedData()" id="btnSeed">Cargar ejemplos</button>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:12px;background:var(--bg);border-radius:8px;">
-          <div>
-            <div style="font-weight:500;">Limpiar datos de ejemplo</div>
-            <div style="font-size:13px;color:var(--text-muted);">Elimina todos los registros de ejemplo de una sola vez</div>
-          </div>
-          <button class="btn btn-danger btn-sm" onclick="cleanSeedData()">Limpiar datos de ejemplo</button>
-        </div>
-        <div style="font-size:12px;color:var(--text-dim);padding:0 4px;">⚠️ Antes de cargar ejemplos, ejecutá <code style="background:var(--bg);padding:2px 6px;border-radius:4px;">db/migration_seed.sql</code> en Supabase.</div>
-      </div>
-    </div>
-
     <!-- Danger zone -->
     <div class="card" style="border-color:var(--rose);margin-top:20px;">
       <div class="card-title" style="color:var(--rose);margin-bottom:16px;">⚠️ Zona de peligro</div>
@@ -147,28 +125,3 @@ async function changePassword() {
   toast('Función de cambio de contraseña disponible en v2 (configura desde Supabase Dashboard)', 'info');
 }
 
-async function loadSeedData() {
-  const btn = document.getElementById('btnSeed');
-  btn.disabled = true;
-  btn.textContent = 'Cargando...';
-  try {
-    await API.post('/seed', {});
-    toast('Datos de ejemplo cargados. Recargá cualquier módulo para verlos.', 'success');
-    btn.textContent = '✅ Cargado';
-  } catch (err) {
-    toast('Error: ' + err.message, 'error');
-    btn.disabled = false;
-    btn.textContent = 'Cargar ejemplos';
-  }
-}
-
-async function cleanSeedData() {
-  if (!window.confirm('¿Eliminar todos los datos de ejemplo? Esto no afecta tus datos reales.')) return;
-  try {
-    const result = await API.del('/seed');
-    toast(result.mensaje || 'Datos de ejemplo eliminados correctamente', 'success');
-    navigate('dashboard');
-  } catch (err) {
-    toast('Error al limpiar: ' + err.message, 'error');
-  }
-}
