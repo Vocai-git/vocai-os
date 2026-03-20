@@ -6,6 +6,27 @@
 const token = localStorage.getItem('vocai_token');
 if (!token) window.location.href = '/';
 
+// ── Auto-refresh token (mantener sesión 7 días) ─────────────
+async function refreshToken() {
+  const rt = localStorage.getItem('vocai_refresh_token');
+  if (!rt) return;
+  try {
+    const res = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: rt })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem('vocai_token', data.token);
+      localStorage.setItem('vocai_refresh_token', data.refresh_token);
+    }
+  } catch (e) { /* silencioso */ }
+}
+// Refrescar cada 50 minutos
+setInterval(refreshToken, 50 * 60 * 1000);
+refreshToken();
+
 // ── API helper ──────────────────────────────────────────────
 const API = {
   async req(method, path, body) {
@@ -144,6 +165,9 @@ const MODULES = {
   files:     { title: 'Archivos',  render: renderFiles },
   notes:     { title: 'Notas',     render: renderNotes },
   agents:    { title: 'Agentes n8n', render: renderAgents },
+  mytasks:   { title: 'Mis tareas', render: renderMytasks },
+  myagenda:  { title: 'Mi agenda', render: renderMyagenda },
+  agenda:    { title: 'Agenda', render: renderAgenda },
   settings:  { title: 'Configuración', render: renderSettings },
 };
 

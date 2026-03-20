@@ -1,6 +1,10 @@
 async function renderSettings(el) {
   const user = JSON.parse(localStorage.getItem('vocai_user') || '{}');
 
+  // Check Google Calendar status
+  let gcStatus = { connected: false, email: null };
+  try { gcStatus = await API.get('/google/status'); } catch (e) {}
+
   el.innerHTML = `
     <div class="section-header">
       <h2 class="section-title">Configuración</h2>
@@ -60,33 +64,40 @@ async function renderSettings(el) {
       <div class="card">
         <div class="card-title" style="margin-bottom:20px;">🔌 Integraciones</div>
         <div style="display:flex;flex-direction:column;gap:12px;">
+          <!-- Google Calendar -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg);border-radius:8px;">
+            <div>
+              <div style="font-weight:500;">Google Calendar</div>
+              <div style="font-size:12px;color:var(--text-muted);">${gcStatus.connected ? 'Conectado como ' + escHtml(gcStatus.email) : 'Sincroniza eventos con tu calendario'}</div>
+            </div>
+            ${gcStatus.connected
+              ? `<div style="display:flex;gap:8px;align-items:center;">
+                  <span class="badge" style="background:#00C48C22;color:#00C48C;border:1px solid #00C48C44;">Conectado</span>
+                  <button class="btn btn-ghost btn-sm" onclick="disconnectGoogle()" style="color:#FF6B6B;font-size:12px;">Desconectar</button>
+                </div>`
+              : '<button class="btn btn-primary btn-sm" onclick="connectGoogle()">Conectar Google Calendar</button>'}
+          </div>
+          <!-- Supabase -->
           <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg);border-radius:8px;">
             <div>
               <div style="font-weight:500;">Supabase</div>
               <div style="font-size:12px;color:var(--text-muted);">Base de datos y autenticación</div>
             </div>
-            <span class="badge badge-teal">Conectado</span>
+            <span class="badge" style="background:#00C48C22;color:#00C48C;border:1px solid #00C48C44;">Conectado</span>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg);border-radius:8px;">
             <div>
               <div style="font-weight:500;">Railway</div>
               <div style="font-size:12px;color:var(--text-muted);">Hosting del servidor</div>
             </div>
-            <span class="badge badge-teal">Activo</span>
+            <span class="badge" style="background:#00C48C22;color:#00C48C;border:1px solid #00C48C44;">Activo</span>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg);border-radius:8px;">
             <div>
               <div style="font-weight:500;">n8n</div>
               <div style="font-size:12px;color:var(--text-muted);">Automatizaciones</div>
             </div>
-            <span class="badge badge-gray">Pendiente</span>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg);border-radius:8px;">
-            <div>
-              <div style="font-weight:500;">Google Workspace</div>
-              <div style="font-size:12px;color:var(--text-muted);">Email @vocai.es</div>
-            </div>
-            <span class="badge badge-amber">Configurando</span>
+            <span class="badge" style="background:rgba(255,255,255,0.06);color:#888;border:1px solid rgba(255,255,255,0.12);">Pendiente</span>
           </div>
         </div>
       </div>
@@ -103,6 +114,15 @@ async function renderSettings(el) {
         <button class="btn btn-danger" onclick="document.getElementById('btnLogout').click()">Cerrar sesión</button>
       </div>
     </div>`;
+
+  // Check if redirected from Google OAuth
+  if (window.location.hash.includes('google=ok')) {
+    toast('Google Calendar conectado correctamente', 'success');
+    window.location.hash = 'settings';
+  } else if (window.location.hash.includes('google=error')) {
+    toast('Error al conectar Google Calendar', 'error');
+    window.location.hash = 'settings';
+  }
 }
 
 function saveProfile() {
@@ -125,3 +145,18 @@ async function changePassword() {
   toast('Función de cambio de contraseña disponible en v2 (configura desde Supabase Dashboard)', 'info');
 }
 
+async function connectGoogle() {
+  try {
+    const { url } = await API.get('/google/connect');
+    window.location.href = url;
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
+}
+
+async function disconnectGoogle() {
+  if (!window.confirm('¿Desconectar Google Calendar?')) return;
+  try {
+    await API.del('/google/disconnect');
+    toast('Google Calendar desconectado', 'success');
+    navigate('settings');
+  } catch (err) { toast(err.message, 'error'); }
+}
