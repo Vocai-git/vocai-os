@@ -7,9 +7,10 @@ const { supabase } = require('../config/supabase');
 router.post('/', auth, async (req, res) => {
   try {
     // Limpiar datos de ejemplo previos para evitar duplicados
-    const tables = ['tasks', 'project_comments', 'projects', 'invoices', 'expenses', 'studio_bookings', 'contacts', 'notes', 'episodes', 'goals', 'clients'];
-    for (const table of tables) {
-      await supabase.from(table).delete().eq('es_ejemplo', true);
+    const cleanTables = ['tasks', 'projects', 'invoices', 'expenses', 'studio_bookings', 'contacts', 'notes', 'episodes', 'goals', 'clients'];
+    for (const table of cleanTables) {
+      const { error } = await supabase.from(table).delete().eq('es_ejemplo', true);
+      if (error && !error.message.includes('does not exist')) throw error;
     }
 
     const today = new Date();
@@ -360,7 +361,7 @@ router.post('/', auth, async (req, res) => {
 router.delete('/', auth, async (req, res) => {
   try {
     const tables = [
-      'tasks', 'project_comments', 'projects',
+      'tasks', 'projects',
       'invoices', 'expenses', 'studio_bookings',
       'contacts', 'notes', 'episodes', 'goals', 'clients'
     ];
@@ -368,8 +369,16 @@ router.delete('/', auth, async (req, res) => {
     const errors = [];
     for (const table of tables) {
       const { error } = await supabase.from(table).delete().eq('es_ejemplo', true);
-      if (error) errors.push(`${table}: ${error.message}`);
+      if (error) {
+        // Ignorar error si la columna es_ejemplo no existe en esa tabla
+        if (error.message.includes('does not exist')) continue;
+        errors.push(`${table}: ${error.message}`);
+      }
     }
+
+    // Limpiar project_comments sin depender de es_ejemplo
+    // (se borran los comments huérfanos cuyos proyectos ya no existen)
+    await supabase.from('project_comments').delete().is('project_id', null).catch(() => {});
 
     if (errors.length > 0) {
       return res.status(500).json({ error: errors.join(' | ') });
