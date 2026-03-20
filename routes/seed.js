@@ -6,6 +6,12 @@ const { supabase } = require('../config/supabase');
 // POST /api/seed — insertar datos de ejemplo
 router.post('/', auth, async (req, res) => {
   try {
+    // Limpiar datos de ejemplo previos para evitar duplicados
+    const tables = ['tasks', 'project_comments', 'projects', 'invoices', 'expenses', 'studio_bookings', 'contacts', 'notes', 'episodes', 'goals', 'clients'];
+    for (const table of tables) {
+      await supabase.from(table).delete().eq('es_ejemplo', true);
+    }
+
     const today = new Date();
     const fmt = (d) => d.toISOString().split('T')[0];
     const addDays = (n) => { const d = new Date(today); d.setDate(d.getDate() + n); return fmt(d); };

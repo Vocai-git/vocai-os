@@ -163,12 +163,12 @@ async function loadSeedData() {
 }
 
 async function cleanSeedData() {
-  if (!confirm('¿Eliminar todos los datos de ejemplo? Esto no afecta tus datos reales.')) return;
+  if (!window.confirm('¿Eliminar todos los datos de ejemplo? Esto no afecta tus datos reales.')) return;
   try {
-    await API.del('/seed');
-    toast('Datos de ejemplo eliminados correctamente', 'success');
+    const result = await API.del('/seed');
+    toast(result.mensaje || 'Datos de ejemplo eliminados correctamente', 'success');
     navigate('dashboard');
   } catch (err) {
-    toast('Error: ' + err.message, 'error');
+    toast('Error al limpiar: ' + err.message, 'error');
   }
 }

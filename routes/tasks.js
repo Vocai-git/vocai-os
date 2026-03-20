@@ -28,9 +28,25 @@ router.put('/:id', auth, async (req, res) => {
   res.json(data);
 });
 
-router.delete('/:id', auth, async (req, res) => {
-  const { error } = await supabase.from('tasks').delete().eq('id', req.params.id);
+router.delete('/bulk-completed', auth, async (req, res) => {
+  const { periodo } = req.query; // 30, 90, 365, all
+  let query = supabase.from('tasks').delete().eq('estado', 'completada');
+  if (periodo && periodo !== 'all') {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - parseInt(periodo));
+    query = query.lte('updated_at', cutoff.toISOString());
+  }
+  const { data, error } = await query.select();
   if (error) return res.status(400).json({ error: error.message });
+  await logActivity(req.user.email, 'limpiar', 'tareas', `${data.length} tareas completadas eliminadas`);
+  res.json({ ok: true, eliminadas: data.length });
+});
+
+router.delete('/:id', auth, async (req, res) => {
+  const { data, error } = await supabase.from('tasks').delete().eq('id', req.params.id).select();
+  if (error) return res.status(400).json({ error: error.message });
+  if (!data || data.length === 0) return res.status(404).json({ error: 'Tarea no encontrada o sin permisos para eliminar' });
+  await logActivity(req.user.email, 'eliminar', 'tareas', `Tarea eliminada: ${data[0].titulo}`);
   res.json({ ok: true });
 });
 

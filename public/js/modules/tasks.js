@@ -3,12 +3,29 @@ async function renderTasks(el) {
   window._tasksData = tasks;
   window._projectsData = projects;
 
+  const activas = tasks.filter(t => t.estado !== 'completada');
+  const completadas = tasks.filter(t => t.estado === 'completada');
+
   el.innerHTML = `
     <div class="section-header">
       <h2 class="section-title">Tareas</h2>
       <button class="btn btn-primary" onclick="newTask()">+ Nueva tarea</button>
     </div>
-    <div class="card">
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:4px;margin-bottom:16px;">
+      <button class="btn" id="tabActivas" onclick="switchTaskTab('activas')"
+        style="background:#FF6B6B;color:white;font-weight:600;">
+        Activas (${activas.length})
+      </button>
+      <button class="btn" id="tabCompletadas" onclick="switchTaskTab('completadas')"
+        style="background:#2a2a2a;color:#888;">
+        Completadas (${completadas.length})
+      </button>
+    </div>
+
+    <!-- Tab: Activas -->
+    <div id="panelActivas" class="card">
       <div class="filters" style="margin-bottom:16px;">
         <select class="filter-select" id="taskResp" onchange="filterTasks()">
           <option value="">Todos</option>
@@ -19,7 +36,6 @@ async function renderTasks(el) {
           <option value="">Todos los estados</option>
           <option value="pendiente">Pendiente</option>
           <option value="en_curso">En curso</option>
-          <option value="completada">Completada</option>
         </select>
         <select class="filter-select" id="taskPrioridad" onchange="filterTasks()">
           <option value="">Todas las prioridades</option>
@@ -32,24 +48,47 @@ async function renderTasks(el) {
       <div class="table-wrapper">
         <table>
           <thead><tr><th></th><th>Tarea</th><th>Proyecto</th><th>Prioridad</th><th>Estado</th><th>Responsable</th><th>Fecha límite</th><th></th></tr></thead>
-          <tbody id="taskTableBody">${renderTaskRows(tasks)}</tbody>
+          <tbody id="taskTableBody">${renderTaskRows(activas)}</tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Tab: Completadas -->
+    <div id="panelCompletadas" style="display:none;">
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div style="font-weight:600;">Historial de tareas completadas</div>
+            <div style="font-size:13px;color:#888;">${completadas.length} tarea${completadas.length !== 1 ? 's' : ''} en el historial</div>
+          </div>
+          <button class="btn" style="background:#FF6B6B;color:white;" onclick="showCleanupDialog()" ${completadas.length === 0 ? 'disabled' : ''}>
+            Limpiar historial
+          </button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>Tarea</th><th>Proyecto</th><th>Prioridad</th><th>Responsable</th><th>Completada</th><th></th></tr></thead>
+            <tbody id="completedTableBody">${renderCompletedRows(completadas)}</tbody>
+          </table>
+        </div>
       </div>
     </div>`;
 }
 
 function renderTaskRows(tasks) {
-  if (!tasks.length) return `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Sin tareas</div></div></td></tr>`;
+  if (!tasks.length) return `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Sin tareas activas</div></div></td></tr>`;
   return tasks.map(t => {
     const isLate = t.fecha_limite && new Date(t.fecha_limite) < new Date() && t.estado !== 'completada';
     return `<tr>
       <td><input type="checkbox" ${t.estado==='completada'?'checked':''} onchange="quickToggleTask('${t.id}',this.checked)" style="width:16px;height:16px;cursor:pointer;"></td>
       <td><div style="${t.estado==='completada'?'text-decoration:line-through;opacity:0.5;':''};font-weight:500;">${escHtml(t.titulo)}</div></td>
-      <td style="color:var(--text-muted);font-size:13px;">${escHtml(t.projects?.nombre||'—')}</td>
+      <td style="color:#888;font-size:13px;">${escHtml(t.projects?.nombre||'—')}</td>
       <td>${badge(t.prioridad||'normal')}</td>
       <td>${badge(t.estado||'pendiente')}</td>
       <td>${responsablePill(t.responsable)}</td>
-      <td style="${isLate?'color:var(--rose);font-weight:500;':''}">${t.fecha_limite ? formatDate(t.fecha_limite) : '—'}</td>
+      <td style="${isLate?'color:#FF6B6B;font-weight:500;':''}">${t.fecha_limite ? formatDate(t.fecha_limite) : '—'}</td>
       <td>
         <div style="display:flex;gap:4px;">
           <button class="btn btn-ghost btn-icon btn-sm" onclick="editTask('${t.id}')" title="Editar">✏️</button>
@@ -60,11 +99,51 @@ function renderTaskRows(tasks) {
   }).join('');
 }
 
+function renderCompletedRows(tasks) {
+  if (!tasks.length) return `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">No hay tareas completadas</div></div></td></tr>`;
+  return tasks.map(t => `<tr style="opacity:0.7;">
+    <td><div style="text-decoration:line-through;">${escHtml(t.titulo)}</div></td>
+    <td style="color:#888;font-size:13px;">${escHtml(t.projects?.nombre||'—')}</td>
+    <td>${badge(t.prioridad||'normal')}</td>
+    <td>${responsablePill(t.responsable)}</td>
+    <td style="font-size:13px;color:#888;">${t.updated_at ? formatDate(t.updated_at) : '—'}</td>
+    <td>
+      <div style="display:flex;gap:4px;">
+        <button class="btn btn-ghost btn-icon btn-sm" onclick="quickToggleTask('${t.id}',false)" title="Reactivar">↩️</button>
+        <button class="btn btn-ghost btn-icon btn-sm" onclick="deleteTask('${t.id}')" title="Eliminar">🗑️</button>
+      </div>
+    </td>
+  </tr>`).join('');
+}
+
+function switchTaskTab(tab) {
+  const activas = document.getElementById('panelActivas');
+  const completadas = document.getElementById('panelCompletadas');
+  const btnA = document.getElementById('tabActivas');
+  const btnC = document.getElementById('tabCompletadas');
+
+  if (tab === 'activas') {
+    activas.style.display = '';
+    completadas.style.display = 'none';
+    btnA.style.background = '#FF6B6B';
+    btnA.style.color = 'white';
+    btnC.style.background = '#2a2a2a';
+    btnC.style.color = '#888';
+  } else {
+    activas.style.display = 'none';
+    completadas.style.display = '';
+    btnC.style.background = '#FF6B6B';
+    btnC.style.color = 'white';
+    btnA.style.background = '#2a2a2a';
+    btnA.style.color = '#888';
+  }
+}
+
 function filterTasks() {
   const resp = document.getElementById('taskResp').value;
   const estado = document.getElementById('taskEstado').value;
   const prior = document.getElementById('taskPrioridad').value;
-  let filtered = window._tasksData || [];
+  let filtered = (window._tasksData || []).filter(t => t.estado !== 'completada');
   if (resp) filtered = filtered.filter(t => t.responsable === resp);
   if (estado) filtered = filtered.filter(t => t.estado === estado);
   if (prior) filtered = filtered.filter(t => t.prioridad === prior);
@@ -73,8 +152,7 @@ function filterTasks() {
 
 async function quickToggleTask(id, done) {
   await API.put(`/tasks/${id}`, { estado: done ? 'completada' : 'pendiente' });
-  window._tasksData = await API.get('/tasks');
-  filterTasks();
+  navigate('tasks');
 }
 
 function newTask() { showTaskForm(null); }
@@ -163,10 +241,53 @@ async function saveTask(id) {
 }
 
 async function deleteTask(id) {
-  if (!confirm('¿Eliminar esta tarea?')) return;
+  if (!window.confirm('¿Eliminar esta tarea?')) return;
   try {
     await API.del(`/tasks/${id}`);
     toast('Tarea eliminada', 'success');
     navigate('tasks');
-  } catch (err) { toast(err.message, 'error'); }
+  } catch (err) { toast('Error al eliminar: ' + err.message, 'error'); }
+}
+
+function showCleanupDialog() {
+  const completadas = (window._tasksData || []).filter(t => t.estado === 'completada');
+  const now = new Date();
+  const count30 = completadas.filter(t => t.updated_at && (now - new Date(t.updated_at)) > 30 * 86400000).length;
+  const count90 = completadas.filter(t => t.updated_at && (now - new Date(t.updated_at)) > 90 * 86400000).length;
+  const count365 = completadas.filter(t => t.updated_at && (now - new Date(t.updated_at)) > 365 * 86400000).length;
+
+  createModal('cleanupModal', 'Limpiar historial de tareas', `
+    <p style="color:#888;margin-bottom:20px;">Elegí qué tareas completadas querés eliminar:</p>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button class="btn btn-secondary" onclick="confirmCleanup('30')" style="text-align:left;padding:14px 16px;">
+        <div style="font-weight:600;">Más de 30 días</div>
+        <div style="font-size:12px;color:#888;margin-top:2px;">${count30} tarea${count30 !== 1 ? 's' : ''} se eliminarán</div>
+      </button>
+      <button class="btn btn-secondary" onclick="confirmCleanup('90')" style="text-align:left;padding:14px 16px;">
+        <div style="font-weight:600;">Más de 90 días</div>
+        <div style="font-size:12px;color:#888;margin-top:2px;">${count90} tarea${count90 !== 1 ? 's' : ''} se eliminarán</div>
+      </button>
+      <button class="btn btn-secondary" onclick="confirmCleanup('365')" style="text-align:left;padding:14px 16px;">
+        <div style="font-weight:600;">Más de 1 año</div>
+        <div style="font-size:12px;color:#888;margin-top:2px;">${count365} tarea${count365 !== 1 ? 's' : ''} se eliminarán</div>
+      </button>
+      <button class="btn" onclick="confirmCleanup('all')" style="background:#FF6B6B;color:white;text-align:left;padding:14px 16px;">
+        <div style="font-weight:600;">Todo el historial</div>
+        <div style="font-size:12px;opacity:0.8;margin-top:2px;">${completadas.length} tarea${completadas.length !== 1 ? 's' : ''} se eliminarán</div>
+      </button>
+    </div>
+  `, `
+    <button class="btn btn-secondary" onclick="closeModal('cleanupModal')">Cancelar</button>
+  `);
+}
+
+async function confirmCleanup(periodo) {
+  const label = periodo === 'all' ? 'TODO el historial' : `tareas de más de ${periodo} días`;
+  if (!window.confirm(`¿Estás seguro? Se eliminará ${label}. Esta acción no se puede deshacer.`)) return;
+  try {
+    const result = await API.del(`/tasks/bulk-completed?periodo=${periodo}`);
+    toast(`${result.eliminadas} tarea${result.eliminadas !== 1 ? 's' : ''} eliminada${result.eliminadas !== 1 ? 's' : ''}`, 'success');
+    closeModal('cleanupModal');
+    navigate('tasks');
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
 }
