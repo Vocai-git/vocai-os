@@ -3,7 +3,7 @@ async function renderTasks(el) {
   window._tasksData = tasks;
   window._projectsData = projects;
 
-  const activas = tasks.filter(t => t.estado !== 'completada');
+  const activas = sortTasks(tasks.filter(t => t.estado !== 'completada'), 'prioridad');
   const completadas = tasks.filter(t => t.estado === 'completada');
 
   el.innerHTML = `
@@ -43,6 +43,10 @@ async function renderTasks(el) {
           <option value="alta">Alta</option>
           <option value="normal">Normal</option>
           <option value="baja">Baja</option>
+        </select>
+        <select class="filter-select" id="taskOrden" onchange="filterTasks()">
+          <option value="prioridad">Ordenar por prioridad</option>
+          <option value="fecha">Ordenar por fecha límite</option>
         </select>
       </div>
       <div class="table-wrapper">
@@ -139,14 +143,37 @@ function switchTaskTab(tab) {
   }
 }
 
+const PRIORIDAD_ORDEN = { urgente: 0, alta: 1, normal: 2, baja: 3 };
+
+function sortTasks(tasks, criterio) {
+  return [...tasks].sort((a, b) => {
+    if (criterio === 'prioridad') {
+      const pa = PRIORIDAD_ORDEN[a.prioridad] ?? 2;
+      const pb = PRIORIDAD_ORDEN[b.prioridad] ?? 2;
+      if (pa !== pb) return pa - pb;
+      // Desempate por fecha límite
+      const fa = a.fecha_limite ? new Date(a.fecha_limite) : new Date('2099-12-31');
+      const fb = b.fecha_limite ? new Date(b.fecha_limite) : new Date('2099-12-31');
+      return fa - fb;
+    } else {
+      // Por fecha límite, sin fecha al final
+      const fa = a.fecha_limite ? new Date(a.fecha_limite) : new Date('2099-12-31');
+      const fb = b.fecha_limite ? new Date(b.fecha_limite) : new Date('2099-12-31');
+      return fa - fb;
+    }
+  });
+}
+
 function filterTasks() {
   const resp = document.getElementById('taskResp').value;
   const estado = document.getElementById('taskEstado').value;
   const prior = document.getElementById('taskPrioridad').value;
+  const orden = document.getElementById('taskOrden').value;
   let filtered = (window._tasksData || []).filter(t => t.estado !== 'completada');
   if (resp) filtered = filtered.filter(t => t.responsable === resp);
   if (estado) filtered = filtered.filter(t => t.estado === estado);
   if (prior) filtered = filtered.filter(t => t.prioridad === prior);
+  filtered = sortTasks(filtered, orden);
   document.getElementById('taskTableBody').innerHTML = renderTaskRows(filtered);
 }
 

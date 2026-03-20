@@ -125,10 +125,6 @@ function escHtml(s) {
   return d.innerHTML;
 }
 
-// ── Confirm dialog ───────────────────────────────────────────
-function confirm(msg) {
-  return window.confirm(msg);
-}
 
 // ── Modules registry ─────────────────────────────────────────
 const MODULES = {
