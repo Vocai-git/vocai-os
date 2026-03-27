@@ -4,7 +4,7 @@ const auth = require('../middleware/auth');
 const { supabase } = require('../config/supabase');
 
 router.get('/', auth, async (req, res) => {
-  const { mes, categoria } = req.query;
+  const { mes, categoria, responsable } = req.query;
   let query = supabase.from('expenses').select('*').order('fecha', { ascending: false });
   if (mes) {
     const [year, month] = mes.split('-');
@@ -13,6 +13,7 @@ router.get('/', auth, async (req, res) => {
     query = query.gte('fecha', from).lte('fecha', to);
   }
   if (categoria) query = query.eq('categoria', categoria);
+  if (responsable) query = query.eq('responsable', responsable);
   const { data, error } = await query;
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);

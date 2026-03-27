@@ -36,4 +36,26 @@ router.post('/refresh', async (req, res) => {
   res.json({ token: data.session.access_token, refresh_token: data.session.refresh_token });
 });
 
+// PUT /api/auth/password — cambiar contraseña
+router.put('/password', async (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Token requerido' });
+
+  const { password } = req.body;
+  if (!password || password.length < 6) return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+
+  // Usar supabase admin (service role) para actualizar la contraseña
+  const { supabase } = require('../config/supabase');
+
+  // Primero verificar que el token es válido
+  const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+  if (authErr || !user) return res.status(401).json({ error: 'Token inválido' });
+
+  // Actualizar contraseña con admin
+  const { error } = await supabase.auth.admin.updateUserById(user.id, { password });
+  if (error) return res.status(400).json({ error: error.message });
+
+  res.json({ ok: true, message: 'Contraseña actualizada correctamente' });
+});
+
 module.exports = router;

@@ -142,7 +142,12 @@ async function changePassword() {
   if (!p1) { toast('Ingresa la nueva contraseña', 'error'); return; }
   if (p1 !== p2) { toast('Las contraseñas no coinciden', 'error'); return; }
   if (p1.length < 6) { toast('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
-  toast('Función de cambio de contraseña disponible en v2 (configura desde Supabase Dashboard)', 'info');
+  try {
+    await API.put('/auth/password', { password: p1 });
+    toast('Contraseña actualizada correctamente', 'success');
+    document.getElementById('s_pass1').value = '';
+    document.getElementById('s_pass2').value = '';
+  } catch (err) { toast('Error: ' + err.message, 'error'); }
 }
 
 async function connectGoogle() {
