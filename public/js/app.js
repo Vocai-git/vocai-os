@@ -137,7 +137,7 @@ function badge(status) {
 }
 function responsablePill(r) {
   if (!r) return '—';
-  const name = r === 'agus' ? 'Agus' : 'Santi';
+  const name = r.toLowerCase() === 'agus' ? 'Agus' : 'Santi';
   return `<span class="avatar-pill ${r}">${name}</span>`;
 }
 function escHtml(s) {
