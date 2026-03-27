@@ -4,24 +4,23 @@ async function renderExpenses(el) {
 
   let expenses = await API.get(`/expenses?mes=${mesActual}`);
   window._expensesAll = expenses;
+  window._expMes = mesActual;
 
-  renderExpensesUI(el, expenses, mesActual, 'todos');
+  buildExpensesHTML(el, expenses, mesActual);
 }
 
-function renderExpensesUI(el, expenses, mes, filtroResp) {
-  const filtered = filtroResp === 'todos' ? expenses : expenses.filter(e => (e.responsable||'').toLowerCase() === filtroResp.toLowerCase());
-
+function buildExpensesHTML(el, expenses, mes) {
   const totalMes = expenses.reduce((s,e) => s+(e.importe||0), 0);
   const totalAgus = expenses.filter(e => (e.responsable||'').toLowerCase() === 'agus').reduce((s,e) => s+(e.importe||0), 0);
   const totalSanti = expenses.filter(e => (e.responsable||'').toLowerCase() === 'santi').reduce((s,e) => s+(e.importe||0), 0);
-
-  const byCat = {};
-  filtered.forEach(e => { byCat[e.categoria||'otros'] = (byCat[e.categoria||'otros']||0) + e.importe; });
 
   const catColors = {
     software: '#2979FF', marketing: '#FF6B6B', oficina: '#FF8C42',
     personal: '#9D7FE8', servicios: '#00C48C', otros: '#888888'
   };
+
+  const byCat = {};
+  expenses.forEach(e => { byCat[e.categoria||'otros'] = (byCat[e.categoria||'otros']||0) + e.importe; });
 
   el.innerHTML = `
     <div class="section-header">
@@ -34,19 +33,19 @@ function renderExpensesUI(el, expenses, mes, filtroResp) {
 
     <!-- KPIs -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">
-      <div class="card" style="padding:20px;text-align:center;">
+      <div class="card" style="padding:20px;text-align:center;cursor:pointer;" onclick="filtrarGastos('todos')" id="kpiTotal">
         <div style="font-size:13px;color:#888;margin-bottom:8px;">Total del mes</div>
-        <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff;">
+        <div id="kpiTotalVal" style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff;">
           <span style="font-size:14px;color:#888;font-family:Outfit,sans-serif;font-weight:400;">€</span>${totalMes.toLocaleString('es-ES',{minimumFractionDigits:2})}
         </div>
       </div>
-      <div class="card" style="padding:20px;text-align:center;cursor:pointer;${filtroResp==='Agus'?'border-color:#FF6B6B44;':''}" onclick="filterExpByResp('${filtroResp==='Agus'?'todos':'Agus'}')">
+      <div class="card" style="padding:20px;text-align:center;cursor:pointer;" onclick="filtrarGastos('Agus')" id="kpiAgus">
         <div style="font-size:13px;color:#888;margin-bottom:8px;">Agus</div>
         <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff;">
           <span style="font-size:14px;color:#888;font-family:Outfit,sans-serif;font-weight:400;">€</span>${totalAgus.toLocaleString('es-ES',{minimumFractionDigits:2})}
         </div>
       </div>
-      <div class="card" style="padding:20px;text-align:center;cursor:pointer;${filtroResp==='Santi'?'border-color:#FF6B6B44;':''}" onclick="filterExpByResp('${filtroResp==='Santi'?'todos':'Santi'}')">
+      <div class="card" style="padding:20px;text-align:center;cursor:pointer;" onclick="filtrarGastos('Santi')" id="kpiSanti">
         <div style="font-size:13px;color:#888;margin-bottom:8px;">Santi</div>
         <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff;">
           <span style="font-size:14px;color:#888;font-family:Outfit,sans-serif;font-weight:400;">€</span>${totalSanti.toLocaleString('es-ES',{minimumFractionDigits:2})}
@@ -54,11 +53,11 @@ function renderExpensesUI(el, expenses, mes, filtroResp) {
       </div>
     </div>
 
-    <!-- Filtros por categoría -->
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-      <button class="btn ${filtroResp==='todos'?'btn-primary':'btn-secondary'}" style="font-size:12px;padding:6px 12px;" onclick="filterExpByResp('todos')">Todos</button>
-      <button class="btn ${filtroResp==='Agus'?'btn-primary':'btn-secondary'}" style="font-size:12px;padding:6px 12px;" onclick="filterExpByResp('Agus')">Agus</button>
-      <button class="btn ${filtroResp==='Santi'?'btn-primary':'btn-secondary'}" style="font-size:12px;padding:6px 12px;" onclick="filterExpByResp('Santi')">Santi</button>
+    <!-- Filtros -->
+    <div id="expFiltros" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="btn btn-primary" style="font-size:12px;padding:6px 12px;" data-filtro="todos" onclick="filtrarGastos('todos')">Todos</button>
+      <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;" data-filtro="Agus" onclick="filtrarGastos('Agus')">Agus</button>
+      <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;" data-filtro="Santi" onclick="filtrarGastos('Santi')">Santi</button>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;">
@@ -68,34 +67,37 @@ function renderExpensesUI(el, expenses, mes, filtroResp) {
           <table>
             <thead><tr><th>Concepto</th><th>Categoría</th><th>Responsable</th><th>Importe</th><th>Fecha</th><th></th></tr></thead>
             <tbody id="expTableBody">
-              ${renderExpRows(filtered)}
+              ${renderExpRows(expenses)}
             </tbody>
           </table>
         </div>
       </div>
 
       <!-- Resumen por categoría -->
-      <div class="card" style="padding:20px;height:fit-content;">
+      <div class="card" style="padding:20px;height:fit-content;" id="expCatResumen">
         <div style="font-size:14px;font-weight:600;margin-bottom:16px;">Por categoría</div>
-        ${Object.entries(byCat).sort((a,b) => b[1]-a[1]).map(([cat, amt]) => {
-          const color = catColors[cat] || '#888';
-          const pct = totalMes > 0 ? (amt / totalMes * 100) : 0;
-          return `
-            <div style="margin-bottom:12px;">
-              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
-                <span style="text-transform:capitalize;color:#ccc;">${cat}</span>
-                <strong style="color:#fff;">${formatMoney(amt)}</strong>
-              </div>
-              <div style="height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;">
-                <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;"></div>
-              </div>
-            </div>`;
-        }).join('') || '<div style="font-size:13px;color:#888;">Sin gastos este mes</div>'}
+        ${renderCatSummary(byCat, totalMes, catColors)}
       </div>
     </div>`;
+}
 
-  window._expFiltroResp = filtroResp;
-  window._expMes = mes;
+function renderCatSummary(byCat, totalRef, catColors) {
+  const entries = Object.entries(byCat).sort((a,b) => b[1]-a[1]);
+  if (entries.length === 0) return '<div style="font-size:13px;color:#888;">Sin gastos</div>';
+  return entries.map(([cat, amt]) => {
+    const color = catColors[cat] || '#888';
+    const pct = totalRef > 0 ? (amt / totalRef * 100) : 0;
+    return `
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+          <span style="text-transform:capitalize;color:#ccc;">${cat}</span>
+          <strong style="color:#fff;">${formatMoney(amt)}</strong>
+        </div>
+        <div style="height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;"></div>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 function renderExpRows(expenses) {
@@ -106,11 +108,12 @@ function renderExpRows(expenses) {
   };
   return expenses.map(e => {
     const color = catColors[e.categoria] || '#888';
+    const resp = e.responsable || '';
     return `
-    <tr>
+    <tr class="gasto-fila" data-responsable="${escHtml(resp)}" data-importe="${e.importe||0}" data-categoria="${escHtml(e.categoria||'otros')}">
       <td><strong>${escHtml(e.nombre)}</strong></td>
       <td><span style="display:inline-block;padding:3px 10px;border-radius:6px;font-size:12px;text-transform:capitalize;background:${color}22;color:${color};border:1px solid ${color}44;">${escHtml(e.categoria||'otros')}</span></td>
-      <td>${responsablePill(e.responsable||'—')}</td>
+      <td>${responsablePill(resp||'—')}</td>
       <td><strong style="color:#FF6B6B;">${formatMoney(e.importe)}</strong></td>
       <td style="color:#888;">${formatDate(e.fecha)}</td>
       <td>
@@ -123,18 +126,67 @@ function renderExpRows(expenses) {
   }).join('');
 }
 
-function filterExpByResp(resp) {
-  const el = document.getElementById('page');
-  const mes = window._expMes || document.getElementById('expMes')?.value;
-  renderExpensesUI(el, window._expensesAll || [], mes, resp);
+function filtrarGastos(responsable) {
+  // Filtrar filas por DOM
+  const filas = document.querySelectorAll('.gasto-fila');
+  let totalVisible = 0;
+  const byCat = {};
+  const catColors = {
+    software: '#2979FF', marketing: '#FF6B6B', oficina: '#FF8C42',
+    personal: '#9D7FE8', servicios: '#00C48C', otros: '#888888'
+  };
+
+  filas.forEach(fila => {
+    const resp = fila.dataset.responsable || '';
+    const importe = parseFloat(fila.dataset.importe) || 0;
+    const cat = fila.dataset.categoria || 'otros';
+
+    if (responsable === 'todos' || resp.toLowerCase() === responsable.toLowerCase()) {
+      fila.style.display = '';
+      totalVisible += importe;
+      byCat[cat] = (byCat[cat] || 0) + importe;
+    } else {
+      fila.style.display = 'none';
+    }
+  });
+
+  // Actualizar KPI total visible
+  const kpiTotal = document.getElementById('kpiTotalVal');
+  if (kpiTotal) {
+    kpiTotal.innerHTML = `<span style="font-size:14px;color:#888;font-family:Outfit,sans-serif;font-weight:400;">€</span>${totalVisible.toLocaleString('es-ES',{minimumFractionDigits:2})}`;
+  }
+
+  // Actualizar botones activos
+  document.querySelectorAll('#expFiltros button').forEach(btn => {
+    if (btn.dataset.filtro === responsable) {
+      btn.className = 'btn btn-primary';
+    } else {
+      btn.className = 'btn btn-secondary';
+    }
+  });
+
+  // Destacar KPI activo
+  ['kpiTotal','kpiAgus','kpiSanti'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.borderColor = '';
+  });
+  if (responsable === 'Agus') document.getElementById('kpiAgus').style.borderColor = '#FF6B6B44';
+  else if (responsable === 'Santi') document.getElementById('kpiSanti').style.borderColor = '#FF6B6B44';
+
+  // Actualizar resumen por categoría
+  const resumen = document.getElementById('expCatResumen');
+  if (resumen) {
+    resumen.innerHTML = `<div style="font-size:14px;font-weight:600;margin-bottom:16px;">Por categoría</div>` + renderCatSummary(byCat, totalVisible, catColors);
+  }
 }
 
 async function reloadExpenses() {
   const mes = document.getElementById('expMes').value;
   const expenses = await API.get(`/expenses?mes=${mes}`);
   window._expensesAll = expenses;
+  window._expMes = mes;
   const el = document.getElementById('page');
-  renderExpensesUI(el, expenses, mes, 'todos');
+  buildExpensesHTML(el, expenses, mes);
 }
 
 function newExpense() { showExpenseForm(null); }
@@ -173,8 +225,8 @@ function showExpenseForm(data) {
       <div class="form-group">
         <label class="form-label">Responsable</label>
         <select class="form-select" id="ef_responsable">
-          <option value="Agus" ${data?.responsable==='Agus'?'selected':''}>Agus</option>
-          <option value="Santi" ${data?.responsable==='Santi'?'selected':''}>Santi</option>
+          <option value="Agus" ${(data?.responsable||'').toLowerCase()==='agus'?'selected':''}>Agus</option>
+          <option value="Santi" ${(data?.responsable||'').toLowerCase()==='santi'?'selected':''}>Santi</option>
         </select>
       </div>
       <div class="form-group">
