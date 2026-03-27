@@ -9,11 +9,11 @@ async function renderExpenses(el) {
 }
 
 function renderExpensesUI(el, expenses, mes, filtroResp) {
-  const filtered = filtroResp === 'todos' ? expenses : expenses.filter(e => e.responsable === filtroResp);
+  const filtered = filtroResp === 'todos' ? expenses : expenses.filter(e => (e.responsable||'').toLowerCase() === filtroResp.toLowerCase());
 
   const totalMes = expenses.reduce((s,e) => s+(e.importe||0), 0);
-  const totalAgus = expenses.filter(e => e.responsable === 'Agus').reduce((s,e) => s+(e.importe||0), 0);
-  const totalSanti = expenses.filter(e => e.responsable === 'Santi').reduce((s,e) => s+(e.importe||0), 0);
+  const totalAgus = expenses.filter(e => (e.responsable||'').toLowerCase() === 'agus').reduce((s,e) => s+(e.importe||0), 0);
+  const totalSanti = expenses.filter(e => (e.responsable||'').toLowerCase() === 'santi').reduce((s,e) => s+(e.importe||0), 0);
 
   const byCat = {};
   filtered.forEach(e => { byCat[e.categoria||'otros'] = (byCat[e.categoria||'otros']||0) + e.importe; });
