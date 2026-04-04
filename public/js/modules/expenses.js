@@ -24,10 +24,23 @@ function mesLabel() {
   return `${MESES_NOMBRE[window._expMonth - 1]} ${window._expYear}`;
 }
 
-function cambiarMes(delta) {
-  window._expMonth += delta;
-  if (window._expMonth > 12) { window._expMonth = 1; window._expYear++; }
-  if (window._expMonth < 1) { window._expMonth = 12; window._expYear--; }
+function mesAnterior() {
+  if (window._expMonth === 1) {
+    window._expMonth = 12;
+    window._expYear--;
+  } else {
+    window._expMonth--;
+  }
+  cargarGastosMes();
+}
+
+function mesSiguiente() {
+  if (window._expMonth === 12) {
+    window._expMonth = 1;
+    window._expYear++;
+  } else {
+    window._expMonth++;
+  }
   cargarGastosMes();
 }
 
@@ -49,9 +62,9 @@ function buildExpensesHTML(el, expenses) {
       <h2 class="section-title">Gastos</h2>
       <div style="display:flex;gap:10px;align-items:center;">
         <div style="display:flex;align-items:center;gap:8px;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:6px 12px;">
-          <button onclick="cambiarMes(-1)" style="background:none;border:none;color:#888;cursor:pointer;font-size:18px;padding:0 4px;">‹</button>
+          <button onclick="mesAnterior()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:20px;padding:4px 8px;">&lsaquo;</button>
           <span id="expMesLabel" style="font-size:14px;font-weight:600;color:#fff;min-width:140px;text-align:center;">${mesLabel()}</span>
-          <button onclick="cambiarMes(1)" style="background:none;border:none;color:#888;cursor:pointer;font-size:18px;padding:0 4px;">›</button>
+          <button onclick="mesSiguiente()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:20px;padding:4px 8px;">&rsaquo;</button>
         </div>
         <button class="btn btn-primary" onclick="newExpense()">+ Nuevo gasto</button>
       </div>
