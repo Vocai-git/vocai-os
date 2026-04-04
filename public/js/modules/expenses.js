@@ -17,7 +17,7 @@ async function cargarGastosMes(el) {
   let expenses = await API.get(`/expenses?mes=${mes}`);
   window._expensesAll = expenses;
 
-  buildExpensesHTML(el || document.getElementById('page'), expenses);
+  buildExpensesHTML(el || document.getElementById('pageContent'), expenses);
 }
 
 function mesLabel() {
