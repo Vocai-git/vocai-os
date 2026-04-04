@@ -14,10 +14,19 @@ async function renderExpenses(el) {
 
 async function cargarGastosMes(el) {
   const mes = `${window._expYear}-${String(window._expMonth).padStart(2,'0')}`;
-  let expenses = await API.get(`/expenses?mes=${mes}`);
+  const [expenses, yearExpenses] = await Promise.all([
+    API.get(`/expenses?mes=${mes}`),
+    API.get(`/expenses?year=${window._expYear}`)
+  ]);
   window._expensesAll = expenses;
 
-  buildExpensesHTML(el || document.getElementById('pageContent'), expenses);
+  const acumulado = {
+    total: yearExpenses.reduce((s,e) => s+(e.importe||0), 0),
+    agus: yearExpenses.filter(e => (e.responsable||'').toLowerCase() === 'agus').reduce((s,e) => s+(e.importe||0), 0),
+    santi: yearExpenses.filter(e => (e.responsable||'').toLowerCase() === 'santi').reduce((s,e) => s+(e.importe||0), 0)
+  };
+
+  buildExpensesHTML(el || document.getElementById('pageContent'), expenses, acumulado);
 }
 
 function mesLabel() {
@@ -44,7 +53,7 @@ function mesSiguiente() {
   cargarGastosMes();
 }
 
-function buildExpensesHTML(el, expenses) {
+function buildExpensesHTML(el, expenses, acumulado) {
   const totalMes = expenses.reduce((s,e) => s+(e.importe||0), 0);
   const totalAgus = expenses.filter(e => (e.responsable||'').toLowerCase() === 'agus').reduce((s,e) => s+(e.importe||0), 0);
   const totalSanti = expenses.filter(e => (e.responsable||'').toLowerCase() === 'santi').reduce((s,e) => s+(e.importe||0), 0);
@@ -88,6 +97,28 @@ function buildExpensesHTML(el, expenses) {
         <div style="font-size:13px;color:#888;margin-bottom:8px;">Santi</div>
         <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff;">
           <span style="font-size:14px;color:#888;font-family:Outfit,sans-serif;font-weight:400;">€</span>${totalSanti.toLocaleString('es-ES',{minimumFractionDigits:2})}
+        </div>
+      </div>
+    </div>
+
+    <!-- KPIs Acumulado Año -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;padding-top:16px;border-top:1px solid #2a2a2a;">
+      <div class="card" style="padding:14px;text-align:center;">
+        <div style="font-size:11px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Acumulado ${window._expYear}</div>
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;">
+          <span style="font-size:12px;color:#666;font-family:Outfit,sans-serif;font-weight:400;">€</span>${(acumulado?.total||0).toLocaleString('es-ES',{minimumFractionDigits:2})}
+        </div>
+      </div>
+      <div class="card" style="padding:14px;text-align:center;">
+        <div style="font-size:11px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Agus ${window._expYear}</div>
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;">
+          <span style="font-size:12px;color:#666;font-family:Outfit,sans-serif;font-weight:400;">€</span>${(acumulado?.agus||0).toLocaleString('es-ES',{minimumFractionDigits:2})}
+        </div>
+      </div>
+      <div class="card" style="padding:14px;text-align:center;">
+        <div style="font-size:11px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Santi ${window._expYear}</div>
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;">
+          <span style="font-size:12px;color:#666;font-family:Outfit,sans-serif;font-weight:400;">€</span>${(acumulado?.santi||0).toLocaleString('es-ES',{minimumFractionDigits:2})}
         </div>
       </div>
     </div>

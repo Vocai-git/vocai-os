@@ -4,14 +4,16 @@ const auth = require('../middleware/auth');
 const { supabase } = require('../config/supabase');
 
 router.get('/', auth, async (req, res) => {
-  const { mes, categoria, responsable } = req.query;
+  const { mes, year, categoria, responsable } = req.query;
   let query = supabase.from('expenses').select('*').order('fecha', { ascending: false });
   if (mes) {
-    const [year, month] = mes.split('-').map(Number);
-    const from = `${year}-${String(month).padStart(2,'0')}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const to = `${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+    const [y, m] = mes.split('-').map(Number);
+    const from = `${y}-${String(m).padStart(2,'0')}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const to = `${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
     query = query.gte('fecha', from).lte('fecha', to);
+  } else if (year) {
+    query = query.gte('fecha', `${year}-01-01`).lte('fecha', `${year}-12-31`);
   }
   if (categoria) query = query.eq('categoria', categoria);
   if (responsable) query = query.eq('responsable', responsable);
