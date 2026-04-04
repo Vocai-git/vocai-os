@@ -7,9 +7,10 @@ router.get('/', auth, async (req, res) => {
   const { mes, categoria, responsable } = req.query;
   let query = supabase.from('expenses').select('*').order('fecha', { ascending: false });
   if (mes) {
-    const [year, month] = mes.split('-');
-    const from = `${year}-${month}-01`;
-    const to = new Date(year, month, 0).toISOString().split('T')[0];
+    const [year, month] = mes.split('-').map(Number);
+    const from = `${year}-${String(month).padStart(2,'0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const to = `${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
     query = query.gte('fecha', from).lte('fecha', to);
   }
   if (categoria) query = query.eq('categoria', categoria);

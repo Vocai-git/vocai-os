@@ -1,15 +1,37 @@
+// Estado global del módulo
+window._expYear = null;
+window._expMonth = null;
+
+const MESES_NOMBRE = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
 async function renderExpenses(el) {
   const now = new Date();
-  const mesActual = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  window._expYear = now.getFullYear();
+  window._expMonth = now.getMonth() + 1; // 1-12
 
-  let expenses = await API.get(`/expenses?mes=${mesActual}`);
-  window._expensesAll = expenses;
-  window._expMes = mesActual;
-
-  buildExpensesHTML(el, expenses, mesActual);
+  await cargarGastosMes(el);
 }
 
-function buildExpensesHTML(el, expenses, mes) {
+async function cargarGastosMes(el) {
+  const mes = `${window._expYear}-${String(window._expMonth).padStart(2,'0')}`;
+  let expenses = await API.get(`/expenses?mes=${mes}`);
+  window._expensesAll = expenses;
+
+  buildExpensesHTML(el || document.getElementById('page'), expenses);
+}
+
+function mesLabel() {
+  return `${MESES_NOMBRE[window._expMonth - 1]} ${window._expYear}`;
+}
+
+function cambiarMes(delta) {
+  window._expMonth += delta;
+  if (window._expMonth > 12) { window._expMonth = 1; window._expYear++; }
+  if (window._expMonth < 1) { window._expMonth = 12; window._expYear--; }
+  cargarGastosMes();
+}
+
+function buildExpensesHTML(el, expenses) {
   const totalMes = expenses.reduce((s,e) => s+(e.importe||0), 0);
   const totalAgus = expenses.filter(e => (e.responsable||'').toLowerCase() === 'agus').reduce((s,e) => s+(e.importe||0), 0);
   const totalSanti = expenses.filter(e => (e.responsable||'').toLowerCase() === 'santi').reduce((s,e) => s+(e.importe||0), 0);
@@ -26,7 +48,11 @@ function buildExpensesHTML(el, expenses, mes) {
     <div class="section-header">
       <h2 class="section-title">Gastos</h2>
       <div style="display:flex;gap:10px;align-items:center;">
-        <input class="form-input" type="month" id="expMes" value="${mes}" style="width:180px;" onchange="reloadExpenses()">
+        <div style="display:flex;align-items:center;gap:8px;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:6px 12px;">
+          <button onclick="cambiarMes(-1)" style="background:none;border:none;color:#888;cursor:pointer;font-size:18px;padding:0 4px;">‹</button>
+          <span id="expMesLabel" style="font-size:14px;font-weight:600;color:#fff;min-width:140px;text-align:center;">${mesLabel()}</span>
+          <button onclick="cambiarMes(1)" style="background:none;border:none;color:#888;cursor:pointer;font-size:18px;padding:0 4px;">›</button>
+        </div>
         <button class="btn btn-primary" onclick="newExpense()">+ Nuevo gasto</button>
       </div>
     </div>
@@ -101,7 +127,7 @@ function renderCatSummary(byCat, totalRef, catColors) {
 }
 
 function renderExpRows(expenses) {
-  if (expenses.length === 0) return `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">💸</div><div class="empty-title">Sin gastos</div></div></td></tr>`;
+  if (expenses.length === 0) return `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">💸</div><div class="empty-title">Sin gastos este mes</div></div></td></tr>`;
   const catColors = {
     software: '#2979FF', marketing: '#FF6B6B', oficina: '#FF8C42',
     personal: '#9D7FE8', servicios: '#00C48C', otros: '#888888'
@@ -127,7 +153,6 @@ function renderExpRows(expenses) {
 }
 
 function filtrarGastos(responsable) {
-  // Filtrar filas por DOM
   const filas = document.querySelectorAll('.gasto-fila');
   let totalVisible = 0;
   const byCat = {};
@@ -150,22 +175,15 @@ function filtrarGastos(responsable) {
     }
   });
 
-  // Actualizar KPI total visible
   const kpiTotal = document.getElementById('kpiTotalVal');
   if (kpiTotal) {
     kpiTotal.innerHTML = `<span style="font-size:14px;color:#888;font-family:Outfit,sans-serif;font-weight:400;">€</span>${totalVisible.toLocaleString('es-ES',{minimumFractionDigits:2})}`;
   }
 
-  // Actualizar botones activos
   document.querySelectorAll('#expFiltros button').forEach(btn => {
-    if (btn.dataset.filtro === responsable) {
-      btn.className = 'btn btn-primary';
-    } else {
-      btn.className = 'btn btn-secondary';
-    }
+    btn.className = btn.dataset.filtro === responsable ? 'btn btn-primary' : 'btn btn-secondary';
   });
 
-  // Destacar KPI activo
   ['kpiTotal','kpiAgus','kpiSanti'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.borderColor = '';
@@ -173,32 +191,27 @@ function filtrarGastos(responsable) {
   if (responsable === 'Agus') document.getElementById('kpiAgus').style.borderColor = '#FF6B6B44';
   else if (responsable === 'Santi') document.getElementById('kpiSanti').style.borderColor = '#FF6B6B44';
 
-  // Actualizar resumen por categoría
   const resumen = document.getElementById('expCatResumen');
   if (resumen) {
     resumen.innerHTML = `<div style="font-size:14px;font-weight:600;margin-bottom:16px;">Por categoría</div>` + renderCatSummary(byCat, totalVisible, catColors);
   }
 }
 
-async function reloadExpenses() {
-  const mes = document.getElementById('expMes').value;
-  const expenses = await API.get(`/expenses?mes=${mes}`);
-  window._expensesAll = expenses;
-  window._expMes = mes;
-  const el = document.getElementById('page');
-  buildExpensesHTML(el, expenses, mes);
-}
-
 function newExpense() { showExpenseForm(null); }
 
 async function editExpense(id) {
-  const allExp = await API.get('/expenses');
+  const allExp = window._expensesAll || [];
   const e = allExp.find(x => x.id === id);
-  showExpenseForm(e);
+  if (e) showExpenseForm(e);
+  else {
+    const fetched = await API.get('/expenses');
+    showExpenseForm(fetched.find(x => x.id === id));
+  }
 }
 
 function showExpenseForm(data) {
   const isEdit = !!data;
+  const hoy = new Date().toISOString().split('T')[0];
   createModal('expModal', isEdit ? 'Editar gasto' : 'Nuevo gasto', `
     <div class="form-group">
       <label class="form-label">Concepto *</label>
@@ -231,7 +244,7 @@ function showExpenseForm(data) {
       </div>
       <div class="form-group">
         <label class="form-label">Fecha</label>
-        <input class="form-input" id="ef_fecha" type="date" value="${data?.fecha||new Date().toISOString().split('T')[0]}">
+        <input class="form-input" id="ef_fecha" type="date" value="${data?.fecha||hoy}">
       </div>
     </div>
     <div class="form-group" style="display:flex;align-items:center;gap:10px;">
@@ -264,7 +277,7 @@ async function saveExpense(id) {
     else await API.post('/expenses', body);
     toast(id ? 'Gasto actualizado' : 'Gasto añadido', 'success');
     closeModal('expModal');
-    navigate('expenses');
+    cargarGastosMes();
   } catch (err) { toast(err.message, 'error'); }
 }
 
@@ -273,6 +286,6 @@ async function deleteExpense(id) {
   try {
     await API.del(`/expenses/${id}`);
     toast('Gasto eliminado', 'success');
-    navigate('expenses');
+    cargarGastosMes();
   } catch (err) { toast(err.message, 'error'); }
 }
