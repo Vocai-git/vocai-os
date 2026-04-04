@@ -62,9 +62,9 @@ function buildExpensesHTML(el, expenses) {
       <h2 class="section-title">Gastos</h2>
       <div style="display:flex;gap:10px;align-items:center;">
         <div style="display:flex;align-items:center;gap:8px;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:6px 12px;">
-          <button onclick="mesAnterior()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:20px;padding:4px 8px;">&lsaquo;</button>
+          <button type="button" id="btnMesAnt" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;padding:4px 8px;">&#8249;</button>
           <span id="expMesLabel" style="font-size:14px;font-weight:600;color:#fff;min-width:140px;text-align:center;">${mesLabel()}</span>
-          <button onclick="mesSiguiente()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:20px;padding:4px 8px;">&rsaquo;</button>
+          <button type="button" id="btnMesSig" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;padding:4px 8px;">&#8250;</button>
         </div>
         <button class="btn btn-primary" onclick="newExpense()">+ Nuevo gasto</button>
       </div>
@@ -118,6 +118,10 @@ function buildExpensesHTML(el, expenses) {
         ${renderCatSummary(byCat, totalMes, catColors)}
       </div>
     </div>`;
+
+  // Adjuntar eventos después del render
+  document.getElementById('btnMesAnt').addEventListener('click', function() { mesAnterior(); });
+  document.getElementById('btnMesSig').addEventListener('click', function() { mesSiguiente(); });
 }
 
 function renderCatSummary(byCat, totalRef, catColors) {
