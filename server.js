@@ -47,4 +47,5 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`VOCAI OS corriendo en puerto ${PORT}`);
+  require('./automations/scheduler').iniciarScheduler();
 });
