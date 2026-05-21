@@ -169,6 +169,7 @@ const MODULES = {
   myagenda:  { title: 'Mi agenda', render: renderMyagenda },
   agenda:    { title: 'Agenda', render: renderAgenda },
   settings:  { title: 'Configuración', render: renderSettings },
+  'marketing-calendar': { title: 'Calendario editorial', render: renderMarketingCalendar },
 };
 
 // ── Router ───────────────────────────────────────────────────
