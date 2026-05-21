@@ -171,6 +171,7 @@ const MODULES = {
   settings:  { title: 'Configuración', render: renderSettings },
   'marketing-calendar': { title: 'Calendario editorial', render: renderMarketingCalendar },
   'marketing-planning': { title: 'Planificación', render: renderMarketingPlanning },
+  'marketing-intelligence': { title: 'Inteligencia', render: renderMarketingIntelligence },
 };
 
 // ── Router ───────────────────────────────────────────────────
