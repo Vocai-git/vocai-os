@@ -72,6 +72,14 @@ function mktCalInjectStyles() {
       margin-top:16px; padding-top:14px; border-top:1px solid var(--border); align-items:center; }
     .mkt-tally b { color:var(--text); }
     .mkt-tally span { display:flex; align-items:center; gap:5px; }
+    .mkt-prev { position:relative; border-radius:8px; overflow:hidden; cursor:pointer;
+      border:1px solid var(--border); background:#000; }
+    .mkt-prev img { width:100%; max-height:340px; object-fit:contain; display:block; }
+    .mkt-prev:hover { border-color:var(--coral); }
+    .mkt-prev-tag { position:absolute; left:0; right:0; bottom:0; padding:7px 10px;
+      font-size:11px; background:rgba(0,0,0,.62); color:#fff; }
+    .mkt-prev-empty { border:1px dashed var(--border); border-radius:8px; padding:14px;
+      font-size:12px; color:var(--text-dim); text-align:center; }
   `;
   document.head.appendChild(s);
 }
@@ -344,13 +352,41 @@ function mktCalNew(fecha) {
   `);
 }
 
-function mktCalEdit(id) {
+async function mktCalEdit(id) {
   const p = mktCalPiezas.find(x => x.id === id);
   if (!p) return;
-  const btnPub = mktCalMedia(p.notas)
+  const media = mktCalMedia(p.notas);
+
+  // Bloque de previsualización: la imagen de la placa o la portada del carrusel
+  let previewHTML = '';
+  if (media) {
+    let coverUrl = null, etiqueta = '';
+    if (media.tipo === 'historia') {
+      coverUrl = media.url;
+      etiqueta = 'Historia';
+    } else {
+      try {
+        const c = await API.get('/marketing-carousel/uno/' + encodeURIComponent(media.id));
+        coverUrl = c.portada;
+        etiqueta = 'Carrusel · ' + (c.total || 0) + ' slides';
+      } catch (e) { /* el carrusel ya no existe */ }
+    }
+    previewHTML = `<div class="form-group">
+      <label class="form-label">Previsualización</label>
+      ${coverUrl
+        ? `<div class="mkt-prev" onclick="mktCalPreview('${id}')" title="Ampliar">
+             <img src="${escHtml(coverUrl)}" alt="preview">
+             <div class="mkt-prev-tag">${escHtml(etiqueta)} · clic para ampliar 🔍</div>
+           </div>`
+        : `<div class="mkt-prev-empty">No se encontró la imagen — puede que se haya
+             eliminado del Generador.</div>`}
+    </div>`;
+  }
+
+  const btnPub = media
     ? `<button class="btn btn-secondary" onclick="mktCalPublicar('${id}')">Publicar ahora</button>`
     : '';
-  createModal('mktCalModal', 'Editar pieza', mktCalForm(p), `
+  createModal('mktCalModal', 'Editar pieza', previewHTML + mktCalForm(p), `
     <button class="btn btn-danger" onclick="mktCalDelete('${id}')"
       style="margin-right:auto;">Eliminar</button>
     ${btnPub}
