@@ -11,6 +11,10 @@ const fs = require('fs');
 const biblioteca = require('./biblioteca');
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
+// Modelos de texto en orden de preferencia: si el primario está
+// sobrecargado (429/502/503), se cae automáticamente al siguiente.
+const MODELOS_TEXTO = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+
 // Estilos de ilustración — base del prompt de imagen.
 const ESTILOS_ILUSTRACION = {
   flat:      'Flat vector illustration, bold geometric shapes, solid flat colors, ' +
@@ -103,6 +107,15 @@ async function fetchConReintentos(url, opts) {
   return res;
 }
 
+// Convierte una respuesta fallida de Gemini en un Error legible para el usuario.
+async function errorGemini(res, etiqueta) {
+  if ([429, 502, 503].includes(res.status)) {
+    return new Error('Gemini está sobrecargado en este momento. ' +
+      'Esperá un minuto y volvé a intentar.');
+  }
+  return new Error(`Gemini ${etiqueta} ${res.status}: ${await res.text()}`);
+}
+
 // Llamada de texto a Gemini, devuelve el string crudo de la respuesta.
 async function llamarTexto({ sys, user, json, imagenPath }) {
   const userParts = [{ text: user }];
@@ -117,12 +130,21 @@ async function llamarTexto({ sys, user, json, imagenPath }) {
     contents: [{ parts: userParts }],
   };
   if (json) body.generationConfig = { responseMimeType: 'application/json' };
-  const res = await fetchConReintentos(`${BASE}/gemini-2.5-flash:generateContent`, {
+  const opts = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key() },
     body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`Gemini texto ${res.status}: ${await res.text()}`);
+  };
+  // Probar el modelo primario; si sigue sobrecargado, caer al de respaldo.
+  let res;
+  for (let i = 0; i < MODELOS_TEXTO.length; i++) {
+    res = await fetchConReintentos(`${BASE}/${MODELOS_TEXTO[i]}:generateContent`, opts);
+    if (res.ok || ![429, 502, 503].includes(res.status)) break;
+    if (i < MODELOS_TEXTO.length - 1) {
+      console.log(`[Gemini] ${MODELOS_TEXTO[i]} sobrecargado — probando ${MODELOS_TEXTO[i + 1]}`);
+    }
+  }
+  if (!res.ok) throw await errorGemini(res, 'texto');
   const data = await res.json();
   const txt = (data?.candidates?.[0]?.content?.parts || [])
     .map(p => p.text || '').join('').trim();
@@ -385,7 +407,7 @@ async function generarImagen(prompt, savePath, aspecto = '9:16', referenciaPath 
       },
     }),
   });
-  if (!res.ok) throw new Error(`Gemini imagen ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw await errorGemini(res, 'imagen');
   const data = await res.json();
   const parts = data?.candidates?.[0]?.content?.parts || [];
   const img = parts.find(p => p.inlineData || p.inline_data);
@@ -419,7 +441,7 @@ async function editarImagen(imagenPath, instruccion, savePath, aspecto = '9:16')
       },
     }),
   });
-  if (!res.ok) throw new Error(`Gemini edición ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw await errorGemini(res, 'edición');
   const data = await res.json();
   const parts = data?.candidates?.[0]?.content?.parts || [];
   const img = parts.find(p => p.inlineData || p.inline_data);
