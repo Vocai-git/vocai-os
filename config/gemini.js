@@ -398,10 +398,13 @@ async function generarImagen(prompt, savePath, aspecto = '9:16', referenciaPath 
 async function editarImagen(imagenPath, instruccion, savePath, aspecto = '9:16') {
   const b64in = fs.readFileSync(imagenPath).toString('base64');
   const prompt =
-    `Edit this image as follows: ${instruccion}. ` +
-    `Keep the same illustration style and the deep navy blue, electric blue and ` +
-    `coral red color palette. ${aspecto} vertical composition. ` +
-    `Absolutely no text, no letters, no numbers, no words.`;
+    `You are editing this existing image. Apply the following change and make it ` +
+    `clearly and obviously visible in the result — the difference must be noticeable ` +
+    `at a glance: ${instruccion}. ` +
+    `The requested change has priority over keeping things as they are; only keep ` +
+    `the parts of the image that the change does not mention. ` +
+    `This is a background illustration: absolutely no text, no letters, no numbers, ` +
+    `no words. Output a clean ${aspecto} vertical image.`;
   const res = await fetchConReintentos(`${BASE}/gemini-3-pro-image-preview:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key() },
