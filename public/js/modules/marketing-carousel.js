@@ -40,6 +40,7 @@ let mktCarReferencia = null;     // objeto File de la imagen de referencia
 let mktCarUltimo    = null;
 let mktCarCargando  = false;
 let mktCarLista     = [];
+let mktCarFbPaso    = null;   // veredicto: null preguntar · 'motivo' · 'hecho'
 
 // Sub-panel del Generador unificado (sección "Carruseles").
 async function mktGenPanelCarrusel(panel) {
@@ -138,6 +139,7 @@ function mktCarResultadoHTML() {
       <button class="btn btn-secondary" style="margin-top:8px;"
         onclick="mktCarCopiarCopy()">Copiar copy</button>
     </div>` : ''}
+    ${mktCarFeedbackHTML()}
   </div>`;
 }
 
@@ -302,6 +304,7 @@ async function mktCarSubmit() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error del servidor');
     mktCarUltimo = data;
+    mktCarFbPaso = null;
     mktCarReferencia = null;
     toast('Carrusel generado', 'success');
   } catch (err) {
@@ -361,4 +364,59 @@ async function mktCarCalGuardar(id) {
     toast('Añadido al Calendario · Feed', 'success');
     closeModal('mktCarCalModal');
   } catch (err) { toast(err.message, 'error'); }
+}
+
+// ── Veredicto / biblioteca de ejemplos ──────────────────────
+function mktCarFeedbackHTML() {
+  const borde = 'margin-top:16px;border-top:1px solid var(--border);padding-top:14px;';
+  if (mktCarFbPaso === 'hecho') {
+    return `<div style="${borde}font-size:13px;color:var(--text-muted);">
+      ✓ Veredicto guardado. El generador lo tiene en cuenta en las próximas piezas.
+    </div>`;
+  }
+  if (mktCarFbPaso === 'motivo') {
+    return `<div style="${borde}">
+      <label class="form-label">¿Qué falla?</label>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-secondary" onclick="mktCarFbMotivo('copy')">Copy</button>
+        <button class="btn btn-secondary" onclick="mktCarFbMotivo('imagen')">Imagen</button>
+        <button class="btn btn-secondary" onclick="mktCarFbMotivo('tono')">Tono</button>
+      </div>
+    </div>`;
+  }
+  return `<div style="${borde}">
+    <label class="form-label">¿Este carrusel queda o lo rehacés?</label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="mktCarFb('queda')">Queda</button>
+      <button class="btn btn-secondary" onclick="mktCarFb('rehago')">Lo rehago</button>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">
+      Tu veredicto alimenta la biblioteca de ejemplos del generador.</div>
+  </div>`;
+}
+
+function mktCarFb(veredicto) {
+  if (veredicto === 'rehago') {
+    mktCarFbPaso = 'motivo';
+    navigate('marketing-generator');
+    return;
+  }
+  mktCarFbEnviar('queda', '');
+}
+
+function mktCarFbMotivo(motivo) { mktCarFbEnviar('rehago', motivo); }
+
+async function mktCarFbEnviar(veredicto, motivo) {
+  if (!mktCarUltimo) return;
+  try {
+    await API.post('/marketing-biblioteca/feedback', {
+      tipo: 'carrusel', ref: mktCarUltimo.id, veredicto, motivo,
+    });
+    mktCarFbPaso = 'hecho';
+    toast(veredicto === 'queda' ? 'Guardado como ejemplo aprobado'
+      : 'Anotado como ejemplo a evitar', 'success');
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+  navigate('marketing-generator');
 }

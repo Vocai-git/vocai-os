@@ -32,6 +32,7 @@ let mktGenReferencia = null;    // objeto File de la imagen de referencia
 let mktGenUltimo    = null;
 let mktGenCargando  = false;
 let mktGenMuestras  = [];
+let mktGenFbPaso    = null;   // veredicto: null preguntar · 'motivo' · 'hecho'
 
 // Sección activa del Generador unificado: 'historias' | 'feed' | 'carrusel'.
 let mktGenSeccion = 'historias';
@@ -246,6 +247,7 @@ function mktGenResultadoHTML() {
           <button class="btn btn-secondary" style="margin-top:8px;"
             onclick="mktGenAjustar()">Aplicar ajuste</button>
         </div>
+        ${mktGenFeedbackHTML()}
       </div>
     </div>
   </div>`;
@@ -403,6 +405,7 @@ async function mktGenSubmit() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error del servidor');
     mktGenUltimo = data;
+    mktGenFbPaso = null;
     mktGenFoto = null;
     mktGenReferencia = null;
     toast('Placa generada', 'success');
@@ -469,6 +472,7 @@ async function mktGenAjustar() {
       archivo: mktGenUltimo.archivo, instruccion, formato: mktGenCfg().formato,
     });
     mktGenUltimo = data;
+    mktGenFbPaso = null;
     toast('Ajuste aplicado', 'success');
   } catch (err) {
     toast(err.message, 'error');
@@ -476,4 +480,62 @@ async function mktGenAjustar() {
     mktGenCargando = false;
     navigate('marketing-generator');
   }
+}
+
+// ── Veredicto / biblioteca de ejemplos ──────────────────────
+// Después de generar, el humano dice si la placa queda o la
+// rehace; el veredicto alimenta la biblioteca de copy.
+function mktGenFeedbackHTML() {
+  const borde = 'margin-top:16px;border-top:1px solid var(--border);padding-top:14px;';
+  if (mktGenFbPaso === 'hecho') {
+    return `<div style="${borde}font-size:13px;color:var(--text-muted);">
+      ✓ Veredicto guardado. El generador lo tiene en cuenta en las próximas piezas.
+    </div>`;
+  }
+  if (mktGenFbPaso === 'motivo') {
+    return `<div style="${borde}">
+      <label class="form-label">¿Qué falla?</label>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-secondary" onclick="mktGenFbMotivo('copy')">Copy</button>
+        <button class="btn btn-secondary" onclick="mktGenFbMotivo('imagen')">Imagen</button>
+        <button class="btn btn-secondary" onclick="mktGenFbMotivo('tono')">Tono</button>
+      </div>
+    </div>`;
+  }
+  return `<div style="${borde}">
+    <label class="form-label">¿Esta placa queda o la rehacés?</label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="mktGenFb('queda')">Queda</button>
+      <button class="btn btn-secondary" onclick="mktGenFb('rehago')">La rehago</button>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">
+      Tu veredicto alimenta la biblioteca de ejemplos del generador.</div>
+  </div>`;
+}
+
+function mktGenFb(veredicto) {
+  if (veredicto === 'rehago') {
+    mktGenFbPaso = 'motivo';
+    navigate('marketing-generator');
+    return;
+  }
+  mktGenFbEnviar('queda', '');
+}
+
+function mktGenFbMotivo(motivo) { mktGenFbEnviar('rehago', motivo); }
+
+async function mktGenFbEnviar(veredicto, motivo) {
+  if (!mktGenUltimo) return;
+  try {
+    await API.post('/marketing-biblioteca/feedback', {
+      tipo: 'placa', ref: mktGenUltimo.archivo,
+      formato: mktGenCfg().formato, veredicto, motivo,
+    });
+    mktGenFbPaso = 'hecho';
+    toast(veredicto === 'queda' ? 'Guardada como ejemplo aprobado'
+      : 'Anotada como ejemplo a evitar', 'success');
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+  navigate('marketing-generator');
 }

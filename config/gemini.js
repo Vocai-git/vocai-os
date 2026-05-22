@@ -8,6 +8,7 @@
    ============================================================ */
 
 const fs = require('fs');
+const biblioteca = require('./biblioteca');
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 // Estilos de ilustración — base del prompt de imagen.
@@ -133,6 +134,7 @@ async function llamarTexto({ sys, user, json, imagenPath }) {
 async function generarTexto(idea, categoria = '') {
   const ctx = CONTEXTO_CATEGORIA[categoria];
   const bloqueCtx = ctx ? `\nCONTEXTO DE ESTA PLACA: ${ctx}\n` : '';
+  const ejemplos = await biblioteca.bloqueEjemplos();
   const sys =
 `Eres el copywriter de VOCAI — empresa de IA y automatización en Alicante, con
 estudio de grabación propio.
@@ -165,7 +167,7 @@ FÓRMULAS DE TÍTULO (elige una según la idea, no improvises la estructura):
 
 CTA: no va en el título. Si la placa lleva llamada a la acción, va en el subtítulo.
 
-${REGLAS_MARCA}
+${REGLAS_MARCA}${ejemplos}
 
 Devuelve SOLO un JSON { "titulo": "...", "subtitulo": "..." }, sin markdown.`;
 
@@ -184,6 +186,7 @@ Devuelve SOLO un JSON { "titulo": "...", "subtitulo": "..." }, sin markdown.`;
 
 // ── Especialista · Copy: idea → texto del posteo (caption) ───
 async function generarCopy(idea) {
+  const ejemplos = await biblioteca.bloqueEjemplos();
   const sys =
 `Eres el copywriter de VOCAI — empresa de IA y automatización en Alicante, con
 estudio de grabación propio.
@@ -203,7 +206,7 @@ Longitud total: 40 a 80 palabras. Cierra con 4 a 6 hashtags sobrios.
 - Hashtags SÍ: #VOCAI #Alicante #Automatización #InteligenciaArtificial.
 - Hashtags NO: #Innovacion #EstrategiaIA #mindset ni genéricos de relleno.
 
-${REGLAS_MARCA}
+${REGLAS_MARCA}${ejemplos}
 
 Devuelve SOLO el texto del copy, listo para pegar. Sin comillas, sin etiquetas.`;
   const txt = await llamarTexto({ sys, user: `Idea: ${idea}` });
@@ -267,6 +270,7 @@ async function generarCarrusel(idea, estiloSlug, referenciaPath = null) {
     'clima e iluminación. La referencia MANDA sobre el estilo: si choca con la',
     'paleta de marca, gana la referencia. No copies su sujeto literal.',
   ].join(' ') : '';
+  const ejemplos = await biblioteca.bloqueEjemplos();
   const sys =
 `Eres el director creativo de carruseles de VOCAI — empresa de IA y automatización
 en Alicante, con estudio de grabación propio.
@@ -321,9 +325,9 @@ Campos:
 
 El texto de los slides (titulo, cuerpo, dato) cumple estas reglas de marca:
 
-${REGLAS_MARCA}
+${REGLAS_MARCA}${ejemplos}
 
-Respondé SOLO el JSON, sin markdown.`;
+Responde SOLO el JSON, sin markdown.`;
 
   const txt = await llamarTexto({ sys, user: `Idea: ${idea}`, json: true,
     imagenPath: hayRef ? referenciaPath : null });
