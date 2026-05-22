@@ -7,27 +7,23 @@ const path = require('path');
 const multer = require('multer');
 const { generarCarrusel, generarImagen } = require('../config/gemini');
 const { componerSlideCarrusel, CATEGORIAS } = require('../config/placa');
+const storage = require('../config/storage');
 
+// DIR es workspace temporal: el render compone acá y después se sube
+// a Supabase Storage, que es el almacenamiento durable.
 const DIR = path.join(__dirname, '..', 'public', 'generador', 'carruseles');
 const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 15 * 1024 * 1024 } });
 const MODOS = ['ilustracion', 'realista'];
 const estiloPorModo = { ilustracion: '3d', realista: 'realista' };
 
-// Lee meta.json de una carpeta de carrusel.
-function leerMeta(id) {
-  const p = path.join(DIR, id, 'meta.json');
-  if (!fs.existsSync(p)) return null;
-  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { return null; }
-}
-
 // Arma el objeto de respuesta de un carrusel a partir de su meta.
 function carruselDTO(id, meta) {
-  const t = Date.now();
+  const t = meta.stamp || Date.now();
   const slides = (meta.slides || []).map((s, i) => ({
     indice: i + 1, tipo: s.tipo, layout: s.layout || '',
     titulo: s.titulo, cuerpo: s.cuerpo || s.subtitulo || '',
     archivo: `slide-${i + 1}.png`,
-    url: `/generador/carruseles/${id}/slide-${i + 1}.png?t=${meta.stamp || t}`,
+    url: storage.urlPublica(`carruseles/${id}/slide-${i + 1}.png`) + '?t=' + t,
   }));
   return {
     id, modo: meta.modo, categoria: meta.categoria, idea: meta.idea,
@@ -36,20 +32,17 @@ function carruselDTO(id, meta) {
   };
 }
 
-// GET /api/marketing-carousel/carruseles  → lista de carruseles
-router.get('/carruseles', auth, (req, res) => {
+// GET /api/marketing-carousel/carruseles  → lista de carruseles desde Storage
+router.get('/carruseles', auth, async (req, res) => {
   try {
-    if (!fs.existsSync(DIR)) return res.json([]);
-    const items = fs.readdirSync(DIR)
-      .filter(f => /^carrusel-[\w.-]+$/.test(f) &&
-        fs.statSync(path.join(DIR, f)).isDirectory())
-      .map(id => {
-        const meta = leerMeta(id);
-        return meta ? carruselDTO(id, meta) : null;
-      })
-      .filter(Boolean)
-      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-    res.json(items);
+    const entradas = await storage.listar('carruseles');
+    const carpetas = entradas.filter(e => !e.id && /^carrusel-[\w.-]+$/.test(e.name));
+    const items = await Promise.all(carpetas.map(async e => {
+      const meta = await storage.leerJson(`carruseles/${e.name}/meta.json`);
+      return meta ? carruselDTO(e.name, meta) : null;
+    }));
+    res.json(items.filter(Boolean)
+      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha)));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -107,6 +100,10 @@ router.post('/generar', auth, upload.single('referencia'), async (req, res) => {
     };
     fs.writeFileSync(path.join(carpeta, 'meta.json'), JSON.stringify(meta, null, 2));
 
+    // 4 · Persistir toda la carpeta en Supabase Storage (disco de Railway efímero)
+    await Promise.all(fs.readdirSync(carpeta).map(f =>
+      storage.subir(path.join(carpeta, f), `carruseles/${id}/${f}`)));
+
     res.json(carruselDTO(id, meta));
   } catch (err) {
     // limpiar carpeta parcial si algo falló
@@ -118,18 +115,22 @@ router.post('/generar', auth, upload.single('referencia'), async (req, res) => {
 });
 
 // GET /api/marketing-carousel/uno/:id  → un carrusel por id
-router.get('/uno/:id', auth, (req, res) => {
+router.get('/uno/:id', auth, async (req, res) => {
   const id = req.params.id;
   if (!/^carrusel-[\w.-]+$/.test(id)) {
     return res.status(400).json({ error: 'Carrusel inválido' });
   }
-  const meta = leerMeta(id);
-  if (!meta) return res.status(404).json({ error: 'No se encontró el carrusel' });
-  res.json(carruselDTO(id, meta));
+  try {
+    const meta = await storage.leerJson(`carruseles/${id}/meta.json`);
+    if (!meta) return res.status(404).json({ error: 'No se encontró el carrusel' });
+    res.json(carruselDTO(id, meta));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // DELETE /api/marketing-carousel/:id  → eliminar un carrusel
-router.delete('/:id', auth, (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   const id = req.params.id;
   if (!/^carrusel-[\w.-]+$/.test(id)) {
     return res.status(400).json({ error: 'Carrusel inválido' });
@@ -137,6 +138,7 @@ router.delete('/:id', auth, (req, res) => {
   try {
     const carpeta = path.join(DIR, id);
     if (fs.existsSync(carpeta)) fs.rmSync(carpeta, { recursive: true, force: true });
+    await storage.borrarPrefijo(`carruseles/${id}`);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

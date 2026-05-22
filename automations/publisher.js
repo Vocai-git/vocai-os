@@ -4,12 +4,9 @@
    (placa o carrusel del Generador) y la publica en IG + FB.
    ============================================================ */
 
-const fs = require('fs');
-const path = require('path');
 const { supabase } = require('../config/supabase');
 const meta = require('../config/meta');
-
-const CARRUSELES = path.join(__dirname, '..', 'public', 'generador', 'carruseles');
+const storage = require('../config/storage');
 
 // Extrae la media asociada a una pieza desde el campo notas.
 function mediaDePieza(notas) {
@@ -31,23 +28,24 @@ function mediaDePieza(notas) {
   return null;
 }
 
-// URLs públicas (absolutas) de las imágenes de una pieza.
-function urlsDePieza(pieza) {
+// URLs públicas (absolutas) de las imágenes de una pieza — desde Supabase Storage.
+async function urlsDePieza(pieza) {
   const m = mediaDePieza(pieza.notas);
   if (!m) return null;
-  const base = meta.cfg().base;
-  if (m.tipo === 'imagen') return { tipo: 'imagen', urls: [base + m.ruta] };
+  if (m.tipo === 'imagen') {
+    // m.ruta = /generador/muestras/pieza-X.png  →  muestras/pieza-X.png
+    const sp = m.ruta.replace(/^\/generador\//, '');
+    return { tipo: 'imagen', urls: [storage.urlPublica(sp)] };
+  }
 
-  // carrusel: leer meta.json para saber cuántas slides tiene
-  const metaPath = path.join(CARRUSELES, m.id, 'meta.json');
-  if (!fs.existsSync(metaPath)) return null;
-  let info;
-  try { info = JSON.parse(fs.readFileSync(metaPath, 'utf8')); } catch (e) { return null; }
+  // carrusel: leer meta.json de Storage para saber cuántas slides tiene
+  const info = await storage.leerJson(`carruseles/${m.id}/meta.json`);
+  if (!info) return null;
   const n = (info.slides || []).length;
   if (!n) return null;
   const urls = [];
   for (let i = 1; i <= n; i++) {
-    urls.push(`${base}/generador/carruseles/${m.id}/slide-${i}.png`);
+    urls.push(storage.urlPublica(`carruseles/${m.id}/slide-${i}.png`));
   }
   return { tipo: 'carrusel', urls };
 }
@@ -64,7 +62,7 @@ async function publicarPieza(pieza) {
   if (!meta.metaConfigurado()) {
     return { ok: false, error: 'Faltan las credenciales de Meta en el .env' };
   }
-  const media = urlsDePieza(pieza);
+  const media = await urlsDePieza(pieza);
   if (!media) {
     return { ok: false, error: 'La pieza no tiene una imagen del Generador asociada' };
   }

@@ -7,43 +7,41 @@ const path = require('path');
 const multer = require('multer');
 const { generarTexto, generarPromptImagen, generarImagen, editarImagen } = require('../config/gemini');
 const { componerPlacaHistoria, CATEGORIAS } = require('../config/placa');
+const storage = require('../config/storage');
 
+// DIR es workspace temporal: el render compone acá y después se sube
+// a Supabase Storage, que es el almacenamiento durable.
 const DIR = path.join(__dirname, '..', 'public', 'generador', 'muestras');
 const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 15 * 1024 * 1024 } });
 
 const MODOS = ['ilustracion', 'realista', 'foto'];
 
-// Metadata de una pieza: del .json hermano.
-function meta(archivo) {
-  const jsonPath = path.join(DIR, archivo.replace(/\.(png|jpe?g|webp)$/i, '.json'));
-  if (fs.existsSync(jsonPath)) {
-    try { return JSON.parse(fs.readFileSync(jsonPath, 'utf8')); } catch (e) { /* ignora */ }
-  }
-  return { categoria: null, modo: '', idea: '', titulo: '', subtitulo: '', fuente: '' };
-}
+// Nombre del archivo de fondo a partir del nombre de la placa.
 function fondoDe(archivo) {
-  return path.join(DIR, archivo.replace(/\.png$/i, '-fondo.png'));
+  return archivo.replace(/\.png$/i, '-fondo.png');
 }
 
-// GET /api/marketing-generator/muestras  → lista las placas (no los fondos crudos)
-router.get('/muestras', auth, (req, res) => {
+// GET /api/marketing-generator/muestras  → lista las placas desde Storage
+router.get('/muestras', auth, async (req, res) => {
   try {
-    if (!fs.existsSync(DIR)) return res.json([]);
-    const files = fs.readdirSync(DIR)
-      .filter(f => /^pieza-.*\.(png|jpe?g|webp)$/i.test(f) && !/-fondo\.png$/i.test(f))
-      .map(f => {
-        const st = fs.statSync(path.join(DIR, f));
-        const m = meta(f);
-        return {
-          archivo: f, url: '/generador/muestras/' + f + '?t=' + Math.floor(st.mtimeMs),
-          mtime: st.mtimeMs,
-          categoria: m.categoria || null, modo: m.modo || '',
-          idea: m.idea || '', titulo: m.titulo || '',
-          subtitulo: m.subtitulo || '', fuente: m.fuente || '',
-        };
-      })
-      .sort((a, b) => b.mtime - a.mtime);
-    res.json(files);
+    const entradas = await storage.listar('muestras');
+    const pngs = entradas.filter(e => e.id &&
+      /^pieza-.*\.png$/i.test(e.name) && !/-fondo\.png$/i.test(e.name));
+    const items = await Promise.all(pngs.map(async e => {
+      const base = e.name.replace(/\.png$/i, '');
+      const m = await storage.leerJson(`muestras/${base}.json`) || {};
+      const stamp = m.stamp || Date.parse(m.fecha || '') || 0;
+      return {
+        archivo: e.name,
+        url: storage.urlPublica(`muestras/${e.name}`) + '?t=' + stamp,
+        mtime: stamp,
+        categoria: m.categoria || null, modo: m.modo || '',
+        idea: m.idea || '', titulo: m.titulo || '',
+        subtitulo: m.subtitulo || '', fuente: m.fuente || '',
+      };
+    }));
+    items.sort((a, b) => b.mtime - a.mtime);
+    res.json(items);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -73,7 +71,10 @@ router.post('/generar', auth,
     // 2 · Imagen de fondo — se conserva para poder ajustarla después
     const stamp = Date.now();
     const archivo = `pieza-${categoria}-${stamp}.png`;
-    const fondoPath = fondoDe(archivo);
+    const fondoNombre = fondoDe(archivo);
+    const fondoPath = path.join(DIR, fondoNombre);
+    const salidaPath = path.join(DIR, archivo);
+
     if (modo === 'foto') {
       fs.copyFileSync(fotoFile.path, fondoPath);
       if (req.body.retocar === 'true') {
@@ -94,18 +95,29 @@ router.post('/generar', auth,
       ilustracionPath: fondoPath,
       titulo: texto.titulo, subtitulo: texto.subtitulo,
       fuente, categoria,
-      salidaPath: path.join(DIR, archivo),
+      salidaPath,
     });
 
     // 4 · Metadata
     const m = {
       modo, categoria, idea, titulo: texto.titulo, subtitulo: texto.subtitulo,
-      fuente, fecha: new Date().toISOString(),
+      fuente, stamp, fecha: new Date().toISOString(),
     };
     fs.writeFileSync(path.join(DIR, archivo.replace(/\.png$/, '.json')),
                      JSON.stringify(m, null, 2));
 
-    res.json({ archivo, url: '/generador/muestras/' + archivo + '?t=' + stamp, ...m });
+    // 5 · Persistir en Supabase Storage (el disco de Railway es efímero)
+    await Promise.all([
+      storage.subir(salidaPath, `muestras/${archivo}`),
+      storage.subir(fondoPath, `muestras/${fondoNombre}`),
+      storage.subirJson(m, `muestras/${archivo.replace(/\.png$/, '.json')}`),
+    ]);
+
+    res.json({
+      archivo,
+      url: storage.urlPublica(`muestras/${archivo}`) + '?t=' + stamp,
+      ...m,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   } finally {
@@ -123,36 +135,64 @@ router.post('/ajustar', auth, async (req, res) => {
     return res.status(400).json({ error: 'Placa inválida' });
   }
   if (!instruccion) return res.status(400).json({ error: 'Escribí qué querés ajustar' });
-  const fondoPath = fondoDe(archivo);
-  if (!fs.existsSync(fondoPath)) {
-    return res.status(400).json({ error: 'No se encontró la imagen base de esta placa' });
-  }
+
+  const fondoNombre = fondoDe(archivo);
+  const jsonNombre = archivo.replace(/\.png$/i, '.json');
+  const fondoPath = path.join(DIR, fondoNombre);
+  const salidaPath = path.join(DIR, archivo);
+
   try {
-    const m = meta(archivo);
+    if (!fs.existsSync(DIR)) fs.mkdirSync(DIR, { recursive: true });
+
+    // recuperar el fondo: del disco o, si se redeployó, de Storage
+    if (!fs.existsSync(fondoPath)) {
+      const ok = await storage.bajar(`muestras/${fondoNombre}`, fondoPath);
+      if (!ok) return res.status(400).json({ error: 'No se encontró la imagen base de esta placa' });
+    }
+    const m = await storage.leerJson(`muestras/${jsonNombre}`);
+    if (!m) return res.status(400).json({ error: 'No se encontró la metadata de esta placa' });
+
     // editar el fondo (sobreescribe) y recomponer la placa
     await editarImagen(fondoPath, instruccion, fondoPath);
     await componerPlacaHistoria({
       ilustracionPath: fondoPath,
       titulo: m.titulo, subtitulo: m.subtitulo,
       fuente: m.fuente, categoria: m.categoria,
-      salidaPath: path.join(DIR, archivo),
+      salidaPath,
     });
-    res.json({ archivo, url: '/generador/muestras/' + archivo + '?t=' + Date.now(), ...m });
+
+    m.stamp = Date.now();
+    fs.writeFileSync(path.join(DIR, jsonNombre), JSON.stringify(m, null, 2));
+    await Promise.all([
+      storage.subir(salidaPath, `muestras/${archivo}`),
+      storage.subir(fondoPath, `muestras/${fondoNombre}`),
+      storage.subirJson(m, `muestras/${jsonNombre}`),
+    ]);
+
+    res.json({
+      archivo,
+      url: storage.urlPublica(`muestras/${archivo}`) + '?t=' + m.stamp,
+      ...m,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // DELETE /api/marketing-generator/:archivo  → eliminar una pieza
-router.delete('/:archivo', auth, (req, res) => {
+router.delete('/:archivo', auth, async (req, res) => {
   const f = req.params.archivo;
   if (!/^pieza-[\w.-]+\.(png|jpe?g|webp)$/i.test(f)) {
     return res.status(400).json({ error: 'Archivo inválido' });
   }
   try {
-    [path.join(DIR, f), fondoDe(f),
-     path.join(DIR, f.replace(/\.(png|jpe?g|webp)$/i, '.json'))]
+    const fondoNombre = fondoDe(f);
+    const jsonNombre = f.replace(/\.(png|jpe?g|webp)$/i, '.json');
+    [path.join(DIR, f), path.join(DIR, fondoNombre), path.join(DIR, jsonNombre)]
       .forEach(p => { if (fs.existsSync(p)) fs.unlinkSync(p); });
+    await storage.borrar([
+      `muestras/${f}`, `muestras/${fondoNombre}`, `muestras/${jsonNombre}`,
+    ]);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
