@@ -8,19 +8,37 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { execFile } = require('child_process');
+const { execFile, execSync } = require('child_process');
 
 const CHROME_RUTAS = [
+  // Windows (desarrollo local)
   path.join(process.env.ProgramFiles || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
   path.join(process.env['ProgramFiles(x86)'] || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
   path.join(process.env.LOCALAPPDATA || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
   path.join(process.env['ProgramFiles(x86)'] || '', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
   path.join(process.env.ProgramFiles || '', 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+  // Linux (Railway / contenedores)
+  '/usr/bin/chromium', '/usr/bin/chromium-browser',
+  '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable',
 ];
 
 function buscarChrome() {
+  // 1. Ruta explícita por variable de entorno
+  if (process.env.CHROME_PATH && fs.existsSync(process.env.CHROME_PATH)) {
+    return process.env.CHROME_PATH;
+  }
+  // 2. Rutas conocidas (Windows + Linux)
   for (const r of CHROME_RUTAS) {
     if (r && fs.existsSync(r)) return r;
+  }
+  // 3. Resolver el binario desde el PATH (Nixpacks instala 'chromium' ahí)
+  for (const cmd of ['chromium', 'chromium-browser', 'google-chrome', 'google-chrome-stable']) {
+    try {
+      const buscar = process.platform === 'win32' ? `where ${cmd}` : `command -v ${cmd}`;
+      const p = execSync(buscar, { stdio: ['ignore', 'pipe', 'ignore'] })
+        .toString().trim().split(/\r?\n/)[0];
+      if (p && fs.existsSync(p)) return p;
+    } catch (e) { /* no está, probar el siguiente */ }
   }
   throw new Error('No se encontró Chrome ni Edge para renderizar la placa');
 }
@@ -94,9 +112,9 @@ function renderHtml(html, salidaPath, ancho = 1080, alto = 1920) {
       `placa-${Date.now()}-${Math.random().toString(36).slice(2)}.html`);
     fs.writeFileSync(tmpHtml, html, 'utf8');
     const args = [
-      '--headless', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
-      '--force-device-scale-factor=1', `--window-size=${ancho},${alto}`,
-      '--virtual-time-budget=6000',
+      '--headless', '--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage',
+      '--hide-scrollbars', '--force-device-scale-factor=1',
+      `--window-size=${ancho},${alto}`, '--virtual-time-budget=6000',
       `--screenshot=${salidaPath}`,
       'file:///' + tmpHtml.replace(/\\/g, '/'),
     ];
