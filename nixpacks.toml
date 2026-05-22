@@ -1,4 +1,0 @@
-# Instala Chromium en el contenedor de Railway.
-# Lo necesita config/placa.js para renderizar las placas y carruseles.
-[phases.setup]
-nixPkgs = ['...', 'chromium']
