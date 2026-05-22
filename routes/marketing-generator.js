@@ -95,7 +95,7 @@ router.post('/generar', auth,
       if (req.body.retocar === 'true') {
         const retoque = (req.body.retoque || '').trim() ||
           'armonizá los colores y la iluminación con una estética de marca tecnológica navy y azul';
-        await editarImagen(fondoPath, retoque, fondoPath);
+        await editarImagen(fondoPath, retoque, fondoPath, fmt.aspecto);
       }
     } else {
       // Especialista de prompt: idea → prompt técnico dedicado para Nano Banana
@@ -171,7 +171,7 @@ router.post('/ajustar', auth, async (req, res) => {
     if (!m) return res.status(400).json({ error: 'No se encontró la metadata de esta placa' });
 
     // editar el fondo (sobreescribe) y recomponer la placa
-    await editarImagen(fondoPath, instruccion, fondoPath);
+    await editarImagen(fondoPath, instruccion, fondoPath, fmt.aspecto);
     await fmt.componer({
       ilustracionPath: fondoPath,
       titulo: m.titulo, subtitulo: m.subtitulo,

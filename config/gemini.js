@@ -264,7 +264,7 @@ async function generarImagen(prompt, savePath, aspecto = '9:16', referenciaPath 
       contents: [{ parts: partsReq }],
       generationConfig: {
         responseModalities: ['IMAGE'],
-        imageConfig: { aspectRatio: aspecto },
+        imageConfig: { aspectRatio: aspecto, imageSize: '2K' },
       },
     }),
   });
@@ -278,12 +278,12 @@ async function generarImagen(prompt, savePath, aspecto = '9:16', referenciaPath 
 }
 
 // ── Nano Banana Pro: editar una imagen existente ────────────
-async function editarImagen(imagenPath, instruccion, savePath) {
+async function editarImagen(imagenPath, instruccion, savePath, aspecto = '9:16') {
   const b64in = fs.readFileSync(imagenPath).toString('base64');
   const prompt =
     `Edit this image as follows: ${instruccion}. ` +
     `Keep the same illustration style and the deep navy blue, electric blue and ` +
-    `coral red color palette. Vertical 9:16 composition. ` +
+    `coral red color palette. ${aspecto} vertical composition. ` +
     `Absolutely no text, no letters, no numbers, no words.`;
   const res = await fetchConReintentos(`${BASE}/gemini-3-pro-image-preview:generateContent`, {
     method: 'POST',
@@ -295,7 +295,7 @@ async function editarImagen(imagenPath, instruccion, savePath) {
       ] }],
       generationConfig: {
         responseModalities: ['IMAGE'],
-        imageConfig: { aspectRatio: '9:16' },
+        imageConfig: { aspectRatio: aspecto, imageSize: '2K' },
       },
     }),
   });
