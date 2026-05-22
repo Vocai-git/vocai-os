@@ -84,7 +84,8 @@ router.post('/generar', auth,
     } else {
       // Especialista de prompt: idea → prompt técnico dedicado para Nano Banana
       const estiloPorModo = { ilustracion: '3d', realista: 'realista' };
-      const promptImagen = await generarPromptImagen(idea, estiloPorModo[modo] || '3d');
+      const promptImagen = await generarPromptImagen(idea, estiloPorModo[modo] || '3d',
+        refFile ? refFile.path : null);
       await generarImagen(promptImagen, fondoPath, '9:16', refFile ? refFile.path : null);
     }
 

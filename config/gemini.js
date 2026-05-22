@@ -45,10 +45,17 @@ async function fetchConReintentos(url, opts) {
 }
 
 // Llamada de texto a Gemini, devuelve el string crudo de la respuesta.
-async function llamarTexto({ sys, user, json }) {
+async function llamarTexto({ sys, user, json, imagenPath }) {
+  const userParts = [{ text: user }];
+  if (imagenPath && fs.existsSync(imagenPath)) {
+    const b64 = fs.readFileSync(imagenPath).toString('base64');
+    const mime = /\.png$/i.test(imagenPath) ? 'image/png'
+      : /\.webp$/i.test(imagenPath) ? 'image/webp' : 'image/jpeg';
+    userParts.unshift({ inlineData: { mimeType: mime, data: b64 } });
+  }
   const body = {
     systemInstruction: { parts: [{ text: sys }] },
-    contents: [{ parts: [{ text: user }] }],
+    contents: [{ parts: userParts }],
   };
   if (json) body.generationConfig = { responseMimeType: 'application/json' };
   const res = await fetchConReintentos(`${BASE}/gemini-2.5-flash:generateContent`, {
@@ -95,8 +102,16 @@ Respondé SOLO el JSON, sin markdown.`;
 }
 
 // ── Especialista 2 · Prompt engineer para Nano Banana ────────
-async function generarPromptImagen(idea, estiloSlug) {
+async function generarPromptImagen(idea, estiloSlug, referenciaPath = null) {
   const estiloDesc = ESTILOS_ILUSTRACION[estiloSlug] || ESTILOS_ILUSTRACION['3d'];
+  const hayRef = referenciaPath && fs.existsSync(referenciaPath);
+  const bloqueRef = hayRef ? '\n\n' + [
+    'IMAGEN DE REFERENCIA: te adjunto una imagen. Estudiala y construí el prompt',
+    'para que la imagen final ADOPTE su estilo visual, su paleta de colores, su',
+    'clima/mood, su iluminación y su composición. La referencia MANDA sobre el',
+    'estilo: si choca con el estilo base o la paleta de abajo, gana la referencia.',
+    'No copies el sujeto literal de la referencia — aplicá su LOOK a la escena.',
+  ].join(' ') : '';
   const sys =
 `Sos un prompt engineer experto en Nano Banana Pro (el modelo de imagen de Gemini),
 trabajando para VOCAI — empresa de IA y automatización en Alicante con estudio de
@@ -105,7 +120,7 @@ grabación propio.
 Te dan una IDEA en español para la ILUSTRACIÓN DE FONDO de una placa de historia
 de Instagram (vertical 9:16). Tu trabajo NO es copiar la idea ni escribirla: es
 traducirla a un prompt visual profesional, concreto y rico, para que el modelo
-genere una imagen potente y de calidad.
+genere una imagen potente y de calidad.${bloqueRef}
 
 Devolvés SOLO el prompt final en inglés — sin comillas, sin markdown, sin
 explicaciones, sin etiquetas. Reglas para construirlo:
@@ -121,7 +136,8 @@ explicaciones, sin etiquetas. Reglas para construirlo:
 * Keep the lower half of the image calm and darker — text will be placed there.
 * Terminá con esta frase exacta: Absolutely no text, no letters, no numbers, no words.`;
 
-  const txt = await llamarTexto({ sys, user: `Idea: ${idea}`, json: false });
+  const txt = await llamarTexto({ sys, user: `Idea: ${idea}`, json: false,
+    imagenPath: hayRef ? referenciaPath : null });
   const prompt = txt.replace(/^```\w*\s*/i, '').replace(/```\s*$/i, '')
     .replace(/^["']|["']$/g, '').trim();
   if (!prompt) throw new Error('No se pudo generar el prompt de imagen');
@@ -133,8 +149,15 @@ explicaciones, sin etiquetas. Reglas para construirlo:
 const LAYOUTS_CARRUSEL = ['portada', 'imagen-fondo', 'split', 'texto-pleno', 'dato', 'cita', 'cierre'];
 const LAYOUTS_CON_IMAGEN = ['portada', 'imagen-fondo', 'split', 'cierre'];
 
-async function generarCarrusel(idea, estiloSlug) {
+async function generarCarrusel(idea, estiloSlug, referenciaPath = null) {
   const estiloDesc = ESTILOS_ILUSTRACION[estiloSlug] || ESTILOS_ILUSTRACION['3d'];
+  const hayRef = referenciaPath && fs.existsSync(referenciaPath);
+  const bloqueRef = hayRef ? '\n\n' + [
+    'IMAGEN DE REFERENCIA: te adjunto una imagen. Todos los prompt_imagen de los',
+    'slides con imagen deben ADOPTAR su estilo visual, su paleta de colores, su',
+    'clima e iluminación. La referencia MANDA sobre el estilo: si choca con la',
+    'paleta de marca, gana la referencia. No copies su sujeto literal.',
+  ].join(' ') : '';
   const sys =
 `Sos el director creativo de carruseles de VOCAI — empresa de IA y automatización
 en Alicante con estudio de grabación propio. Tagline: "La voz de tu negocio".
@@ -142,7 +165,7 @@ en Alicante con estudio de grabación propio. Tagline: "La voz de tu negocio".
 Te dan una IDEA en español. La convertís en un CARRUSEL de Instagram: 4 a 8 slides
 que se leen en secuencia. REGLA NÚMERO UNO: que NO sea monótono. Cada slide tiene
 que sorprender — variá el layout, el ritmo y la cantidad de texto. Está prohibido
-que todos los slides se vean igual.
+que todos los slides se vean igual.${bloqueRef}
 
 Estructura:
 - Slide 1: PORTADA. El gancho que frena el scroll.
@@ -189,7 +212,8 @@ Campos:
 
 Respondé SOLO el JSON, sin markdown.`;
 
-  const txt = await llamarTexto({ sys, user: `Idea: ${idea}`, json: true });
+  const txt = await llamarTexto({ sys, user: `Idea: ${idea}`, json: true,
+    imagenPath: hayRef ? referenciaPath : null });
   let data;
   try {
     data = JSON.parse(txt.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim());
@@ -224,8 +248,11 @@ async function generarImagen(prompt, savePath, aspecto = '9:16', referenciaPath 
       : /\.webp$/i.test(referenciaPath) ? 'image/webp' : 'image/jpeg';
     partsReq = [
       { inlineData: { mimeType: mime, data: refB64 } },
-      { text: prompt + ' Use the attached image as visual reference for style, mood, ' +
-              'palette and composition — take inspiration from it, do not copy it literally.' },
+      { text: prompt + ' IMPORTANT: an image is attached as a STYLE REFERENCE. ' +
+              'Match its visual style, color palette, lighting, mood and composition ' +
+              'closely — the result must clearly belong to the same visual world. ' +
+              'Do not reproduce the reference subject literally; apply its look to the ' +
+              'scene described above.' },
     ];
   } else {
     partsReq = [{ text: prompt }];

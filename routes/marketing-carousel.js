@@ -74,7 +74,8 @@ router.post('/generar', auth, upload.single('referencia'), async (req, res) => {
     fs.mkdirSync(carpeta, { recursive: true });
 
     // 1 · Especialista: idea → estructura de slides
-    const slides = await generarCarrusel(idea, estiloPorModo[modo] || '3d');
+    const slides = await generarCarrusel(idea, estiloPorModo[modo] || '3d',
+      refFile ? refFile.path : null);
     const total = slides.length;
 
     // 2 · Por cada slide: imagen de fondo (si el layout la lleva) + composición
