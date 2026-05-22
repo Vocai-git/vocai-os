@@ -5,7 +5,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const multer = require('multer');
-const { generarTexto, generarPromptImagen, generarImagen, editarImagen } = require('../config/gemini');
+const { generarTexto, generarCopy, generarPromptImagen, generarImagen, editarImagen } = require('../config/gemini');
 const { componerPlacaHistoria, componerPlacaFeed, CATEGORIAS } = require('../config/placa');
 const storage = require('../config/storage');
 
@@ -50,6 +50,7 @@ router.get('/muestras', auth, async (req, res) => {
         categoria: m.categoria || null, modo: m.modo || '',
         idea: m.idea || '', titulo: m.titulo || '',
         subtitulo: m.subtitulo || '', fuente: m.fuente || '',
+        copy: m.copy || '',
       };
     }));
     items.sort((a, b) => b.mtime - a.mtime);
@@ -64,7 +65,8 @@ router.post('/generar', auth,
   upload.fields([{ name: 'foto', maxCount: 1 }, { name: 'referencia', maxCount: 1 }]),
   async (req, res) => {
   const idea = (req.body.idea || '').trim();
-  const categoria = req.body.categoria;
+  // Categoría opcional: si no es válida queda vacía ("Sin categoría").
+  const categoria = CATEGORIAS[req.body.categoria] ? req.body.categoria : '';
   const modo = MODOS.includes(req.body.modo) ? req.body.modo : 'ilustracion';
   const fuente = (req.body.fuente || '').trim();
   const formato = fmtDe(req.body.formato);
@@ -73,19 +75,19 @@ router.post('/generar', auth,
   const refFile  = req.files && req.files.referencia ? req.files.referencia[0] : null;
 
   if (!idea) return res.status(400).json({ error: 'Escribí tu idea primero' });
-  if (!CATEGORIAS[categoria]) return res.status(400).json({ error: 'Elegí una categoría' });
   if (modo === 'foto' && !fotoFile) return res.status(400).json({ error: 'Subí una foto' });
 
   try {
     const DIR = dirDe(formato);
     if (!fs.existsSync(DIR)) fs.mkdirSync(DIR, { recursive: true });
 
-    // 1 · Especialista de copy: idea → título + subtítulo
+    // 1 · Especialistas de texto: título/subtítulo y, en feed, el copy del posteo
     const texto = await generarTexto(idea);
+    const copy = formato === 'feed' ? await generarCopy(idea) : '';
 
     // 2 · Imagen de fondo — se conserva para poder ajustarla después
     const stamp = Date.now();
-    const archivo = `pieza-${categoria}-${stamp}.png`;
+    const archivo = `pieza-${categoria || 'sincat'}-${stamp}.png`;
     const fondoNombre = fondoDe(archivo);
     const fondoPath = path.join(DIR, fondoNombre);
     const salidaPath = path.join(DIR, archivo);
@@ -116,7 +118,7 @@ router.post('/generar', auth,
     // 4 · Metadata
     const m = {
       modo, categoria, idea, titulo: texto.titulo, subtitulo: texto.subtitulo,
-      fuente, formato, stamp, fecha: new Date().toISOString(),
+      fuente, copy, formato, stamp, fecha: new Date().toISOString(),
     };
     fs.writeFileSync(path.join(DIR, archivo.replace(/\.png$/, '.json')),
                      JSON.stringify(m, null, 2));

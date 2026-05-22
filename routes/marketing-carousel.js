@@ -5,7 +5,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const multer = require('multer');
-const { generarCarrusel, generarImagen } = require('../config/gemini');
+const { generarCarrusel, generarImagen, generarCopy } = require('../config/gemini');
 const { componerSlideCarrusel, CATEGORIAS } = require('../config/placa');
 const storage = require('../config/storage');
 
@@ -27,7 +27,8 @@ function carruselDTO(id, meta) {
   }));
   return {
     id, modo: meta.modo, categoria: meta.categoria, idea: meta.idea,
-    fuente: meta.fuente || '', fecha: meta.fecha, total: slides.length,
+    fuente: meta.fuente || '', copy: meta.copy || '',
+    fecha: meta.fecha, total: slides.length,
     portada: slides[0] ? slides[0].url : null, slides,
   };
 }
@@ -51,24 +52,25 @@ router.get('/carruseles', auth, async (req, res) => {
 // POST /api/marketing-carousel/generar  → genera un carrusel completo
 router.post('/generar', auth, upload.single('referencia'), async (req, res) => {
   const idea = (req.body.idea || '').trim();
-  const categoria = req.body.categoria;
+  // Categoría opcional: si no es válida queda vacía ("Sin categoría").
+  const categoria = CATEGORIAS[req.body.categoria] ? req.body.categoria : '';
   const modo = MODOS.includes(req.body.modo) ? req.body.modo : 'ilustracion';
   const fuente = (req.body.fuente || '').trim();
   const refFile = req.file || null;
 
   if (!idea) return res.status(400).json({ error: 'Escribí tu idea primero' });
-  if (!CATEGORIAS[categoria]) return res.status(400).json({ error: 'Elegí una categoría' });
 
   const stamp = Date.now();
-  const id = `carrusel-${categoria}-${stamp}`;
+  const id = `carrusel-${categoria || 'sincat'}-${stamp}`;
   const carpeta = path.join(DIR, id);
 
   try {
     fs.mkdirSync(carpeta, { recursive: true });
 
-    // 1 · Especialista: idea → estructura de slides
+    // 1 · Especialistas: estructura de slides + copy del posteo
     const slides = await generarCarrusel(idea, estiloPorModo[modo] || '3d',
       refFile ? refFile.path : null);
+    const copy = await generarCopy(idea);
     const total = slides.length;
 
     // 2 · Por cada slide: imagen de fondo (si el layout la lleva) + composición
@@ -91,7 +93,7 @@ router.post('/generar', auth, upload.single('referencia'), async (req, res) => {
 
     // 3 · Metadata
     const meta = {
-      id, modo, categoria, idea, fuente, stamp,
+      id, modo, categoria, idea, fuente, copy, stamp,
       fecha: new Date().toISOString(),
       slides: slides.map(s => ({
         tipo: s.tipo, layout: s.layout, titulo: s.titulo,

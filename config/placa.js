@@ -66,7 +66,11 @@ const CATEGORIAS = {
 function htmlPlacaHistoria({ ilustracionDataUri, titulo, subtitulo, fuente, categoria }) {
   const cat = CATEGORIAS[categoria];
   const acento = cat ? cat.acento : '#FF6B6B';
-  const etiqueta = cat ? cat.etiqueta : '';
+  const kicker = cat ? `
+    <div class="kicker">
+      <span class="barra"></span>
+      <span class="cat">${esc(cat.etiqueta)}</span>
+    </div>` : '';
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -90,11 +94,7 @@ html,body{width:1080px;height:1920px;}
 <div class="placa">
   <img class="fondo" src="${ilustracionDataUri}">
   <div class="velo"></div>
-  <div class="contenido">
-    <div class="kicker">
-      <span class="barra"></span>
-      ${etiqueta ? `<span class="cat">${esc(etiqueta)}</span>` : ''}
-    </div>
+  <div class="contenido">${kicker}
     <div class="titulo">${esc(titulo)}</div>
     ${subtitulo ? `<div class="subtitulo">${esc(subtitulo)}</div>` : ''}
     ${fuente ? `<div class="fuente">Fuente · ${esc(fuente)}</div>` : ''}
@@ -149,7 +149,11 @@ async function componerPlacaHistoria({ ilustracionPath, titulo, subtitulo, fuent
 function htmlPlacaFeed({ ilustracionDataUri, titulo, subtitulo, fuente, categoria }) {
   const cat = CATEGORIAS[categoria];
   const acento = cat ? cat.acento : '#FF6B6B';
-  const etiqueta = cat ? cat.etiqueta : '';
+  const kicker = cat ? `
+    <div class="kicker">
+      <span class="barra"></span>
+      <span class="cat">${esc(cat.etiqueta)}</span>
+    </div>` : '';
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -173,11 +177,7 @@ html,body{width:1080px;height:1350px;}
 <div class="placa">
   <img class="fondo" src="${ilustracionDataUri}">
   <div class="velo"></div>
-  <div class="contenido">
-    <div class="kicker">
-      <span class="barra"></span>
-      ${etiqueta ? `<span class="cat">${esc(etiqueta)}</span>` : ''}
-    </div>
+  <div class="contenido">${kicker}
     <div class="titulo" data-fit-max="80" data-fit-min="46" data-fit-h="430">${esc(titulo)}</div>
     ${subtitulo ? `<div class="subtitulo">${esc(subtitulo)}</div>` : ''}
     ${fuente ? `<div class="fuente">Fuente · ${esc(fuente)}</div>` : ''}

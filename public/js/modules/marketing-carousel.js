@@ -65,7 +65,10 @@ function mktCarFormHTML() {
       </div>
       <div class="form-group">
         <label class="form-label">Categoría</label>
-        <select class="form-select" id="mcar_categoria" ${dis}>${opt(MKT_CAR_CATEGORIAS, mktCarCategoria)}</select>
+        <select class="form-select" id="mcar_categoria" ${dis}>
+          <option value="" ${mktCarCategoria === '' ? 'selected' : ''}>Sin categoría</option>
+          ${opt(MKT_CAR_CATEGORIAS, mktCarCategoria)}
+        </select>
       </div>
     </div>
     <div class="form-group">
@@ -128,6 +131,13 @@ function mktCarResultadoHTML() {
       <button class="btn btn-secondary" onclick="mktCarDescargar('${escHtml(c.id)}')">Descargar todas</button>
       <button class="btn btn-primary" onclick="mktCarAlCalendario('${escHtml(c.id)}')">Añadir al calendario</button>
     </div>
+    ${c.copy ? `
+    <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+      <label class="form-label">Copy del posteo</label>
+      <textarea class="form-textarea" id="mcar_copy" rows="7">${escHtml(c.copy)}</textarea>
+      <button class="btn btn-secondary" style="margin-top:8px;"
+        onclick="mktCarCopiarCopy()">Copiar copy</button>
+    </div>` : ''}
   </div>`;
 }
 
@@ -302,6 +312,15 @@ async function mktCarSubmit() {
   }
 }
 
+// Copia el copy del carrusel al portapapeles.
+function mktCarCopiarCopy() {
+  const t = document.getElementById('mcar_copy');
+  if (!t) return;
+  navigator.clipboard.writeText(t.value).then(
+    () => toast('Copy copiado al portapapeles', 'success'),
+    () => toast('No se pudo copiar', 'error'));
+}
+
 // ── Añadir al calendario ────────────────────────────────────
 function mktCarAlCalendario(id) {
   const c = mktCarLista.find(x => x.id === id) ||
@@ -336,8 +355,8 @@ async function mktCarCalGuardar(id) {
       formato: 'carrusel',
       pilar:   MKT_CAR_CAT_PILAR[c.categoria] || 'ia',
       estado:  'lista',
-      notas:   '[media:/generador/carruseles/' + c.id + '/] Carrusel del Generador · ' +
-               c.total + ' slides',
+      notas:   '[media:/generador/carruseles/' + c.id + '/] ' +
+               (c.copy || ('Carrusel del Generador · ' + c.total + ' slides')),
     });
     toast('Añadido al Calendario · Feed', 'success');
     closeModal('mktCarCalModal');

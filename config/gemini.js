@@ -101,6 +101,27 @@ Respondé SOLO el JSON, sin markdown.`;
   };
 }
 
+// ── Especialista · Copy: idea → texto del posteo (caption) ───
+async function generarCopy(idea) {
+  const sys =
+`Sos el copywriter de VOCAI — empresa de IA y automatización en Alicante con
+estudio de grabación propio. Tagline: "La voz de tu negocio".
+
+Te dan una IDEA. Escribís el COPY: el texto que acompaña al posteo de Instagram
+(feed o carrusel), el que va debajo de la imagen.
+
+Reglas:
+- Español rioplatense. Tono experto pero cercano y directo, con algo de actitud.
+  Nada de relleno corporativo ni clichés.
+- Primera línea: un gancho fuerte que frene el scroll.
+- Después, 2 a 4 líneas cortas que desarrollen la idea. Podés usar saltos de línea.
+- Cerrá con una llamada a la acción clara.
+- Sumá al final 3 a 5 hashtags relevantes.
+- Devolvé SOLO el texto del copy, listo para pegar. Sin comillas, sin etiquetas.`;
+  const txt = await llamarTexto({ sys, user: `Idea: ${idea}` });
+  return txt.trim();
+}
+
 // ── Especialista 2 · Prompt engineer para Nano Banana ────────
 async function generarPromptImagen(idea, estiloSlug, referenciaPath = null, aspecto = '9:16') {
   const estiloDesc = ESTILOS_ILUSTRACION[estiloSlug] || ESTILOS_ILUSTRACION['3d'];
@@ -308,6 +329,6 @@ async function editarImagen(imagenPath, instruccion, savePath, aspecto = '9:16')
 }
 
 module.exports = {
-  generarTexto, generarPromptImagen, generarCarrusel,
+  generarTexto, generarCopy, generarPromptImagen, generarCarrusel,
   generarImagen, editarImagen, ESTILOS_ILUSTRACION,
 };

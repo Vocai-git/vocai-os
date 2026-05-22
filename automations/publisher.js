@@ -50,8 +50,13 @@ async function urlsDePieza(pieza) {
   return { tipo: 'carrusel', urls };
 }
 
-// Texto del posteo.
+// Texto del posteo. El copy del Generador viaja en las notas, después del
+// marcador [media:...]; si hay un copy real, ese es el caption.
 function captionDePieza(pieza) {
+  let copy = (pieza.notas || '').replace(/\[media:[^\]]+\]\s*/g, '').trim();
+  // descartar las descripciones genéricas viejas (no son un copy real)
+  if (/^(Placa|Carrusel) del Generador\b/.test(copy)) copy = '';
+  if (copy) return copy;
   let txt = pieza.titulo || '';
   if (pieza.cta) txt += '\n\n' + pieza.cta;
   return txt;

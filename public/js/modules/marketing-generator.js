@@ -117,7 +117,10 @@ function mktGenFormHTML() {
       </div>
       <div class="form-group">
         <label class="form-label">Categoría</label>
-        <select class="form-select" id="mgen_categoria" ${dis}>${opt(MKT_GEN_CATEGORIAS, mktGenCategoria)}</select>
+        <select class="form-select" id="mgen_categoria" ${dis}>
+          <option value="" ${mktGenCategoria === '' ? 'selected' : ''}>Sin categoría</option>
+          ${opt(MKT_GEN_CATEGORIAS, mktGenCategoria)}
+        </select>
       </div>
     </div>
     <div class="form-group">
@@ -229,6 +232,13 @@ function mktGenResultadoHTML() {
           <button class="btn btn-primary"
             onclick="mktGenAlCalendario('${escHtml(u.archivo)}')">Añadir al calendario</button>
         </div>
+        ${u.copy ? `
+        <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+          <label class="form-label">Copy del posteo</label>
+          <textarea class="form-textarea" id="mgen_copy" rows="7">${escHtml(u.copy)}</textarea>
+          <button class="btn btn-secondary" style="margin-top:8px;"
+            onclick="mktGenCopiarCopy()">Copiar copy</button>
+        </div>` : ''}
         <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
           <label class="form-label">Ajustar esta placa</label>
           <textarea class="form-textarea" id="mgen_ajuste" rows="2"
@@ -246,6 +256,15 @@ function mktGenCampo(label, valor) {
     <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);
       margin-bottom:4px;">${escHtml(label)}</div>
     <div style="font-size:13px;margin-bottom:12px;">${escHtml(valor || '—')}</div>`;
+}
+
+// Copia el copy de la placa al portapapeles.
+function mktGenCopiarCopy() {
+  const t = document.getElementById('mgen_copy');
+  if (!t) return;
+  navigator.clipboard.writeText(t.value).then(
+    () => toast('Copy copiado al portapapeles', 'success'),
+    () => toast('No se pudo copiar', 'error'));
 }
 
 // ── Galería / historial ─────────────────────────────────────
@@ -430,7 +449,8 @@ async function mktGenCalGuardar(archivo) {
       formato: cfg.calFormato,
       pilar:   MKT_GEN_CAT_PILAR[m.categoria] || 'ia',
       estado:  'lista',
-      notas:   '[media:' + (m.url || '').split('?')[0] + '] Placa del Generador',
+      notas:   '[media:' + (m.url || '').split('?')[0] + '] ' +
+               (m.copy || 'Placa del Generador'),
     });
     toast('Añadida al Calendario · ' + cfg.calNombre, 'success');
     closeModal('mktGenCalModal');
