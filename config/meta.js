@@ -17,9 +17,11 @@ function cfg() {
 }
 
 // ¿Están las credenciales mínimas para publicar?
+// Las imágenes salen de Supabase Storage (URLs públicas absolutas),
+// así que ya no hace falta PUBLIC_BASE_URL.
 function metaConfigurado() {
   const c = cfg();
-  return !!(c.token && c.igUser && c.base);
+  return !!(c.token && c.igUser);
 }
 
 // ── Llamadas a la Graph API ─────────────────────────────────
