@@ -29,6 +29,21 @@ function key() {
   return k;
 }
 
+// fetch a Gemini con reintentos ante sobrecarga temporal (429/502/503).
+async function fetchConReintentos(url, opts) {
+  const esperas = [0, 4000, 12000];   // ms de espera antes de cada intento
+  let res;
+  for (let i = 0; i < esperas.length; i++) {
+    if (esperas[i]) await new Promise(r => setTimeout(r, esperas[i]));
+    res = await fetch(url, opts);
+    if (res.ok || ![429, 502, 503].includes(res.status)) return res;
+    if (i < esperas.length - 1) {
+      console.log(`[Gemini] HTTP ${res.status} — sobrecarga, reintentando...`);
+    }
+  }
+  return res;
+}
+
 // Llamada de texto a Gemini, devuelve el string crudo de la respuesta.
 async function llamarTexto({ sys, user, json }) {
   const body = {
@@ -36,7 +51,7 @@ async function llamarTexto({ sys, user, json }) {
     contents: [{ parts: [{ text: user }] }],
   };
   if (json) body.generationConfig = { responseMimeType: 'application/json' };
-  const res = await fetch(`${BASE}/gemini-2.5-flash:generateContent`, {
+  const res = await fetchConReintentos(`${BASE}/gemini-2.5-flash:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key() },
     body: JSON.stringify(body),
@@ -201,7 +216,7 @@ Respondé SOLO el JSON, sin markdown.`;
 
 // ── Nano Banana Pro: prompt → imagen, guardada en savePath ───
 async function generarImagen(prompt, savePath, aspecto = '9:16') {
-  const res = await fetch(`${BASE}/gemini-3-pro-image-preview:generateContent`, {
+  const res = await fetchConReintentos(`${BASE}/gemini-3-pro-image-preview:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key() },
     body: JSON.stringify({
@@ -229,7 +244,7 @@ async function editarImagen(imagenPath, instruccion, savePath) {
     `Keep the same illustration style and the deep navy blue, electric blue and ` +
     `coral red color palette. Vertical 9:16 composition. ` +
     `Absolutely no text, no letters, no numbers, no words.`;
-  const res = await fetch(`${BASE}/gemini-3-pro-image-preview:generateContent`, {
+  const res = await fetchConReintentos(`${BASE}/gemini-3-pro-image-preview:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key() },
     body: JSON.stringify({
