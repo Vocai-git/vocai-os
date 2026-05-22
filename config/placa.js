@@ -141,6 +141,82 @@ async function componerPlacaHistoria({ ilustracionPath, titulo, subtitulo, fuent
 }
 
 // ════════════════════════════════════════════════════════════
+//  Placa de feed (1080x1350, formato 4:5)
+//  Misma idea que la historia, adaptada al formato cuadrado-alto.
+//  El título se auto-ajusta a su caja en el render.
+// ════════════════════════════════════════════════════════════
+
+function htmlPlacaFeed({ ilustracionDataUri, titulo, subtitulo, fuente, categoria }) {
+  const cat = CATEGORIAS[categoria];
+  const acento = cat ? cat.acento : '#FF6B6B';
+  const etiqueta = cat ? cat.etiqueta : '';
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1080px;height:1350px;}
+.placa{position:relative;width:1080px;height:1350px;overflow:hidden;
+  background:#141d35;font-family:'Inter','Segoe UI',sans-serif;}
+.fondo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.velo{position:absolute;left:0;right:0;bottom:0;height:84%;
+  background:linear-gradient(to bottom,rgba(20,29,53,0) 0%,
+    rgba(20,29,53,.55) 34%,rgba(20,29,53,.93) 62%,#141d35 86%);}
+.contenido{position:absolute;left:0;right:0;bottom:172px;padding:0 90px;}
+.kicker{display:flex;align-items:center;gap:16px;margin-bottom:26px;}
+.barra{width:52px;height:8px;border-radius:4px;background:${acento};}
+.cat{font-weight:700;font-size:27px;letter-spacing:.14em;color:${acento};}
+.titulo{font-weight:800;line-height:1.09;color:#fff;letter-spacing:-.02em;}
+.subtitulo{font-weight:400;font-size:37px;line-height:1.32;
+  color:rgba(255,255,255,.74);margin-top:24px;}
+.fuente{font-weight:400;font-size:27px;color:#8AA2D4;letter-spacing:.02em;margin-top:20px;}
+.logo{position:absolute;bottom:76px;left:50%;transform:translateX(-50%);height:60px;}
+</style></head><body>
+<div class="placa">
+  <img class="fondo" src="${ilustracionDataUri}">
+  <div class="velo"></div>
+  <div class="contenido">
+    <div class="kicker">
+      <span class="barra"></span>
+      ${etiqueta ? `<span class="cat">${esc(etiqueta)}</span>` : ''}
+    </div>
+    <div class="titulo" data-fit-max="80" data-fit-min="46" data-fit-h="430">${esc(titulo)}</div>
+    ${subtitulo ? `<div class="subtitulo">${esc(subtitulo)}</div>` : ''}
+    ${fuente ? `<div class="fuente">Fuente · ${esc(fuente)}</div>` : ''}
+  </div>
+  ${LOGO_B64 ? `<img class="logo" src="data:image/png;base64,${LOGO_B64}">` : ''}
+</div>
+<script>
+(function(){
+  function fit(){
+    var els=document.querySelectorAll('[data-fit-max]');
+    for(var i=0;i<els.length;i++){
+      var el=els[i],s=+el.getAttribute('data-fit-max'),
+          mn=+el.getAttribute('data-fit-min'),
+          lh=+el.getAttribute('data-fit-h')||999999;
+      el.style.fontSize=s+'px';
+      var guard=0;
+      while(s>mn && el.scrollHeight>lh && guard<200){s-=2;el.style.fontSize=s+'px';guard++;}
+    }
+  }
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(fit);}
+  fit();
+  setTimeout(fit,1400);
+})();
+</script>
+</body></html>`;
+}
+
+// Compone la placa de feed final y la guarda en salidaPath.
+async function componerPlacaFeed({ ilustracionPath, titulo, subtitulo, fuente, categoria, salidaPath }) {
+  const b64 = fs.readFileSync(ilustracionPath).toString('base64');
+  const html = htmlPlacaFeed({
+    ilustracionDataUri: 'data:image/png;base64,' + b64,
+    titulo, subtitulo, fuente, categoria,
+  });
+  await renderHtml(html, salidaPath, 1080, 1350);
+  return salidaPath;
+}
+
+// ════════════════════════════════════════════════════════════
 //  Slides de carrusel (1080x1350, formato 4:5)
 //  Sistema de layouts variados para que el carrusel no sea
 //  monótono. El texto se auto-ajusta a su caja en el render.
@@ -345,4 +421,4 @@ async function componerSlideCarrusel({ ilustracionPath, titulo, cuerpo, dato, ca
   return salidaPath;
 }
 
-module.exports = { componerPlacaHistoria, componerSlideCarrusel, CATEGORIAS };
+module.exports = { componerPlacaHistoria, componerPlacaFeed, componerSlideCarrusel, CATEGORIAS };

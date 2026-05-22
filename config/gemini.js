@@ -102,7 +102,7 @@ Respondé SOLO el JSON, sin markdown.`;
 }
 
 // ── Especialista 2 · Prompt engineer para Nano Banana ────────
-async function generarPromptImagen(idea, estiloSlug, referenciaPath = null) {
+async function generarPromptImagen(idea, estiloSlug, referenciaPath = null, aspecto = '9:16') {
   const estiloDesc = ESTILOS_ILUSTRACION[estiloSlug] || ESTILOS_ILUSTRACION['3d'];
   const hayRef = referenciaPath && fs.existsSync(referenciaPath);
   const bloqueRef = hayRef ? '\n\n' + [
@@ -117,8 +117,8 @@ async function generarPromptImagen(idea, estiloSlug, referenciaPath = null) {
 trabajando para VOCAI — empresa de IA y automatización en Alicante con estudio de
 grabación propio.
 
-Te dan una IDEA en español para la ILUSTRACIÓN DE FONDO de una placa de historia
-de Instagram (vertical 9:16). Tu trabajo NO es copiar la idea ni escribirla: es
+Te dan una IDEA en español para la ILUSTRACIÓN DE FONDO de una placa de
+Instagram (vertical, formato ${aspecto}). Tu trabajo NO es copiar la idea ni escribirla: es
 traducirla a un prompt visual profesional, concreto y rico, para que el modelo
 genere una imagen potente y de calidad.${bloqueRef}
 
@@ -132,7 +132,7 @@ explicaciones, sin etiquetas. Reglas para construirlo:
 * No incluyas el texto literal de la idea dentro de la imagen.
 * Paleta: deep navy blue (#141d35) dominant background, electric blue (#2979FF)
   and coral red (#FF6B6B) accents.
-* Vertical 9:16 composition.
+* ${aspecto} vertical composition.
 * Keep the lower half of the image calm and darker — text will be placed there.
 * Terminá con esta frase exacta: Absolutely no text, no letters, no numbers, no words.`;
 

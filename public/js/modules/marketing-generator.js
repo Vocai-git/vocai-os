@@ -33,8 +33,18 @@ let mktGenUltimo    = null;
 let mktGenCargando  = false;
 let mktGenMuestras  = [];
 
-// Sección activa del Generador unificado: 'historias' | 'carrusel'.
+// Sección activa del Generador unificado: 'historias' | 'feed' | 'carrusel'.
 let mktGenSeccion = 'historias';
+
+// Config de la sección de placa suelta activa (historias 9:16 / feed 4:5).
+function mktGenCfg() {
+  if (mktGenSeccion === 'feed') return {
+    formato: 'feed', ratio: '4 / 5', calFormato: 'post', calNombre: 'Feed',
+  };
+  return {
+    formato: 'historia', ratio: '9 / 16', calFormato: 'story', calNombre: 'Historias',
+  };
+}
 
 // Carga una idea externa (ej. desde Inteligencia) y abre el Generador.
 function generarDesdeIdea(idea, fuente) {
@@ -43,7 +53,7 @@ function generarDesdeIdea(idea, fuente) {
   mktGenIdea = idea; mktGenFuente = fuente; mktGenCategoria = 'novedad';
   mktCarIdea = idea; mktCarFuente = fuente; mktCarCategoria = 'novedad';
   navigate('marketing-generator');
-  toast('Idea cargada — elegí Historias o Carruseles y generá', 'success');
+  toast('Idea cargada — elegí Historias, Feed o Carruseles y generá', 'success');
 }
 
 async function renderMarketingGenerator(el) {
@@ -70,6 +80,7 @@ function mktGenToggleHTML() {
       onclick="mktGenSetSeccion('${k}')">${label}</button>`;
   return `<div style="display:flex;gap:8px;margin-bottom:18px;">
     ${tab('historias', 'Historias')}
+    ${tab('feed', 'Feed')}
     ${tab('carrusel', 'Carruseles')}
   </div>`;
 }
@@ -77,12 +88,13 @@ function mktGenToggleHTML() {
 function mktGenSetSeccion(s) {
   if (mktGenSeccion === s) return;
   mktGenSeccion = s;
+  mktGenUltimo = null;
   navigate('marketing-generator');
 }
 
 // Sub-panel "Historias" (placas verticales).
 async function mktGenPanelHistorias(panel) {
-  mktGenMuestras = await API.get('/marketing-generator/muestras');
+  mktGenMuestras = await API.get('/marketing-generator/muestras?formato=' + mktGenCfg().formato);
   panel.innerHTML = `
     ${mktGenFormHTML()}
     ${mktGenResultadoHTML()}
@@ -202,9 +214,9 @@ function mktGenResultadoHTML() {
     <div style="display:flex;gap:20px;flex-wrap:wrap;">
       <img src="${escHtml(u.url)}" alt="placa generada" title="Clic para ampliar"
         onclick="mktGenVerUltimo()"
-        style="width:260px;aspect-ratio:9/16;object-fit:contain;align-self:flex-start;
-               flex:0 0 auto;border-radius:10px;border:1px solid var(--border);
-               cursor:zoom-in;">
+        style="width:260px;aspect-ratio:${mktGenCfg().ratio};object-fit:contain;
+               align-self:flex-start;flex:0 0 auto;border-radius:10px;
+               border:1px solid var(--border);cursor:zoom-in;">
       <div style="flex:1;min-width:240px;">
         ${mktGenCampo('Categoría', MKT_GEN_CATEGORIAS[u.categoria] || u.categoria)}
         ${mktGenCampo('Modo', MKT_GEN_MODOS[u.modo] || u.modo)}
@@ -274,7 +286,7 @@ function mktGenThumb(m) {
          onmouseover="this.style.transform='translateY(-3px)'"
          onmouseout="this.style.transform='translateY(0)'">
       <img src="${escHtml(m.url)}" loading="lazy"
-           style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block;">
+           style="width:100%;aspect-ratio:${mktGenCfg().ratio};object-fit:cover;display:block;">
       <div style="padding:7px 9px;font-size:11px;color:var(--text-muted);
                   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
         ${escHtml(info)}
@@ -326,7 +338,8 @@ function mktGenDescargar(m) {
 async function mktGenBorrar(archivo) {
   if (!confirm('¿Eliminar esta placa? No se puede deshacer.')) return;
   try {
-    await API.del('/marketing-generator/' + encodeURIComponent(archivo));
+    await API.del('/marketing-generator/' + encodeURIComponent(archivo) +
+      '?formato=' + mktGenCfg().formato);
     toast('Placa eliminada', 'success');
     closeLightbox();
     navigate('marketing-generator');
@@ -351,6 +364,7 @@ async function mktGenSubmit() {
     fd.append('categoria', categoria);
     fd.append('modo', modo);
     fd.append('fuente', fuente);
+    fd.append('formato', mktGenCfg().formato);
     if (modo === 'foto' && mktGenFoto) {
       fd.append('foto', mktGenFoto);
       const rc = document.getElementById('mgen_retocar');
@@ -387,9 +401,10 @@ function mktGenAlCalendario(archivo) {
             (mktGenUltimo && mktGenUltimo.archivo === archivo ? mktGenUltimo : null);
   if (!m) { toast('No se encontró la placa', 'error'); return; }
   const hoy = new Date().toISOString().slice(0, 10);
+  const cfg = mktGenCfg();
   createModal('mktGenCalModal', 'Añadir al calendario', `
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5;">
-      Se va a crear una historia en el <b>Calendario · Historias</b> con esta placa,
+      Se va a crear una pieza en el <b>Calendario · ${cfg.calNombre}</b> con esta placa,
       en la categoría <b>${escHtml(MKT_GEN_CATEGORIAS[m.categoria] || m.categoria || '—')}</b>.</p>
     <div class="form-group">
       <label class="form-label">Fecha de publicación</label>
@@ -407,16 +422,17 @@ async function mktGenCalGuardar(archivo) {
   if (!m) return;
   const fecha = document.getElementById('mgcal_fecha').value;
   if (!fecha) { toast('Elegí una fecha', 'error'); return; }
+  const cfg = mktGenCfg();
   try {
     await API.post('/marketing-calendar', {
       titulo:  m.titulo || m.idea || 'Placa generada',
       fecha,
-      formato: 'story',
+      formato: cfg.calFormato,
       pilar:   MKT_GEN_CAT_PILAR[m.categoria] || 'ia',
       estado:  'lista',
       notas:   '[media:' + (m.url || '').split('?')[0] + '] Placa del Generador',
     });
-    toast('Añadida al Calendario · Historias', 'success');
+    toast('Añadida al Calendario · ' + cfg.calNombre, 'success');
     closeModal('mktGenCalModal');
   } catch (err) { toast(err.message, 'error'); }
 }
@@ -430,7 +446,7 @@ async function mktGenAjustar() {
   navigate('marketing-generator');
   try {
     const data = await API.post('/marketing-generator/ajustar', {
-      archivo: mktGenUltimo.archivo, instruccion,
+      archivo: mktGenUltimo.archivo, instruccion, formato: mktGenCfg().formato,
     });
     mktGenUltimo = data;
     toast('Ajuste aplicado', 'success');
