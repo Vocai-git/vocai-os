@@ -28,6 +28,7 @@ let mktGenCategoria = 'novedad';
 let mktGenIdea      = '';
 let mktGenFuente    = '';
 let mktGenFoto      = null;     // objeto File de la foto subida
+let mktGenReferencia = null;    // objeto File de la imagen de referencia
 let mktGenUltimo    = null;
 let mktGenCargando  = false;
 let mktGenMuestras  = [];
@@ -117,6 +118,16 @@ function mktGenFormHTML() {
       <input class="form-input" id="mgen_fuente" value="${escHtml(mktGenFuente)}" ${dis}
         placeholder="Ej: TechCrunch — aparece como crédito en la placa">
     </div>
+    <div class="form-group" id="mgen_ref_wrap"
+         style="display:${mktGenModo !== 'foto' ? 'block' : 'none'};">
+      <label class="form-label">Imagen de referencia (opcional)</label>
+      <input type="file" class="form-input" id="mgen_referencia" accept="image/*" ${dis}
+        onchange="mktGenSetReferencia(this)">
+      <div id="mgen_ref_info" style="font-size:12px;color:var(--text-muted);margin-top:6px;">
+        ${mktGenReferencia ? '✓ ' + escHtml(mktGenReferencia.name)
+          : 'Nano Banana la usa como guía de estilo, clima y composición.'}
+      </div>
+    </div>
     <div class="form-group" id="mgen_foto_wrap"
          style="display:${mktGenModo === 'foto' ? 'block' : 'none'};">
       <label class="form-label">Tu foto</label>
@@ -150,6 +161,8 @@ function mktGenToggleModo(v) {
   mktGenModo = v;
   const w = document.getElementById('mgen_foto_wrap');
   if (w) w.style.display = v === 'foto' ? 'block' : 'none';
+  const r = document.getElementById('mgen_ref_wrap');
+  if (r) r.style.display = v !== 'foto' ? 'block' : 'none';
 }
 
 function mktGenToggleRetoque(checked) {
@@ -162,6 +175,13 @@ function mktGenSetFoto(input) {
   const info = document.getElementById('mgen_foto_info');
   if (info) info.textContent = mktGenFoto ? '✓ ' + mktGenFoto.name
     : 'La foto va de fondo; el diseño de marca se compone encima.';
+}
+
+function mktGenSetReferencia(input) {
+  mktGenReferencia = input.files && input.files[0] ? input.files[0] : null;
+  const info = document.getElementById('mgen_ref_info');
+  if (info) info.textContent = mktGenReferencia ? '✓ ' + mktGenReferencia.name
+    : 'Nano Banana la usa como guía de estilo, clima y composición.';
 }
 
 // ── Zona de resultado ───────────────────────────────────────
@@ -339,6 +359,9 @@ async function mktGenSubmit() {
         fd.append('retoque', (document.getElementById('mgen_retoque').value || '').trim());
       }
     }
+    if (modo !== 'foto' && mktGenReferencia) {
+      fd.append('referencia', mktGenReferencia);
+    }
     const res = await fetch('/api/marketing-generator/generar', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + localStorage.getItem('vocai_token') },
@@ -348,6 +371,7 @@ async function mktGenSubmit() {
     if (!res.ok) throw new Error(data.error || 'Error del servidor');
     mktGenUltimo = data;
     mktGenFoto = null;
+    mktGenReferencia = null;
     toast('Placa generada', 'success');
   } catch (err) {
     toast(err.message, 'error');

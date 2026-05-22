@@ -215,12 +215,26 @@ Respondé SOLO el JSON, sin markdown.`;
 }
 
 // ── Nano Banana Pro: prompt → imagen, guardada en savePath ───
-async function generarImagen(prompt, savePath, aspecto = '9:16') {
+// referenciaPath: imagen opcional que guía estilo, clima y composición.
+async function generarImagen(prompt, savePath, aspecto = '9:16', referenciaPath = null) {
+  let partsReq;
+  if (referenciaPath && fs.existsSync(referenciaPath)) {
+    const refB64 = fs.readFileSync(referenciaPath).toString('base64');
+    const mime = /\.png$/i.test(referenciaPath) ? 'image/png'
+      : /\.webp$/i.test(referenciaPath) ? 'image/webp' : 'image/jpeg';
+    partsReq = [
+      { inlineData: { mimeType: mime, data: refB64 } },
+      { text: prompt + ' Use the attached image as visual reference for style, mood, ' +
+              'palette and composition — take inspiration from it, do not copy it literally.' },
+    ];
+  } else {
+    partsReq = [{ text: prompt }];
+  }
   const res = await fetchConReintentos(`${BASE}/gemini-3-pro-image-preview:generateContent`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key() },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
+      contents: [{ parts: partsReq }],
       generationConfig: {
         responseModalities: ['IMAGE'],
         imageConfig: { aspectRatio: aspecto },

@@ -2,11 +2,14 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const multer = require('multer');
 const { generarCarrusel, generarImagen } = require('../config/gemini');
 const { componerSlideCarrusel, CATEGORIAS } = require('../config/placa');
 
 const DIR = path.join(__dirname, '..', 'public', 'generador', 'carruseles');
+const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 15 * 1024 * 1024 } });
 const MODOS = ['ilustracion', 'realista'];
 const estiloPorModo = { ilustracion: '3d', realista: 'realista' };
 
@@ -53,11 +56,12 @@ router.get('/carruseles', auth, (req, res) => {
 });
 
 // POST /api/marketing-carousel/generar  → genera un carrusel completo
-router.post('/generar', auth, async (req, res) => {
+router.post('/generar', auth, upload.single('referencia'), async (req, res) => {
   const idea = (req.body.idea || '').trim();
   const categoria = req.body.categoria;
   const modo = MODOS.includes(req.body.modo) ? req.body.modo : 'ilustracion';
   const fuente = (req.body.fuente || '').trim();
+  const refFile = req.file || null;
 
   if (!idea) return res.status(400).json({ error: 'Escribí tu idea primero' });
   if (!CATEGORIAS[categoria]) return res.status(400).json({ error: 'Elegí una categoría' });
@@ -80,7 +84,8 @@ router.post('/generar', auth, async (req, res) => {
       let fondoPath = null;
       if (s.prompt_imagen) {
         fondoPath = path.join(carpeta, `slide-${i + 1}-fondo.png`);
-        await generarImagen(s.prompt_imagen, fondoPath, '4:5');
+        await generarImagen(s.prompt_imagen, fondoPath, '4:5',
+          refFile ? refFile.path : null);
       }
       await componerSlideCarrusel({
         ilustracionPath: fondoPath,
@@ -106,6 +111,8 @@ router.post('/generar', auth, async (req, res) => {
     // limpiar carpeta parcial si algo falló
     try { fs.rmSync(carpeta, { recursive: true, force: true }); } catch (e) { /* ignora */ }
     res.status(500).json({ error: err.message });
+  } finally {
+    if (refFile && fs.existsSync(refFile.path)) fs.unlink(refFile.path, () => {});
   }
 });
 

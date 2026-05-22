@@ -50,15 +50,19 @@ router.get('/muestras', auth, (req, res) => {
 });
 
 // POST /api/marketing-generator/generar  → modo ilustración, realista o foto
-router.post('/generar', auth, upload.single('foto'), async (req, res) => {
+router.post('/generar', auth,
+  upload.fields([{ name: 'foto', maxCount: 1 }, { name: 'referencia', maxCount: 1 }]),
+  async (req, res) => {
   const idea = (req.body.idea || '').trim();
   const categoria = req.body.categoria;
   const modo = MODOS.includes(req.body.modo) ? req.body.modo : 'ilustracion';
   const fuente = (req.body.fuente || '').trim();
+  const fotoFile = req.files && req.files.foto ? req.files.foto[0] : null;
+  const refFile  = req.files && req.files.referencia ? req.files.referencia[0] : null;
 
   if (!idea) return res.status(400).json({ error: 'Escribí tu idea primero' });
   if (!CATEGORIAS[categoria]) return res.status(400).json({ error: 'Elegí una categoría' });
-  if (modo === 'foto' && !req.file) return res.status(400).json({ error: 'Subí una foto' });
+  if (modo === 'foto' && !fotoFile) return res.status(400).json({ error: 'Subí una foto' });
 
   try {
     if (!fs.existsSync(DIR)) fs.mkdirSync(DIR, { recursive: true });
@@ -71,7 +75,7 @@ router.post('/generar', auth, upload.single('foto'), async (req, res) => {
     const archivo = `pieza-${categoria}-${stamp}.png`;
     const fondoPath = fondoDe(archivo);
     if (modo === 'foto') {
-      fs.copyFileSync(req.file.path, fondoPath);
+      fs.copyFileSync(fotoFile.path, fondoPath);
       if (req.body.retocar === 'true') {
         const retoque = (req.body.retoque || '').trim() ||
           'armonizá los colores y la iluminación con una estética de marca tecnológica navy y azul';
@@ -81,7 +85,7 @@ router.post('/generar', auth, upload.single('foto'), async (req, res) => {
       // Especialista de prompt: idea → prompt técnico dedicado para Nano Banana
       const estiloPorModo = { ilustracion: '3d', realista: 'realista' };
       const promptImagen = await generarPromptImagen(idea, estiloPorModo[modo] || '3d');
-      await generarImagen(promptImagen, fondoPath);
+      await generarImagen(promptImagen, fondoPath, '9:16', refFile ? refFile.path : null);
     }
 
     // 3 · Componer la placa final
@@ -104,7 +108,9 @@ router.post('/generar', auth, upload.single('foto'), async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   } finally {
-    if (req.file && fs.existsSync(req.file.path)) { fs.unlink(req.file.path, () => {}); }
+    [fotoFile, refFile].forEach(f => {
+      if (f && fs.existsSync(f.path)) fs.unlink(f.path, () => {});
+    });
   }
 });
 

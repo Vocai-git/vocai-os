@@ -36,6 +36,7 @@ let mktCarModo      = 'ilustracion';
 let mktCarCategoria = 'novedad';
 let mktCarIdea      = '';
 let mktCarFuente    = '';
+let mktCarReferencia = null;     // objeto File de la imagen de referencia
 let mktCarUltimo    = null;
 let mktCarCargando  = false;
 let mktCarLista     = [];
@@ -76,6 +77,15 @@ function mktCarFormHTML() {
       <label class="form-label">Fuente (opcional)</label>
       <input class="form-input" id="mcar_fuente" value="${escHtml(mktCarFuente)}" ${dis}
         placeholder="Ej: TechCrunch — referencia del contenido">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Imagen de referencia (opcional)</label>
+      <input type="file" class="form-input" id="mcar_referencia" accept="image/*" ${dis}
+        onchange="mktCarSetReferencia(this)">
+      <div id="mcar_ref_info" style="font-size:12px;color:var(--text-muted);margin-top:6px;">
+        ${mktCarReferencia ? '✓ ' + escHtml(mktCarReferencia.name)
+          : 'Guía el estilo de todas las slides con imagen.'}
+      </div>
     </div>
     <div style="font-size:12px;color:var(--text-muted);margin:4px 0 14px;line-height:1.5;">
       El especialista despieza tu idea en slides con layouts variados (portada,
@@ -249,6 +259,13 @@ function mktCarDescargar(id) {
   toast('Descargando ' + c.slides.length + ' slides', 'success');
 }
 
+function mktCarSetReferencia(input) {
+  mktCarReferencia = input.files && input.files[0] ? input.files[0] : null;
+  const info = document.getElementById('mcar_ref_info');
+  if (info) info.textContent = mktCarReferencia ? '✓ ' + mktCarReferencia.name
+    : 'Guía el estilo de todas las slides con imagen.';
+}
+
 // ── Generar ─────────────────────────────────────────────────
 async function mktCarSubmit() {
   const idea = document.getElementById('mcar_idea').value.trim();
@@ -261,10 +278,21 @@ async function mktCarSubmit() {
   mktCarCargando = true;
   navigate('marketing-generator');
   try {
-    const data = await API.post('/marketing-carousel/generar', {
-      idea, categoria, modo, fuente,
+    const fd = new FormData();
+    fd.append('idea', idea);
+    fd.append('categoria', categoria);
+    fd.append('modo', modo);
+    fd.append('fuente', fuente);
+    if (mktCarReferencia) fd.append('referencia', mktCarReferencia);
+    const res = await fetch('/api/marketing-carousel/generar', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('vocai_token') },
+      body: fd,
     });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error del servidor');
     mktCarUltimo = data;
+    mktCarReferencia = null;
     toast('Carrusel generado', 'success');
   } catch (err) {
     toast(err.message, 'error');
