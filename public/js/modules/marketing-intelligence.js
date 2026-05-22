@@ -152,8 +152,21 @@ function mktIntFila(t) {
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;
             margin-top:8px;">${meta.join('')}</div>
         </div>
+        <button class="btn btn-secondary" title="Crear contenido con este tema"
+          style="flex:0 0 auto;padding:7px 12px;font-size:12px;align-self:center;"
+          onclick="event.stopPropagation();mktIntAlGenerador('${t.id}')">→ Generador</button>
       </div>
     </div>`;
+}
+
+// Manda el tema al Generador con la idea ya cargada.
+function mktIntAlGenerador(id) {
+  const t = mktIntTemas.find(x => x.id === id);
+  if (!t) return;
+  let idea = t.titulo || '';
+  if (t.descripcion) idea += '. ' + t.descripcion;
+  if (t.angulo) idea += ' — Ángulo: ' + t.angulo;
+  generarDesdeIdea(idea, t.fuente || '');
 }
 
 function mktIntFechaCorta(s) {

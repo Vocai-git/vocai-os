@@ -1,10 +1,12 @@
 /* ============================================================
    VOCAI OS — Marketing · Calendario editorial
+   Dos canales: Feed (reel/carrusel/post) e Historias (story).
    ============================================================ */
 
 let mktCalDate = new Date();   // mes actualmente mostrado
 let mktCalDragId = null;       // pieza que se está arrastrando
 let mktCalPiezas = [];         // piezas del mes en memoria
+let mktCalCanal = 'feed';      // 'feed' | 'historias'
 
 const MKT_PILAR = {
   ia:       { label: 'IA y automatización', color: '#2979FF' },
@@ -17,10 +19,15 @@ const MKT_ESTADO = {
   produccion: { label: 'En producción', color: '#2979FF' },
   lista:      { label: 'Lista',         color: '#FF8C42' },
   publicada:  { label: 'Publicada',     color: '#00C48C' },
+  error:      { label: 'Error',         color: '#FF6B6B' },
 };
-const MKT_FORMATOS = ['reel', 'carrusel', 'story', 'post', 'otro'];
 const MKT_MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function mktCalFormatos() {
+  return mktCalCanal === 'historias' ? ['story'] : ['reel', 'carrusel', 'post', 'otro'];
+}
+function mktCalRecargar() { navigate('marketing-calendar'); }
 
 // ── Estilos propios del módulo (se inyectan una sola vez) ────
 function mktCalInjectStyles() {
@@ -48,6 +55,8 @@ function mktCalInjectStyles() {
     .mkt-piece-fmt { font-size:8px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; }
     .mkt-piece-tit { font-size:11px; font-weight:500; line-height:1.25; margin-top:1px; color:var(--text); }
     .mkt-piece-est { margin-top:3px; font-size:9px; display:flex; align-items:center; gap:3px; }
+    .mkt-piece-eye { cursor:pointer; font-size:11px; opacity:.6; }
+    .mkt-piece-eye:hover { opacity:1; }
     .mkt-dot { width:6px; height:6px; border-radius:50%; display:inline-block; }
     .mkt-legend { display:flex; gap:14px; flex-wrap:wrap; }
     .mkt-legend-item { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
@@ -67,27 +76,54 @@ function mktCalInjectStyles() {
   document.head.appendChild(s);
 }
 
-// ── Render principal ────────────────────────────────────────
+// ── Entrada única — toggle Feed / Historias ─────────────────
 async function renderMarketingCalendar(el) {
   mktCalInjectStyles();
+  el.innerHTML = `
+    <div class="section-header">
+      <h2 class="section-title">Calendario</h2>
+      <button class="btn btn-primary" onclick="mktCalNew()">+ Nueva pieza</button>
+    </div>
+    ${mktCalToggleHTML()}
+    <div id="mcal_panel"><div class="loader"><div class="spinner"></div></div></div>
+  `;
+  await mktCalRenderPanel(document.getElementById('mcal_panel'));
+}
+
+function mktCalToggleHTML() {
+  const tab = (k, label) => `
+    <button class="btn ${mktCalCanal === k ? 'btn-primary' : 'btn-secondary'}"
+      onclick="mktCalSetCanal('${k}')">${label}</button>`;
+  return `<div style="display:flex;gap:8px;margin-bottom:18px;">
+    ${tab('feed', 'Feed')}
+    ${tab('historias', 'Historias')}
+  </div>`;
+}
+
+function mktCalSetCanal(k) {
+  if (mktCalCanal === k) return;
+  mktCalCanal = k;
+  navigate('marketing-calendar');
+}
+
+// ── Render del panel (calendario del mes) ───────────────────
+async function mktCalRenderPanel(el) {
   const y = mktCalDate.getFullYear();
   const m = mktCalDate.getMonth();
   const mesStr = `${y}-${String(m + 1).padStart(2, '0')}`;
 
   let piezas;
   try {
-    piezas = await API.get(`/marketing-calendar?mes=${mesStr}`);
+    piezas = await API.get(`/marketing-calendar?mes=${mesStr}&canal=${mktCalCanal}`);
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">Error al cargar: ${escHtml(err.message)}</div>`;
     return;
   }
   mktCalPiezas = piezas;
 
-  // conteo por pilar
   const tally = { ia: 0, estudio: 0, casos: 0, personas: 0 };
   piezas.forEach(p => { if (tally[p.pilar] !== undefined) tally[p.pilar]++; });
 
-  // grilla del mes (semana arranca lunes)
   const offset = (new Date(y, m, 1).getDay() + 6) % 7;
   const diasMes = new Date(y, m + 1, 0).getDate();
 
@@ -112,11 +148,6 @@ async function renderMarketingCalendar(el) {
   for (let i = 0; i < resto; i++) celdas += `<div class="mkt-day empty"></div>`;
 
   el.innerHTML = `
-    <div class="section-header">
-      <h2 class="section-title">Calendario editorial</h2>
-      <button class="btn btn-primary" onclick="mktCalNew()">+ Nueva pieza</button>
-    </div>
-
     <div class="card" style="margin-bottom:16px;display:flex;align-items:center;
          justify-content:space-between;flex-wrap:wrap;gap:14px;">
       <div class="mkt-monthnav">
@@ -139,7 +170,7 @@ async function renderMarketingCalendar(el) {
     </div>
 
     <div class="mkt-tally">
-      <span><b>${piezas.length}</b>&nbsp;piezas este mes</span>
+      <span><b>${piezas.length}</b>&nbsp;${mktCalCanal === 'historias' ? 'historias' : 'piezas'} este mes</span>
       ${Object.entries(MKT_PILAR).map(([k, v]) =>
         `<span><span class="mkt-dot" style="background:${v.color}"></span>
           <b>${tally[k]}</b>&nbsp;${v.label}</span>`).join('')}
@@ -153,11 +184,19 @@ async function renderMarketingCalendar(el) {
 function mktPieceHTML(p) {
   const pilar = MKT_PILAR[p.pilar] || MKT_PILAR.ia;
   const est = MKT_ESTADO[p.estado] || MKT_ESTADO.idea;
+  const media = mktCalMedia(p.notas);
+  const ojo = media
+    ? `<span class="mkt-piece-eye" title="Previsualizar"
+         onclick="event.stopPropagation();mktCalPreview('${p.id}')">👁</span>`
+    : '';
   return `
     <div class="mkt-piece" draggable="true" style="border-left-color:${pilar.color}"
          ondragstart="mktCalDragStart(event,'${p.id}')" ondragend="mktCalDragEnd(event)"
          onclick="mktCalEdit('${p.id}')">
-      <div class="mkt-piece-fmt" style="color:${pilar.color}">${escHtml(p.formato)}</div>
+      <div class="mkt-piece-fmt" style="color:${pilar.color};display:flex;
+           justify-content:space-between;align-items:center;gap:4px;">
+        <span>${escHtml(p.formato)}</span>${ojo}
+      </div>
       <div class="mkt-piece-tit">${escHtml(p.titulo)}</div>
       <div class="mkt-piece-est" style="color:${est.color}">
         <span class="mkt-dot" style="background:${est.color}"></span>${est.label}
@@ -165,14 +204,57 @@ function mktPieceHTML(p) {
     </div>`;
 }
 
+// ── Media asociada a una pieza (placa o carrusel del Generador) ──
+function mktCalMedia(notas) {
+  const txt = notas || '';
+  const tag = /\[media:([^\]]+)\]/.exec(txt);
+  let ref = tag ? tag[1].trim() : '';
+  if (!ref) {
+    // compatibilidad con piezas viejas (sin marcador [media:])
+    const car = /\/generador\/carruseles\/carrusel-[\w.-]+/.exec(txt);
+    const his = /\/generador\/muestras\/[\w.-]+\.png/.exec(txt);
+    ref = car ? car[0] : (his ? his[0] : '');
+  }
+  if (!ref) return null;
+  const car = /\/carruseles\/(carrusel-[\w.-]+)/.exec(ref);
+  if (car) return { tipo: 'carrusel', id: car[1] };
+  if (/\.png(\?|$)/i.test(ref)) return { tipo: 'historia', url: ref.split('?')[0] };
+  return null;
+}
+function mktCalNotasLimpias(notas) {
+  return (notas || '').replace(/\[media:[^\]]+\]\s*/g, '').trim();
+}
+
+// ── Previsualizar la pieza (abre el visor ampliado) ─────────
+async function mktCalPreview(piezaId) {
+  const p = mktCalPiezas.find(x => x.id === piezaId);
+  if (!p) return;
+  const media = mktCalMedia(p.notas);
+  if (!media) return;
+  if (media.tipo === 'historia') {
+    openLightbox([{ url: media.url, caption: p.titulo }], 0, []);
+    return;
+  }
+  try {
+    const c = await API.get('/marketing-carousel/uno/' + encodeURIComponent(media.id));
+    if (!c.slides || !c.slides.length) { toast('El carrusel no tiene slides', 'error'); return; }
+    openLightbox(
+      c.slides.map(s => ({ url: s.url, caption: p.titulo + ' · slide ' + s.indice })),
+      0, []
+    );
+  } catch (err) {
+    toast('No se pudo cargar el carrusel', 'error');
+  }
+}
+
 // ── Navegación de meses ─────────────────────────────────────
 function mktCalNav(delta) {
   mktCalDate = new Date(mktCalDate.getFullYear(), mktCalDate.getMonth() + delta, 1);
-  navigate('marketing-calendar');
+  mktCalRecargar();
 }
 function mktCalToday() {
   mktCalDate = new Date();
-  navigate('marketing-calendar');
+  mktCalRecargar();
 }
 
 // ── Drag & drop ─────────────────────────────────────────────
@@ -198,11 +280,11 @@ async function mktCalDrop(ev, fecha) {
   const id = mktCalDragId;
   mktCalDragId = null;
   const pieza = mktCalPiezas.find(x => x.id === id);
-  if (pieza && pieza.fecha === fecha) return;  // mismo día → nada
+  if (pieza && pieza.fecha === fecha) return;
   try {
     await API.put(`/marketing-calendar/${id}`, { fecha });
     toast('Pieza movida', 'success');
-    navigate('marketing-calendar');
+    mktCalRecargar();
   } catch (err) { toast(err.message, 'error'); }
 }
 
@@ -210,7 +292,7 @@ async function mktCalDrop(ev, fecha) {
 function mktCalForm(p) {
   const opts = (arr, sel) => arr.map(o =>
     `<option value="${o.v}" ${o.v === sel ? 'selected' : ''}>${o.l}</option>`).join('');
-  const formatos = MKT_FORMATOS.map(f => ({ v: f, l: f.charAt(0).toUpperCase() + f.slice(1) }));
+  const formatos = mktCalFormatos().map(f => ({ v: f, l: f.charAt(0).toUpperCase() + f.slice(1) }));
   const pilares = Object.entries(MKT_PILAR).map(([k, v]) => ({ v: k, l: v.label }));
   const estados = Object.entries(MKT_ESTADO).map(([k, v]) => ({ v: k, l: v.label }));
   return `
@@ -247,14 +329,14 @@ function mktCalForm(p) {
     <div class="form-group">
       <label class="form-label">Notas</label>
       <textarea class="form-textarea" id="mkf_notas"
-        placeholder="Gancho, guion, referencias...">${escHtml(p.notas)}</textarea>
+        placeholder="Gancho, guion, referencias...">${escHtml(mktCalNotasLimpias(p.notas))}</textarea>
     </div>`;
 }
 
 function mktCalNew(fecha) {
   const p = {
     titulo: '', fecha: fecha || new Date().toISOString().slice(0, 10),
-    formato: 'reel', pilar: 'ia', estado: 'idea', cta: '', notas: ''
+    formato: mktCalFormatos()[0], pilar: 'ia', estado: 'idea', cta: '', notas: ''
   };
   createModal('mktCalModal', 'Nueva pieza', mktCalForm(p), `
     <button class="btn btn-secondary" onclick="closeModal('mktCalModal')">Cancelar</button>
@@ -265,15 +347,40 @@ function mktCalNew(fecha) {
 function mktCalEdit(id) {
   const p = mktCalPiezas.find(x => x.id === id);
   if (!p) return;
+  const btnPub = mktCalMedia(p.notas)
+    ? `<button class="btn btn-secondary" onclick="mktCalPublicar('${id}')">Publicar ahora</button>`
+    : '';
   createModal('mktCalModal', 'Editar pieza', mktCalForm(p), `
     <button class="btn btn-danger" onclick="mktCalDelete('${id}')"
       style="margin-right:auto;">Eliminar</button>
+    ${btnPub}
     <button class="btn btn-secondary" onclick="closeModal('mktCalModal')">Cancelar</button>
     <button class="btn btn-primary" onclick="mktCalSave('${id}')">Guardar</button>
   `);
 }
 
+// Publica la pieza ya mismo en Instagram + Facebook.
+async function mktCalPublicar(id) {
+  if (!confirm('¿Publicar esta pieza ahora en Instagram y Facebook?')) return;
+  toast('Publicando…', 'info');
+  try {
+    await API.post(`/marketing-calendar/${id}/publicar`);
+    toast('Pieza publicada', 'success');
+    closeModal('mktCalModal');
+    mktCalRecargar();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
 async function mktCalSave(id) {
+  let notas = document.getElementById('mkf_notas').value.trim();
+  // conservar el marcador [media:...] de la pieza original
+  if (id) {
+    const orig = mktCalPiezas.find(x => x.id === id);
+    const tag = orig ? /\[media:[^\]]+\]/.exec(orig.notas || '') : null;
+    if (tag) notas = tag[0] + (notas ? ' ' + notas : '');
+  }
   const body = {
     titulo:  document.getElementById('mkf_titulo').value.trim(),
     fecha:   document.getElementById('mkf_fecha').value,
@@ -281,7 +388,7 @@ async function mktCalSave(id) {
     pilar:   document.getElementById('mkf_pilar').value,
     estado:  document.getElementById('mkf_estado').value,
     cta:     document.getElementById('mkf_cta').value.trim(),
-    notas:   document.getElementById('mkf_notas').value.trim(),
+    notas:   notas,
   };
   if (!body.titulo) { toast('El título es obligatorio', 'error'); return; }
   if (!body.fecha)  { toast('La fecha es obligatoria', 'error'); return; }
@@ -290,7 +397,7 @@ async function mktCalSave(id) {
     else    await API.post('/marketing-calendar', body);
     toast(id ? 'Pieza actualizada' : 'Pieza creada', 'success');
     closeModal('mktCalModal');
-    navigate('marketing-calendar');
+    mktCalRecargar();
   } catch (err) { toast(err.message, 'error'); }
 }
 
@@ -300,6 +407,6 @@ async function mktCalDelete(id) {
     await API.del(`/marketing-calendar/${id}`);
     toast('Pieza eliminada', 'success');
     closeModal('mktCalModal');
-    navigate('marketing-calendar');
+    mktCalRecargar();
   } catch (err) { toast(err.message, 'error'); }
 }

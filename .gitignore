@@ -3,3 +3,14 @@ node_modules/
 *.log
 .DS_Store
 uploads/
+
+# Imágenes generadas en runtime (placas y carruseles) — efímeras
+public/generador/
+
+# Fuente sin uso (se revirtió a Inter)
+public/fonts/
+
+# Scripts de prueba del Generador — no van a producción
+automations/prueba-*.js
+automations/diag*.js
+automations/comparador.js

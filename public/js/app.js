@@ -93,6 +93,84 @@ function createModal(id, title, bodyHTML, footerHTML = '', size = '') {
   setTimeout(() => m.classList.add('open'), 10);
 }
 
+// ── Lightbox / visor ampliado ────────────────────────────────
+let _lbItems = [];
+let _lbActions = [];
+let _lbIdx = 0;
+
+// items: [{ url, caption }]   actions: [{ label, tipo, fn(item, idx) }]
+function openLightbox(items, start = 0, actions = []) {
+  if (!items || !items.length) return;
+  _lbItems = items;
+  _lbActions = actions || [];
+  _lbIdx = Math.max(0, Math.min(start, items.length - 1));
+  let lb = document.getElementById('lightbox');
+  if (!lb) {
+    lb = document.createElement('div');
+    lb.id = 'lightbox';
+    lb.className = 'lightbox';
+    lb.innerHTML = `
+      <button class="lb-close" aria-label="Cerrar">&times;</button>
+      <button class="lb-nav lb-prev" aria-label="Anterior">&#8249;</button>
+      <button class="lb-nav lb-next" aria-label="Siguiente">&#8250;</button>
+      <div class="lb-stage"><img class="lb-img" id="lbImg" alt=""></div>
+      <div class="lb-footer">
+        <div class="lb-actions" id="lbActions"></div>
+        <div class="lb-counter" id="lbCounter"></div>
+        <div class="lb-caption" id="lbCaption"></div>
+      </div>`;
+    lb.querySelector('.lb-close').addEventListener('click', closeLightbox);
+    lb.querySelector('.lb-prev').addEventListener('click', () => lbMove(-1));
+    lb.querySelector('.lb-next').addEventListener('click', () => lbMove(1));
+    lb.querySelector('.lb-stage').addEventListener('click', (e) => {
+      if (e.target.classList.contains('lb-stage')) closeLightbox();
+    });
+    document.body.appendChild(lb);
+  }
+  lbRender();
+  requestAnimationFrame(() => lb.classList.add('open'));
+  document.addEventListener('keydown', _lbKey);
+}
+
+function lbRender() {
+  const it = _lbItems[_lbIdx];
+  if (!it) return;
+  document.getElementById('lbImg').src = it.url;
+  const multi = _lbItems.length > 1;
+  document.querySelector('.lb-prev').style.display = multi ? '' : 'none';
+  document.querySelector('.lb-next').style.display = multi ? '' : 'none';
+  document.getElementById('lbCounter').textContent =
+    multi ? (_lbIdx + 1) + ' / ' + _lbItems.length : '';
+  document.getElementById('lbCaption').textContent = it.caption || '';
+  const cont = document.getElementById('lbActions');
+  cont.innerHTML = '';
+  _lbActions.forEach(a => {
+    const b = document.createElement('button');
+    b.className = 'btn btn-' + (a.tipo || 'secondary');
+    b.textContent = a.label;
+    b.addEventListener('click', () => a.fn(_lbItems[_lbIdx], _lbIdx));
+    cont.appendChild(b);
+  });
+}
+
+function lbMove(d) {
+  if (_lbItems.length < 2) return;
+  _lbIdx = (_lbIdx + d + _lbItems.length) % _lbItems.length;
+  lbRender();
+}
+
+function closeLightbox() {
+  const lb = document.getElementById('lightbox');
+  if (lb) lb.classList.remove('open');
+  document.removeEventListener('keydown', _lbKey);
+}
+
+function _lbKey(e) {
+  if (e.key === 'Escape') closeLightbox();
+  else if (e.key === 'ArrowLeft') lbMove(-1);
+  else if (e.key === 'ArrowRight') lbMove(1);
+}
+
 // ── Format helpers ───────────────────────────────────────────
 function formatMoney(n) {
   return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n || 0);
@@ -169,9 +247,10 @@ const MODULES = {
   myagenda:  { title: 'Mi agenda', render: renderMyagenda },
   agenda:    { title: 'Agenda', render: renderAgenda },
   settings:  { title: 'Configuración', render: renderSettings },
-  'marketing-calendar': { title: 'Calendario editorial', render: renderMarketingCalendar },
+  'marketing-calendar': { title: 'Calendario', render: renderMarketingCalendar },
   'marketing-planning': { title: 'Planificación', render: renderMarketingPlanning },
   'marketing-intelligence': { title: 'Inteligencia', render: renderMarketingIntelligence },
+  'marketing-generator': { title: 'Generador', render: renderMarketingGenerator },
 };
 
 // ── Router ───────────────────────────────────────────────────
