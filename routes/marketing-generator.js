@@ -82,7 +82,7 @@ router.post('/generar', auth,
     if (!fs.existsSync(DIR)) fs.mkdirSync(DIR, { recursive: true });
 
     // 1 · Especialistas de texto: título/subtítulo y, en feed, el copy del posteo
-    const texto = await generarTexto(idea);
+    const texto = await generarTexto(idea, categoria);
     const copy = formato === 'feed' ? await generarCopy(idea) : '';
 
     // 2 · Imagen de fondo — se conserva para poder ajustarla después

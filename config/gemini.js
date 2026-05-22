@@ -23,6 +23,56 @@ const ESTILOS_ILUSTRACION = {
              'photography with shallow depth of field.',
 };
 
+// ── Reglas de copy de marca (spec VOCAI) ─────────────────────
+// Tono, lista negra, lista blanca y textos bloqueados. Se inyectan
+// en todos los especialistas de texto para que el copy suene a VOCAI.
+const REGLAS_MARCA =
+`TONO VOCAI:
+Español rioplatense, directo, afirmativo. Frases cortas, una idea por frase,
+cero adjetivos de relleno. Afirmaciones, nunca preguntas blandas. Si el texto
+lo podría firmar cualquier agencia de IA genérica, está mal: tiene que sonar
+a VOCAI — experto, con actitud, sin floreo corporativo.
+
+NUNCA ESCRIBIR (lista negra — si aparece, descartá y reescribí):
+1. Motivacional vacío: "tu éxito", "te potencia", "alcanzá tu potencial",
+   "el futuro es ahora", "transformá tu vida".
+2. Preguntas sin sustancia: "¿Estás preparado?", "¿Te imaginás?", "¿Y vos?".
+3. Lenguaje gurú: "mindset", "cerebro digital", "desbloqueá", "vos podés".
+4. Promesas mágicas: "resultados en 30 días", "automatizá todo tu negocio".
+5. Tono corporativo: "en VOCAI ofrecemos", "soluciones a medida".
+6. Posicionarse como agencia de marketing ("contenido que convierte",
+   "crecé en redes"). VOCAI lidera con IA y con el estudio, no con marketing.
+7. Tecnicismo crudo: "LLM", "RAG", "n8n", "prompt engineering".
+8. Slogans de relleno sin un dato o un caso que los respalde.
+
+SÍ DECIR (lista blanca):
+- Qué hace VOCAI, concreto: automatizar lo repetitivo, bajar costes, grabar
+  en un estudio físico.
+- El problema real del cliente, nombrado.
+- Números, ahorros o antes/después SOLO si están en la fuente. Nunca inventar.
+- El estudio físico de Alicante como gancho tangible.
+
+TEXTOS BLOQUEADOS (usar literal, no reescribir):
+- "Hacemos crecer tu empresa con IA" — descriptor de IA.
+- "Estudio de grabación en Alicante" — descriptor del estudio.
+- "La voz de tu negocio" — es el tagline: acompaña al logo, NUNCA es titular.
+- "VOCAI" — el wordmark de la marca.
+
+CHEQUEO OBLIGATORIO ANTES DE DEVOLVER:
+Releé lo que escribiste contra la lista negra. Si contiene CUALQUIER patrón
+de esa lista, descartalo y reescribilo. No devuelvas nada sin pasar el chequeo.`;
+
+// Contexto por categoría — orienta la fórmula de titular.
+const CONTEXTO_CATEGORIA = {
+  novedad:   'Es una NOVEDAD: algo nuevo que VOCAI lanza o anuncia.',
+  educativo: 'Es una placa EDUCATIVA: enseña algo concreto de IA o ' +
+             'automatización aplicada. Suelen pegar las fórmulas 2 y 4.',
+  caso:      'Es un CASO REAL: un resultado o ejemplo concreto. Usá la ' +
+             'fórmula 6 si hay un dato con fuente.',
+  interno:   'Es PUERTAS ADENTRO: el estudio, la oficina, el detrás de ' +
+             'escena en Alicante. Suele pegar la fórmula 5.',
+};
+
 function key() {
   const k = process.env.GEMINI_API_KEY;
   if (!k) throw new Error('Falta GEMINI_API_KEY en el .env');
@@ -72,21 +122,44 @@ async function llamarTexto({ sys, user, json, imagenPath }) {
 }
 
 // ── Especialista 1 · Copy: idea → { titulo, subtitulo } ──────
-async function generarTexto(idea) {
+async function generarTexto(idea, categoria = '') {
+  const ctx = CONTEXTO_CATEGORIA[categoria];
+  const bloqueCtx = ctx ? `\nCONTEXTO DE ESTA PLACA: ${ctx}\n` : '';
   const sys =
 `Sos el copywriter de VOCAI — empresa de IA y automatización en Alicante, con
-estudio de grabación propio. Tagline: "La voz de tu negocio".
+estudio de grabación propio.
 
-Te dan una IDEA en español para una placa de historia de Instagram (vertical).
-Devolvés un JSON con exactamente estos campos:
+Te dan una IDEA en español para una placa de Instagram. Escribís dos campos:
+el TITULAR y el SUBTÍTULO. El kicker (la etiqueta de categoría) lo pone el
+sistema aparte — vos NO lo escribís.
+${bloqueCtx}
+TITULAR:
+- El mensaje principal de la placa. 4 a 9 palabras, máximo ~60 caracteres.
+- Una sola idea. Capitalización normal (solo la primera letra y los nombres
+  propios en mayúscula) — NUNCA Mayúscula En Cada Palabra.
+- REGLA DE ORO: el titular tiene que entenderse leído solo. Si aislado no dice
+  nada concreto, está mal. "¿Estás preparado?" leído solo = nada → RECHAZADO.
+  "Hacemos crecer tu empresa con IA" leído solo = se entiende → OK.
 
-- "titulo": el texto principal de la placa, en español. Corto, directo, con gancho.
-  Máximo 8 palabras. Es lo que más se va a leer. Escribilo en capitalización normal
-  (solo la primera letra en mayúscula, y nombres propios) — NUNCA Mayúscula En Cada
-  Palabra.
-- "subtitulo": una línea de apoyo en español, breve. Si no hace falta, devolvé "".
+SUBTÍTULO:
+- Aterriza el titular. 6 a 14 palabras, máximo ~90 caracteres.
+- Agrega información — NO repite el titular con otras palabras.
+- Si de verdad no aporta nada, devolvé "".
 
-Respondé SOLO el JSON, sin markdown.`;
+FÓRMULAS DE TITULAR (elegí una según la idea, no improvises la estructura):
+1. Descriptor bloqueado → placa de presentación o "qué es VOCAI".
+2. Problema concreto del cliente. Ej: "Estás perdiendo horas en algo que la
+   IA resuelve en 3 segundos".
+3. Qué hacemos + resultado tangible. Ej: "Donde tu negocio empieza a moverse solo".
+4. Afirmación contraintuitiva. Ej: "No necesitás IA. Necesitás resolver un problema".
+5. El estudio como lugar físico. Ej: "Vení, te sentás, grabás".
+6. Dato o caso real — SOLO si la idea trae una fuente concreta.
+
+CTA: no va en el titular. Si la placa lleva llamada a la acción, va en el subtítulo.
+
+${REGLAS_MARCA}
+
+Devolvés SOLO un JSON { "titulo": "...", "subtitulo": "..." }, sin markdown.`;
 
   const txt = await llamarTexto({ sys, user: `Idea: ${idea}`, json: true });
   let brief;
@@ -104,20 +177,22 @@ Respondé SOLO el JSON, sin markdown.`;
 // ── Especialista · Copy: idea → texto del posteo (caption) ───
 async function generarCopy(idea) {
   const sys =
-`Sos el copywriter de VOCAI — empresa de IA y automatización en Alicante con
-estudio de grabación propio. Tagline: "La voz de tu negocio".
+`Sos el copywriter de VOCAI — empresa de IA y automatización en Alicante, con
+estudio de grabación propio.
 
 Te dan una IDEA. Escribís el COPY: el texto que acompaña al posteo de Instagram
 (feed o carrusel), el que va debajo de la imagen.
 
-Reglas:
-- Español rioplatense. Tono experto pero cercano y directo, con algo de actitud.
-  Nada de relleno corporativo ni clichés.
-- Primera línea: un gancho fuerte que frene el scroll.
+Estructura:
+- Primera línea: un gancho fuerte que frene el scroll. Una afirmación, no una
+  pregunta blanda.
 - Después, 2 a 4 líneas cortas que desarrollen la idea. Podés usar saltos de línea.
-- Cerrá con una llamada a la acción clara.
+- Cerrá con una llamada a la acción clara y concreta.
 - Sumá al final 3 a 5 hashtags relevantes.
-- Devolvé SOLO el texto del copy, listo para pegar. Sin comillas, sin etiquetas.`;
+
+${REGLAS_MARCA}
+
+Devolvé SOLO el texto del copy, listo para pegar. Sin comillas, sin etiquetas.`;
   const txt = await llamarTexto({ sys, user: `Idea: ${idea}` });
   return txt.trim();
 }
@@ -230,6 +305,10 @@ Campos:
     and coral red (#FF6B6B) accents.
   * Vertical 4:5 composition. Keep one area calm and darker for text.
   * Terminá con: Absolutely no text, no letters, no numbers, no words.
+
+El texto de los slides (titulo, cuerpo, dato) cumple estas reglas de marca:
+
+${REGLAS_MARCA}
 
 Respondé SOLO el JSON, sin markdown.`;
 
