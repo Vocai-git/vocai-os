@@ -153,11 +153,36 @@ async function llamarTexto({ sys, user, json, imagenPath }) {
 }
 
 // ── Especialista 1 · Copy: idea → { titulo, subtitulo } ──────
-async function generarTexto(idea, categoria = '') {
+// modoLibre=true: el especialista respeta la idea al pie, sin lista negra ni
+// regla de oro. Útil para teasers, contraejemplos o frases bloqueadas a propósito.
+async function generarTexto(idea, categoria = '', modoLibre = false) {
+  let sys;
+  if (modoLibre) {
+    sys =
+`Eres el copywriter de VOCAI — empresa de IA y automatización en Alicante, con
+estudio de grabación propio.
+
+Te dan una IDEA en español para una placa de Instagram. Devuelves TÍTULO y
+SUBTÍTULO.
+
+MODO LIBRE — respetas al pie lo que el usuario pide en la idea. Si pide una
+frase literal, devuélvela tal cual. Si pide un tono específico (misterio,
+ironía, pregunta, contraintuitivo), respétalo. NO filtres contra ninguna lista
+negra. NO apliques la regla de oro "se entiende solo". NO impongas fórmulas
+de título. NO impongas estructura. La responsabilidad del copy en este modo
+es del usuario, no tuya.
+
+IDIOMA: español de España con TUTEO ("tú", "tienes", "puedes"). Es lo único
+innegociable.
+
+SUBTÍTULO: si la idea pide subtítulo vacío o no aporta nada, devuelve "".
+
+Devuelve SOLO un JSON { "titulo": "...", "subtitulo": "..." }, sin markdown.`;
+  } else {
   const ctx = CONTEXTO_CATEGORIA[categoria];
   const bloqueCtx = ctx ? `\nCONTEXTO DE ESTA PLACA: ${ctx}\n` : '';
   const ejemplos = await biblioteca.bloqueEjemplos();
-  const sys =
+  sys =
 `Eres el copywriter de VOCAI — empresa de IA y automatización en Alicante, con
 estudio de grabación propio.
 
@@ -192,6 +217,7 @@ CTA: no va en el título. Si la placa lleva llamada a la acción, va en el subt�
 ${REGLAS_MARCA}${ejemplos}
 
 Devuelve SOLO un JSON { "titulo": "...", "subtitulo": "..." }, sin markdown.`;
+  }
 
   const txt = await llamarTexto({ sys, user: `Idea: ${idea}`, json: true });
   let brief;
@@ -207,9 +233,29 @@ Devuelve SOLO un JSON { "titulo": "...", "subtitulo": "..." }, sin markdown.`;
 }
 
 // ── Especialista · Copy: idea → texto del posteo (caption) ───
-async function generarCopy(idea) {
-  const ejemplos = await biblioteca.bloqueEjemplos();
-  const sys =
+async function generarCopy(idea, modoLibre = false) {
+  let sys;
+  if (modoLibre) {
+    sys =
+`Eres el copywriter de VOCAI — empresa de IA y automatización en Alicante, con
+estudio de grabación propio.
+
+Te dan una IDEA. Escribes el COPY del posteo de Instagram (lo que va debajo
+de la imagen).
+
+MODO LIBRE — respetas al pie lo que el usuario pide en la idea. Longitud,
+tono, forma, frases literales: todo se respeta. NO impongas estructura
+gancho/desarrollo/CTA si la idea pide otra cosa. NO impongas hashtags si la
+idea no los pide. NO filtres contra lista negra. La responsabilidad del copy
+en este modo es del usuario, no tuya.
+
+IDIOMA: español de España con TUTEO ("tú", "tienes", "puedes"). Es lo único
+innegociable.
+
+Devuelve SOLO el texto del copy, listo para pegar. Sin comillas, sin etiquetas.`;
+  } else {
+    const ejemplos = await biblioteca.bloqueEjemplos();
+    sys =
 `Eres el copywriter de VOCAI — empresa de IA y automatización en Alicante, con
 estudio de grabación propio.
 
@@ -231,6 +277,7 @@ Longitud total: 40 a 80 palabras. Cierra con 4 a 6 hashtags sobrios.
 ${REGLAS_MARCA}${ejemplos}
 
 Devuelve SOLO el texto del copy, listo para pegar. Sin comillas, sin etiquetas.`;
+  }
   const txt = await llamarTexto({ sys, user: `Idea: ${idea}` });
   return txt.trim();
 }

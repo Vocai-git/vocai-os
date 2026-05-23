@@ -70,6 +70,9 @@ router.post('/generar', auth,
   const modo = MODOS.includes(req.body.modo) ? req.body.modo : 'ilustracion';
   const fuente = (req.body.fuente || '').trim();
   const formato = fmtDe(req.body.formato);
+  // modoLibre: si está prendido, el especialista respeta la idea al pie (sin
+  // filtrar contra la lista negra ni imponer fórmulas).
+  const modoLibre = req.body.modoLibre === 'true';
   const fmt = FORMATOS[formato];
   const fotoFile = req.files && req.files.foto ? req.files.foto[0] : null;
   const refFile  = req.files && req.files.referencia ? req.files.referencia[0] : null;
@@ -82,8 +85,8 @@ router.post('/generar', auth,
     if (!fs.existsSync(DIR)) fs.mkdirSync(DIR, { recursive: true });
 
     // 1 · Especialistas de texto: título/subtítulo y, en feed, el copy del posteo
-    const texto = await generarTexto(idea, categoria);
-    const copy = formato === 'feed' ? await generarCopy(idea) : '';
+    const texto = await generarTexto(idea, categoria, modoLibre);
+    const copy = formato === 'feed' ? await generarCopy(idea, modoLibre) : '';
 
     // 2 · Imagen de fondo — se conserva para poder ajustarla después
     const stamp = Date.now();

@@ -34,6 +34,11 @@ let mktGenCargando  = false;
 let mktGenMuestras  = [];
 let mktGenFbPaso    = null;   // veredicto: null preguntar · 'motivo' · 'hecho'
 
+// Modo libre: el especialista respeta la idea al pie, sin filtrar contra la
+// lista negra ni la regla de oro. El campo "Tu idea" sigue siendo el mismo;
+// solo cambia cómo lo interpreta el especialista de copy.
+let mktGenModoLibre = false;
+
 // Sección activa del Generador unificado: 'historias' | 'feed' | 'carrusel'.
 let mktGenSeccion = 'historias';
 
@@ -125,9 +130,19 @@ function mktGenFormHTML() {
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Tu idea</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <label class="form-label" style="margin:0;">Tu idea</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);cursor:pointer;">
+          <input type="checkbox" id="mgen_modolibre" ${mktGenModoLibre ? 'checked' : ''} ${dis}
+            onchange="mktGenSetModoLibre(this.checked)">
+          Modo libre
+        </label>
+      </div>
       <textarea class="form-textarea" id="mgen_idea" rows="3" ${dis}
         placeholder="Contá qué placa querés. Ej: anunciar que muy pronto abrimos al público">${escHtml(mktGenIdea)}</textarea>
+      <div id="mgen_modolibre_hint" style="font-size:12px;margin-top:6px;color:#FF6B6B;display:${mktGenModoLibre ? 'block' : 'none'};">
+        ⚡ Modo libre activo: el especialista respeta tu idea al pie, sin filtros de marca. La responsabilidad del copy es tuya.
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">Fuente (opcional)</label>
@@ -184,6 +199,12 @@ function mktGenToggleModo(v) {
 function mktGenToggleRetoque(checked) {
   const w = document.getElementById('mgen_retoque_wrap');
   if (w) w.style.display = checked ? 'block' : 'none';
+}
+
+function mktGenSetModoLibre(checked) {
+  mktGenModoLibre = checked;
+  const h = document.getElementById('mgen_modolibre_hint');
+  if (h) h.style.display = checked ? 'block' : 'none';
 }
 
 function mktGenSetFoto(input) {
@@ -386,6 +407,7 @@ async function mktGenSubmit() {
     fd.append('modo', modo);
     fd.append('fuente', fuente);
     fd.append('formato', mktGenCfg().formato);
+    fd.append('modoLibre', mktGenModoLibre ? 'true' : 'false');
     if (modo === 'foto' && mktGenFoto) {
       fd.append('foto', mktGenFoto);
       const rc = document.getElementById('mgen_retocar');
