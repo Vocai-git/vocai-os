@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maqueta — Historial</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css?v=3">
+  <style>
+    .maqueta-badge { position: fixed; top: 10px; right: 10px; background: var(--coral); color:#fff; padding:4px 10px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:1px; z-index:1000; text-transform:uppercase; }
+
+    .hist-container { max-width: 980px; margin: 0 auto; padding: 20px 16px 80px; }
+
+    /* Filtros */
+    .hist-filters {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px; margin-bottom: 20px;
+    }
+    .hist-filter-select {
+      background:#181818; border:1px solid var(--border);
+      border-radius: var(--radius-sm); color:var(--text);
+      padding: 10px 12px; font-family: inherit; font-size: 13px;
+    }
+
+    /* Lista de generaciones */
+    .hist-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .hist-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px; cursor: pointer;
+      transition: all 0.2s; display: flex; gap: 14px; align-items: center;
+    }
+    .hist-card:hover {
+      border-color: var(--coral);
+      background: var(--surface-hover);
+    }
+
+    /* Thumbs preview */
+    .hist-thumbs {
+      display: flex; gap: -6px; flex-shrink: 0;
+    }
+    .hist-thumb {
+      width: 56px; height: 56px; border-radius: 8px;
+      border: 2px solid var(--surface); margin-left: -10px;
+      background: linear-gradient(135deg, #2979FF, #FF6B6B);
+    }
+    .hist-thumb:first-child { margin-left: 0; }
+    .hist-thumb.more {
+      background: #222; color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600;
+    }
+
+    .hist-info { flex: 1; min-width: 0; }
+
+    .hist-titulo {
+      font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+      margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    .hist-meta {
+      display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+    }
+    .hist-tag {
+      font-size: 11px; padding: 3px 8px; border-radius: 999px;
+      background: #181818; border: 1px solid var(--border); color: var(--text-muted);
+    }
+    .hist-tag.formato { color: var(--coral); border-color: var(--coral-dim); background: var(--coral-dim); }
+    .hist-tag.pilar { color: #2979FF; border-color: rgba(41,121,255,0.2); background: rgba(41,121,255,0.12); }
+
+    .hist-fecha {
+      font-size: 12px; color: var(--text-muted); flex-shrink: 0; white-space: nowrap;
+    }
+
+    .hist-empty {
+      text-align: center; padding: 60px 20px; color: var(--text-muted);
+    }
+
+    /* Section header */
+    .hist-section-label {
+      font-size: 11px; font-weight: 600; color: var(--text-dim);
+      text-transform: uppercase; letter-spacing: 1px; margin: 20px 0 10px;
+    }
+    .hist-section-label:first-child { margin-top: 0; }
+
+    @media (max-width: 600px) {
+      .hist-card { flex-wrap: wrap; }
+      .hist-fecha { width: 100%; text-align: right; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div id="sidebar-slot"></div>
+
+  <div class="main-content" style="margin-left: 220px; width: calc(100% - 220px); height:100vh; overflow-y:auto;">
+    <header class="topbar" style="height:60px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:10;">
+      <h1 class="topbar-title" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;">Historial de Generaciones</h1>
+    </header>
+
+    <div class="hist-container">
+
+      <!-- Filtros -->
+      <div class="hist-filters">
+        <select class="hist-filter-select">
+          <option>Todos los clientes</option>
+          <option>Clínica Dental Sonrisa</option>
+          <option>Estudio Inmobiliario Norte</option>
+        </select>
+        <select class="hist-filter-select">
+          <option>Todos los pilares</option>
+          <option>Educativo</option>
+          <option>Autoridad</option>
+          <option>Emocional</option>
+        </select>
+        <select class="hist-filter-select">
+          <option>Todos los formatos</option>
+          <option>Carrusel</option>
+          <option>Historia</option>
+        </select>
+        <select class="hist-filter-select">
+          <option>Último mes</option>
+          <option>Última semana</option>
+          <option>Últimos 7 días</option>
+          <option>Hoy</option>
+        </select>
+      </div>
+
+      <!-- Hoy -->
+      <div class="hist-section-label">Hoy</div>
+      <div class="hist-list">
+
+        <a href="/maquetas/resultado.html" style="text-decoration:none;color:inherit;">
+        <div class="hist-card">
+          <div class="hist-thumbs">
+            <div class="hist-thumb" style="background:linear-gradient(135deg,#0EA5E9,#1E293B)"></div>
+            <div class="hist-thumb" style="background:linear-gradient(135deg,#F59E0B,#0EA5E9)"></div>
+            <div class="hist-thumb" style="background:linear-gradient(135deg,#1E293B,#F59E0B)"></div>
+            <div class="hist-thumb more">+3</div>
+          </div>
+          <div class="hist-info">
+            <div class="hist-titulo">Los 3 errores más comunes al cepillarse</div>
+            <div class="hist-meta">
+              <span class="hist-tag">Clínica Dental Sonrisa</span>
+              <span class="hist-tag pilar">Educativo</span>
+              <span class="hist-tag formato">Carrusel · 6</span>
+            </div>
+          </div>
+          <div class="hist-fecha">hace 2h</div>
+        </div>
+        </a>
+
+        <div class="hist-card">
+          <div class="hist-thumbs">
+            <div class="hist-thumb" style="background:linear-gradient(135deg,#FF6B6B,#F59E0B)"></div>
+            <div class="hist-thumb more">+2</div>
+          </div>
+          <div class="hist-info">
+            <div class="hist-titulo">Behind the scenes del consultorio</div>
+            <div class="hist-meta">
+              <span class="hist-tag">Clínica Dental Sonrisa</span>
+              <span class="hist-tag pilar">Emocional</span>
+              <span class="hist-tag formato">Historia · 3</span>
+            </div>
+          </div>
+          <div class="hist-fecha">hace 5h</div>
+        </div>
+      </div>
+
+      <!-- Ayer -->
+      <div class="hist-section-label">Ayer</div>
+      <div class="hist-list">
+        <div class="hist-card">
+          <div class="hist-thumbs">
+            <div class="hist-thumb" style="background:linear-gradient(135deg,#00C48C,#2979FF)"></div>
+            <div class="hist-thumb" style="background:linear-gradient(135deg,#2979FF,#FF6B6B)"></div>
+            <div class="hist-thumb more">+5</div>
+          </div>
+          <div class="hist-info">
+            <div class="hist-titulo">¿Por qué Alicante es la mejor zona para invertir?</div>
+            <div class="hist-meta">
+              <span class="hist-tag">Estudio Inmobiliario Norte</span>
+              <span class="hist-tag pilar">Autoridad</span>
+              <span class="hist-tag formato">Carrusel · 7</span>
+            </div>
+          </div>
+          <div class="hist-fecha">ayer</div>
+        </div>
+      </div>
+
+      <!-- Esta semana -->
+      <div class="hist-section-label">Esta semana</div>
+      <div class="hist-list">
+        <div class="hist-card">
+          <div class="hist-thumbs">
+            <div class="hist-thumb" style="background:linear-gradient(135deg,#F59E0B,#FF6B6B)"></div>
+            <div class="hist-thumb" style="background:linear-gradient(135deg,#0EA5E9,#00C48C)"></div>
+            <div class="hist-thumb more">+3</div>
+          </div>
+          <div class="hist-info">
+            <div class="hist-titulo">5 señales de que tu boca necesita atención</div>
+            <div class="hist-meta">
+              <span class="hist-tag">Clínica Dental Sonrisa</span>
+              <span class="hist-tag pilar">Educativo</span>
+              <span class="hist-tag formato">Carrusel · 5</span>
+            </div>
+          </div>
+          <div class="hist-fecha">lun 16 abr</div>
+        </div>
+
+        <div class="hist-card">
+          <div class="hist-thumbs">
+            <div class="hist-thumb" style="background:linear-gradient(135deg,#FF6B6B,#00C48C)"></div>
+          </div>
+          <div class="hist-info">
+            <div class="hist-titulo">Rutina de mañana en el estudio</div>
+            <div class="hist-meta">
+              <span class="hist-tag">Pilates Alicante</span>
+              <span class="hist-tag pilar">Emocional</span>
+              <span class="hist-tag formato">Historia · 1</span>
+            </div>
+          </div>
+          <div class="hist-fecha">dom 15 abr</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="/maquetas/_layout.js"></script>
+</body>
+</html>

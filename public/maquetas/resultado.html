@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maqueta — Resultado</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css?v=3">
+  <style>
+    .maqueta-badge { position: fixed; top: 10px; right: 10px; background: var(--coral); color:#fff; padding:4px 10px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:1px; z-index:1000; text-transform:uppercase; }
+
+    .res-container { max-width: 1100px; margin: 0 auto; padding: 20px 16px 80px; }
+
+    /* Header con meta y acciones */
+    .res-header {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px; margin-bottom: 20px;
+      display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+    }
+    .res-header-info { flex: 1; min-width: 200px; }
+    .res-header-titulo {
+      font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .res-header-meta {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .res-tag {
+      font-size: 11px; padding: 3px 8px; border-radius: 999px;
+      background: #181818; border: 1px solid var(--border); color: var(--text-muted);
+    }
+    .res-tag.pilar { color: #2979FF; border-color: rgba(41,121,255,0.2); background: rgba(41,121,255,0.12); }
+    .res-tag.formato { color: var(--coral); border-color: var(--coral-dim); background: var(--coral-dim); }
+
+    .res-actions {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .res-btn {
+      background: #181818; border: 1px solid var(--border); color: var(--text);
+      padding: 10px 14px; border-radius: var(--radius-sm); font-family: inherit;
+      font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .res-btn:hover { border-color: var(--coral); color: var(--coral); }
+    .res-btn.primary {
+      background: var(--coral); border-color: var(--coral); color: #fff; font-weight: 600;
+    }
+    .res-btn.primary:hover { background: #ff5050; color: #fff; }
+    .res-btn svg { width: 16px; height: 16px; }
+
+    /* Grid de imágenes */
+    .res-grid {
+      display: grid; gap: 12px;
+    }
+    .res-grid.carrusel {
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+    .res-grid.historia {
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    }
+
+    .res-slide {
+      position: relative; border-radius: var(--radius); overflow: hidden;
+      background: var(--surface); border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+    .res-slide:hover { border-color: var(--border-light); }
+
+    .res-slide-img {
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; color: rgba(255,255,255,0.9);
+      position: relative;
+    }
+    .res-grid.historia .res-slide-img { aspect-ratio: 9/16; }
+
+    .res-slide-num {
+      position: absolute; top: 10px; left: 10px;
+      background: rgba(0,0,0,0.7); color: #fff; padding: 4px 10px;
+      border-radius: 999px; font-size: 11px; font-weight: 600;
+    }
+
+    .res-slide-actions {
+      display: flex; gap: 6px; padding: 10px; background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+    .res-mini-btn {
+      flex: 1; background: transparent; border: 1px solid var(--border);
+      color: var(--text-muted); padding: 6px; border-radius: 6px;
+      font-family: inherit; font-size: 11px; cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+    }
+    .res-mini-btn:hover { border-color: var(--coral); color: var(--coral); }
+    .res-mini-btn svg { width: 12px; height: 12px; }
+
+    /* Narrativa */
+    .res-narrative-toggle {
+      background: #181818; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 12px 14px; cursor: pointer;
+      font-size: 13px; color: var(--text-muted); margin-bottom: 14px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .res-narrative-toggle:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div id="sidebar-slot"></div>
+
+  <div class="main-content" style="margin-left: 220px; width: calc(100% - 220px); height:100vh; overflow-y:auto;">
+    <header class="topbar" style="height:60px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:10;gap:12px;">
+      <a href="/maquetas/historial.html" style="color:var(--text-muted);text-decoration:none;display:flex;align-items:center;">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+      </a>
+      <h1 class="topbar-title" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;">Contenido generado</h1>
+    </header>
+
+    <div class="res-container">
+
+      <!-- Header con meta -->
+      <div class="res-header">
+        <div class="res-header-info">
+          <div class="res-header-titulo">Los 3 errores más comunes al cepillarse los dientes</div>
+          <div class="res-header-meta">
+            <span class="res-tag">Clínica Dental Sonrisa</span>
+            <span class="res-tag pilar">Educativo</span>
+            <span class="res-tag formato">Carrusel · 6 slides</span>
+            <span class="res-tag">hace 2 min</span>
+          </div>
+        </div>
+        <div class="res-actions">
+          <button class="res-btn">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Regenerar todo
+          </button>
+          <button class="res-btn primary">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Descargar ZIP
+          </button>
+        </div>
+      </div>
+
+      <!-- Narrativa (colapsable) -->
+      <div class="res-narrative-toggle">
+        <span>📝 Ver guion narrativo generado</span>
+        <span style="font-size:18px;">▾</span>
+      </div>
+
+      <!-- Grid de slides -->
+      <div class="res-grid carrusel">
+        <div class="res-slide">
+          <div class="res-slide-img" style="background:linear-gradient(135deg,#0EA5E9,#1E293B);">
+            <span class="res-slide-num">1 · Hook</span>
+            1
+          </div>
+          <div class="res-slide-actions">
+            <button class="res-mini-btn">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              Regenerar
+            </button>
+            <button class="res-mini-btn">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              Bajar
+            </button>
+          </div>
+        </div>
+
+        <div class="res-slide">
+          <div class="res-slide-img" style="background:linear-gradient(135deg,#F59E0B,#0EA5E9);">
+            <span class="res-slide-num">2 · Error 1</span>
+            2
+          </div>
+          <div class="res-slide-actions">
+            <button class="res-mini-btn">Regenerar</button>
+            <button class="res-mini-btn">Bajar</button>
+          </div>
+        </div>
+
+        <div class="res-slide">
+          <div class="res-slide-img" style="background:linear-gradient(135deg,#1E293B,#F59E0B);">
+            <span class="res-slide-num">3 · Error 2</span>
+            3
+          </div>
+          <div class="res-slide-actions">
+            <button class="res-mini-btn">Regenerar</button>
+            <button class="res-mini-btn">Bajar</button>
+          </div>
+        </div>
+
+        <div class="res-slide">
+          <div class="res-slide-img" style="background:linear-gradient(135deg,#F1F5F9,#0EA5E9);color:#1E293B;">
+            <span class="res-slide-num">4 · Error 3</span>
+            4
+          </div>
+          <div class="res-slide-actions">
+            <button class="res-mini-btn">Regenerar</button>
+            <button class="res-mini-btn">Bajar</button>
+          </div>
+        </div>
+
+        <div class="res-slide">
+          <div class="res-slide-img" style="background:linear-gradient(135deg,#0EA5E9,#F59E0B);">
+            <span class="res-slide-num">5 · Solución</span>
+            5
+          </div>
+          <div class="res-slide-actions">
+            <button class="res-mini-btn">Regenerar</button>
+            <button class="res-mini-btn">Bajar</button>
+          </div>
+        </div>
+
+        <div class="res-slide">
+          <div class="res-slide-img" style="background:linear-gradient(135deg,#FF6B6B,#1E293B);">
+            <span class="res-slide-num">6 · CTA</span>
+            6
+          </div>
+          <div class="res-slide-actions">
+            <button class="res-mini-btn">Regenerar</button>
+            <button class="res-mini-btn">Bajar</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="/maquetas/_layout.js"></script>
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maqueta — ADN de Cliente</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css?v=3">
+  <style>
+    .maqueta-badge { position: fixed; top: 10px; right: 10px; background: var(--coral); color:#fff; padding:4px 10px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:1px; z-index:1000; text-transform:uppercase; }
+
+    .adn-container { max-width: 860px; margin: 0 auto; padding: 20px 16px 80px; }
+
+    .adn-top {
+      display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .adn-top select {
+      flex: 1; min-width: 200px; background:#181818; border:1px solid var(--border);
+      border-radius: var(--radius-sm); color:var(--text); padding: 12px 14px; font-family: inherit; font-size: 14px;
+    }
+    .adn-top-btn {
+      background: var(--coral); color: #fff; border: none; border-radius: var(--radius-sm);
+      padding: 12px 16px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .adn-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+    }
+
+    .adn-card-title {
+      font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+      letter-spacing: 0.3px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    }
+
+    .adn-label {
+      display: block; font-size: 11px; font-weight: 600; color: var(--text-muted);
+      margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    .adn-input, .adn-textarea, .adn-select {
+      width: 100%; background:#181818; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text); font-family: inherit;
+      font-size: 14px; padding: 10px 12px; transition: all 0.2s;
+    }
+    .adn-input:focus, .adn-textarea:focus { outline: none; border-color: var(--coral); }
+    .adn-textarea { min-height: 80px; resize: vertical; line-height: 1.5; }
+
+    .adn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .adn-field { margin-bottom: 14px; }
+    .adn-field:last-child { margin-bottom: 0; }
+
+    /* Logo uploader grande */
+    .adn-logo-box {
+      display: flex; gap: 14px; align-items: center;
+    }
+    .adn-logo-preview {
+      width: 80px; height: 80px; border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, #0EA5E9, #1E293B);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .adn-logo-actions { flex: 1; }
+    .adn-btn-sec {
+      background: #181818; border: 1px solid var(--border); color: var(--text);
+      padding: 8px 12px; border-radius: var(--radius-sm); font-family: inherit;
+      font-size: 13px; cursor: pointer; transition: all 0.2s;
+    }
+    .adn-btn-sec:hover { border-color: var(--coral); color: var(--coral); }
+
+    /* Paleta colores */
+    .adn-palette {
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    }
+    .adn-color-slot {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .adn-color {
+      width: 48px; height: 48px; border-radius: var(--radius-sm);
+      border: 2px solid var(--border); cursor: pointer; position: relative;
+    }
+    .adn-color-hex {
+      font-size: 10px; color: var(--text-muted); font-family: monospace;
+    }
+    .adn-color-add {
+      width: 48px; height: 48px; border-radius: var(--radius-sm);
+      border: 1.5px dashed var(--border-light); cursor: pointer; background: transparent;
+      color: var(--text-muted); font-size: 22px; display: flex; align-items: center; justify-content: center;
+    }
+    .adn-color-add:hover { border-color: var(--coral); color: var(--coral); }
+
+    /* Grid referencias */
+    .adn-refs {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 8px;
+    }
+    .adn-ref {
+      aspect-ratio: 1; border-radius: var(--radius-sm); position: relative;
+      background: linear-gradient(135deg, #2979FF22, #FF6B6B22);
+      border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+      color: var(--text-dim); font-size: 11px;
+    }
+    .adn-ref-remove {
+      position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
+      border-radius: 50%; background: rgba(0,0,0,0.7); color: #fff; border: none;
+      cursor: pointer; font-size: 13px;
+    }
+    .adn-ref-add {
+      aspect-ratio: 1; border: 1.5px dashed var(--border-light); border-radius: var(--radius-sm);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: var(--text-muted); cursor: pointer; background: #181818;
+    }
+    .adn-ref-add:hover { border-color: var(--coral); color: var(--coral); }
+
+    /* Pilares */
+    .adn-pilares { display: flex; flex-direction: column; gap: 10px; }
+    .adn-pilar {
+      background: #181818; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 12px; display: flex; gap: 10px; align-items: flex-start;
+    }
+    .adn-pilar-drag {
+      color: var(--text-dim); cursor: grab; font-size: 14px; padding-top: 6px; user-select: none;
+    }
+    .adn-pilar-body { flex: 1; }
+    .adn-pilar-nombre {
+      width: 100%; background: transparent; border: none; color: var(--text);
+      font-family: inherit; font-size: 14px; font-weight: 600; margin-bottom: 4px; outline: none;
+    }
+    .adn-pilar-desc {
+      width: 100%; background: transparent; border: none; color: var(--text-muted);
+      font-family: inherit; font-size: 13px; outline: none; resize: none; min-height: 20px;
+    }
+    .adn-pilar-del {
+      background: none; border: none; color: var(--text-dim); cursor: pointer;
+      font-size: 16px; padding: 4px; flex-shrink: 0;
+    }
+    .adn-pilar-del:hover { color: var(--coral); }
+    .adn-pilar-add {
+      background: transparent; border: 1.5px dashed var(--border-light);
+      border-radius: var(--radius-sm); padding: 12px; color: var(--text-muted);
+      cursor: pointer; text-align: center; font-family: inherit; font-size: 13px;
+    }
+    .adn-pilar-add:hover { border-color: var(--coral); color: var(--coral); }
+
+    .adn-save {
+      position: sticky; bottom: 16px; width: 100%; background: var(--coral);
+      color: #fff; border: none; border-radius: var(--radius); padding: 16px;
+      font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+      letter-spacing: 0.8px; text-transform: uppercase; cursor: pointer;
+      box-shadow: 0 8px 24px rgba(255,107,107,0.3);
+    }
+
+    @media (max-width: 600px) {
+      .adn-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+  <div id="sidebar-slot"></div>
+
+  <div class="main-content" style="margin-left: 220px; width: calc(100% - 220px); height:100vh; overflow-y:auto;">
+    <header class="topbar" style="height:60px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:10;">
+      <h1 class="topbar-title" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;">ADN de Cliente</h1>
+    </header>
+
+    <div class="adn-container">
+
+      <!-- Selector cliente -->
+      <div class="adn-top">
+        <select class="adn-select">
+          <option>Clínica Dental Sonrisa</option>
+          <option>Estudio Inmobiliario Norte</option>
+          <option>Pilates Alicante</option>
+        </select>
+        <button class="adn-top-btn">+ Nuevo cliente</button>
+      </div>
+
+      <!-- Info básica -->
+      <div class="adn-card">
+        <div class="adn-card-title">📋 Información básica</div>
+        <div class="adn-row">
+          <div class="adn-field">
+            <label class="adn-label">Rubro</label>
+            <input class="adn-input" value="Salud · Odontología">
+          </div>
+          <div class="adn-field">
+            <label class="adn-label">Público objetivo</label>
+            <input class="adn-input" value="Familias 30-55, clase media, zona Alicante">
+          </div>
+        </div>
+      </div>
+
+      <!-- Logo -->
+      <div class="adn-card">
+        <div class="adn-card-title">🏷️ Logo</div>
+        <div class="adn-logo-box">
+          <div class="adn-logo-preview">CDS</div>
+          <div class="adn-logo-actions">
+            <button class="adn-btn-sec">Cambiar logo</button>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:6px;">PNG con fondo transparente, 500x500 mínimo</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Paleta -->
+      <div class="adn-card">
+        <div class="adn-card-title">🎨 Paleta de colores <span style="font-size:11px;color:var(--text-muted);font-weight:400;">· 3 a 5 colores</span></div>
+        <div class="adn-palette">
+          <div class="adn-color-slot"><div class="adn-color" style="background:#0EA5E9"></div><div class="adn-color-hex">#0EA5E9</div></div>
+          <div class="adn-color-slot"><div class="adn-color" style="background:#F59E0B"></div><div class="adn-color-hex">#F59E0B</div></div>
+          <div class="adn-color-slot"><div class="adn-color" style="background:#1E293B"></div><div class="adn-color-hex">#1E293B</div></div>
+          <div class="adn-color-slot"><div class="adn-color" style="background:#F1F5F9"></div><div class="adn-color-hex">#F1F5F9</div></div>
+          <button class="adn-color-add" title="Agregar color">+</button>
+        </div>
+      </div>
+
+      <!-- Tono de marca -->
+      <div class="adn-card">
+        <div class="adn-card-title">🗣️ Tono de marca</div>
+        <textarea class="adn-textarea" placeholder="Describí cómo comunica la marca, 3-4 líneas">Cercano pero profesional. Hablamos de igual a igual, sin tecnicismos médicos innecesarios. Transmitimos confianza explicando el "por qué" de cada recomendación. Usamos ejemplos cotidianos.</textarea>
+      </div>
+
+      <!-- Imágenes referencia -->
+      <div class="adn-card">
+        <div class="adn-card-title">🖼️ Referencias visuales <span style="font-size:11px;color:var(--text-muted);font-weight:400;">· 3 a 5 imágenes del feed actual</span></div>
+        <div class="adn-refs">
+          <div class="adn-ref">ref 1 <button class="adn-ref-remove">×</button></div>
+          <div class="adn-ref">ref 2 <button class="adn-ref-remove">×</button></div>
+          <div class="adn-ref">ref 3 <button class="adn-ref-remove">×</button></div>
+          <div class="adn-ref">ref 4 <button class="adn-ref-remove">×</button></div>
+          <button class="adn-ref-add">
+            <div style="font-size:20px;">+</div>
+            <div>Subir</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Pilares -->
+      <div class="adn-card">
+        <div class="adn-card-title">🏛️ Pilares de contenido <span style="font-size:11px;color:var(--text-muted);font-weight:400;">· 3 a 5 pilares</span></div>
+        <div class="adn-pilares">
+          <div class="adn-pilar">
+            <div class="adn-pilar-drag">⋮⋮</div>
+            <div class="adn-pilar-body">
+              <input class="adn-pilar-nombre" value="Educativo">
+              <textarea class="adn-pilar-desc">Explicar conceptos simples de salud dental sin tecnicismos</textarea>
+            </div>
+            <button class="adn-pilar-del">🗑</button>
+          </div>
+          <div class="adn-pilar">
+            <div class="adn-pilar-drag">⋮⋮</div>
+            <div class="adn-pilar-body">
+              <input class="adn-pilar-nombre" value="Autoridad">
+              <textarea class="adn-pilar-desc">Credenciales del equipo médico, casos de éxito, tecnología</textarea>
+            </div>
+            <button class="adn-pilar-del">🗑</button>
+          </div>
+          <div class="adn-pilar">
+            <div class="adn-pilar-drag">⋮⋮</div>
+            <div class="adn-pilar-body">
+              <input class="adn-pilar-nombre" value="Emocional">
+              <textarea class="adn-pilar-desc">Conectar con el miedo al dentista y la vergüenza por la sonrisa</textarea>
+            </div>
+            <button class="adn-pilar-del">🗑</button>
+          </div>
+          <button class="adn-pilar-add">+ Agregar pilar</button>
+        </div>
+      </div>
+
+      <button class="adn-save">Guardar ADN</button>
+    </div>
+  </div>
+</div>
+
+<script src="/maquetas/_layout.js"></script>
+</body>
+</html>
