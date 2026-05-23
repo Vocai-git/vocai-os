@@ -43,6 +43,10 @@ function mktCalInjectStyles() {
     .mkt-day.weekend { background:#191919; }
     .mkt-day.empty { background:transparent; border-color:transparent; }
     .mkt-day.dragover { border-color:var(--coral); background:rgba(255,107,107,0.06); }
+    .mkt-day.today { border-color:var(--coral); background:rgba(255,107,107,0.08);
+      box-shadow:inset 0 2px 0 0 var(--coral); }
+    .mkt-day.today .mkt-daynum > span:first-child { color:var(--coral); font-weight:800;
+      font-size:13px; }
     .mkt-daynum { font-size:11px; font-weight:600; color:var(--text-muted); margin-bottom:4px;
       display:flex; justify-content:space-between; align-items:center; }
     .mkt-dayadd { cursor:pointer; color:var(--text-dim); font-size:14px; line-height:1;
@@ -139,15 +143,17 @@ async function mktCalRenderPanel(el) {
   const offset = (new Date(y, m, 1).getDay() + 6) % 7;
   const diasMes = new Date(y, m + 1, 0).getDate();
 
+  const hoyStr = new Date().toISOString().slice(0, 10);
   let celdas = '';
   for (let i = 0; i < offset; i++) celdas += `<div class="mkt-day empty"></div>`;
   for (let d = 1; d <= diasMes; d++) {
     const fecha = `${mesStr}-${String(d).padStart(2, '0')}`;
     const dow = new Date(y, m, d).getDay();
     const weekend = (dow === 0 || dow === 6) ? ' weekend' : '';
+    const esHoy = fecha === hoyStr ? ' today' : '';
     const delDia = piezas.filter(p => p.fecha === fecha).map(mktPieceHTML).join('');
     celdas += `
-      <div class="mkt-day${weekend}" ondragover="mktCalDragOver(event)"
+      <div class="mkt-day${weekend}${esHoy}" ondragover="mktCalDragOver(event)"
            ondragleave="mktCalDragLeave(event)" ondrop="mktCalDrop(event,'${fecha}')">
         <div class="mkt-daynum">
           <span>${d}</span>
