@@ -82,7 +82,7 @@ html,body{width:1080px;height:1920px;}
   background:linear-gradient(to bottom,rgba(20,29,53,0) 0%,
     rgba(20,29,53,.55) 36%,rgba(20,29,53,.93) 64%,#141d35 86%);}
 .contenido{position:absolute;left:0;right:0;bottom:430px;padding:0 96px;text-align:center;}
-.kicker{display:flex;justify-content:center;align-items:center;gap:18px;margin-bottom:30px;}
+.kicker{position:absolute;top:96px;left:96px;display:flex;align-items:center;gap:18px;z-index:5;}
 .barra{width:56px;height:8px;border-radius:4px;background:${acento};}
 .cat{font-weight:700;font-size:30px;letter-spacing:.14em;color:${acento};}
 .titulo{font-weight:800;font-size:92px;line-height:1.08;color:#fff;letter-spacing:-.02em;}
@@ -94,7 +94,8 @@ html,body{width:1080px;height:1920px;}
 <div class="placa">
   <img class="fondo" src="${ilustracionDataUri}">
   <div class="velo"></div>
-  <div class="contenido">${kicker}
+  ${kicker}
+  <div class="contenido">
     <div class="titulo">${esc(titulo)}</div>
     ${subtitulo ? `<div class="subtitulo">${esc(subtitulo)}</div>` : ''}
     ${fuente ? `<div class="fuente">Fuente · ${esc(fuente)}</div>` : ''}
@@ -165,7 +166,7 @@ html,body{width:1080px;height:1350px;}
   background:linear-gradient(to bottom,rgba(20,29,53,0) 0%,
     rgba(20,29,53,.55) 34%,rgba(20,29,53,.93) 62%,#141d35 86%);}
 .contenido{position:absolute;left:0;right:0;bottom:252px;padding:0 90px;text-align:center;}
-.kicker{display:flex;justify-content:center;align-items:center;gap:16px;margin-bottom:26px;}
+.kicker{position:absolute;top:80px;left:80px;display:flex;align-items:center;gap:16px;z-index:5;}
 .barra{width:52px;height:8px;border-radius:4px;background:${acento};}
 .cat{font-weight:700;font-size:27px;letter-spacing:.14em;color:${acento};}
 .titulo{font-weight:800;line-height:1.09;color:#fff;letter-spacing:-.02em;}
@@ -177,7 +178,8 @@ html,body{width:1080px;height:1350px;}
 <div class="placa">
   <img class="fondo" src="${ilustracionDataUri}">
   <div class="velo"></div>
-  <div class="contenido">${kicker}
+  ${kicker}
+  <div class="contenido">
     <div class="titulo" data-fit-max="80" data-fit-min="46" data-fit-h="430">${esc(titulo)}</div>
     ${subtitulo ? `<div class="subtitulo">${esc(subtitulo)}</div>` : ''}
     ${fuente ? `<div class="fuente">Fuente · ${esc(fuente)}</div>` : ''}
