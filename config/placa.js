@@ -81,6 +81,9 @@ html,body{width:1080px;height:1920px;}
 .velo{position:absolute;left:0;right:0;bottom:0;height:80%;
   background:linear-gradient(to bottom,rgba(20,29,53,0) 0%,
     rgba(20,29,53,.55) 36%,rgba(20,29,53,.93) 64%,#141d35 86%);}
+.velo-top{position:absolute;left:0;right:0;top:0;height:20%;
+  background:linear-gradient(to top,rgba(20,29,53,0) 0%,
+    rgba(20,29,53,.5) 48%,rgba(20,29,53,.86) 100%);z-index:1;}
 .contenido{position:absolute;left:0;right:0;bottom:430px;padding:0 96px;text-align:center;}
 .kicker{position:absolute;top:96px;left:96px;display:flex;align-items:center;gap:18px;z-index:5;}
 .barra{width:56px;height:8px;border-radius:4px;background:${acento};}
@@ -94,6 +97,7 @@ html,body{width:1080px;height:1920px;}
 <div class="placa">
   <img class="fondo" src="${ilustracionDataUri}">
   <div class="velo"></div>
+  <div class="velo-top"></div>
   ${kicker}
   <div class="contenido">
     <div class="titulo">${esc(titulo)}</div>
@@ -165,6 +169,9 @@ html,body{width:1080px;height:1350px;}
 .velo{position:absolute;left:0;right:0;bottom:0;height:84%;
   background:linear-gradient(to bottom,rgba(20,29,53,0) 0%,
     rgba(20,29,53,.55) 34%,rgba(20,29,53,.93) 62%,#141d35 86%);}
+.velo-top{position:absolute;left:0;right:0;top:0;height:22%;
+  background:linear-gradient(to top,rgba(20,29,53,0) 0%,
+    rgba(20,29,53,.5) 48%,rgba(20,29,53,.86) 100%);z-index:1;}
 .contenido{position:absolute;left:0;right:0;bottom:252px;padding:0 90px;text-align:center;}
 .kicker{position:absolute;top:80px;left:80px;display:flex;align-items:center;gap:16px;z-index:5;}
 .barra{width:52px;height:8px;border-radius:4px;background:${acento};}
@@ -178,6 +185,7 @@ html,body{width:1080px;height:1350px;}
 <div class="placa">
   <img class="fondo" src="${ilustracionDataUri}">
   <div class="velo"></div>
+  <div class="velo-top"></div>
   ${kicker}
   <div class="contenido">
     <div class="titulo" data-fit-max="80" data-fit-min="46" data-fit-h="430">${esc(titulo)}</div>
