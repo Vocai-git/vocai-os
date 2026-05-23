@@ -14,3 +14,6 @@ public/fonts/
 automations/prueba-*.js
 automations/diag*.js
 automations/comparador.js
+
+# Claude Code — configuración local de la máquina
+.claude/
