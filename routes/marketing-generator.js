@@ -84,9 +84,12 @@ router.post('/generar', auth,
     const DIR = dirDe(formato);
     if (!fs.existsSync(DIR)) fs.mkdirSync(DIR, { recursive: true });
 
-    // 1 · Especialistas de texto: título/subtítulo y, en feed, el copy del posteo
-    const texto = await generarTexto(idea, categoria, modoLibre);
-    const copy = formato === 'feed' ? await generarCopy(idea, modoLibre) : '';
+    // 1 · Especialistas de texto: título/subtítulo y, en feed, el copy del posteo.
+    //     La imagen de referencia (si la hay) se pasa también para que puedan
+    //     leerla cuando la idea hace referencia a ella ("esa frase", etc.).
+    const refPath = refFile ? refFile.path : null;
+    const texto = await generarTexto(idea, categoria, modoLibre, refPath);
+    const copy = formato === 'feed' ? await generarCopy(idea, modoLibre, refPath) : '';
 
     // 2 · Imagen de fondo — se conserva para poder ajustarla después
     const stamp = Date.now();

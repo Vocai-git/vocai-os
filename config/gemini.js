@@ -155,7 +155,15 @@ async function llamarTexto({ sys, user, json, imagenPath }) {
 // ── Especialista 1 · Copy: idea → { titulo, subtitulo } ──────
 // modoLibre=true: el especialista respeta la idea al pie, sin lista negra ni
 // regla de oro. Útil para teasers, contraejemplos o frases bloqueadas a propósito.
-async function generarTexto(idea, categoria = '', modoLibre = false) {
+async function generarTexto(idea, categoria = '', modoLibre = false, referenciaPath = null) {
+  const hayRef = referenciaPath && fs.existsSync(referenciaPath);
+  const bloqueRef = hayRef ? `
+
+IMAGEN DE REFERENCIA: te adjuntaron una imagen. Estudiala. Si la idea hace
+referencia a ella (ej: "con esa frase", "como la imagen que te adjunto",
+"lo que pone ahí"), extrae de la imagen lo que la idea pida — texto, frase,
+dato. Si la imagen contiene texto y la idea lo pide como título, devuelve
+ese texto literal en el campo "titulo".` : '';
   let sys;
   if (modoLibre) {
     sys =
@@ -175,7 +183,7 @@ es del usuario, no tuya.
 IDIOMA: español de España con TUTEO ("tú", "tienes", "puedes"). Es lo único
 innegociable.
 
-SUBTÍTULO: si la idea pide subtítulo vacío o no aporta nada, devuelve "".
+SUBTÍTULO: si la idea pide subtítulo vacío o no aporta nada, devuelve "".${bloqueRef}
 
 Devuelve SOLO un JSON { "titulo": "...", "subtitulo": "..." }, sin markdown.`;
   } else {
@@ -214,12 +222,13 @@ FÓRMULAS DE TÍTULO (elige una según la idea, no improvises la estructura):
 
 CTA: no va en el título. Si la placa lleva llamada a la acción, va en el subtítulo.
 
-${REGLAS_MARCA}${ejemplos}
+${REGLAS_MARCA}${ejemplos}${bloqueRef}
 
 Devuelve SOLO un JSON { "titulo": "...", "subtitulo": "..." }, sin markdown.`;
   }
 
-  const txt = await llamarTexto({ sys, user: `Idea: ${idea}`, json: true });
+  const txt = await llamarTexto({ sys, user: `Idea: ${idea}`, json: true,
+    imagenPath: hayRef ? referenciaPath : null });
   let brief;
   try {
     brief = JSON.parse(txt.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim());
@@ -233,7 +242,13 @@ Devuelve SOLO un JSON { "titulo": "...", "subtitulo": "..." }, sin markdown.`;
 }
 
 // ── Especialista · Copy: idea → texto del posteo (caption) ───
-async function generarCopy(idea, modoLibre = false) {
+async function generarCopy(idea, modoLibre = false, referenciaPath = null) {
+  const hayRef = referenciaPath && fs.existsSync(referenciaPath);
+  const bloqueRef = hayRef ? `
+
+IMAGEN DE REFERENCIA: te adjuntaron una imagen. Estudiala. Si la idea hace
+referencia a ella (ej: "esa frase", "como la imagen", "lo que pone ahí"),
+extrae de la imagen lo que la idea pida y úsalo en el copy.` : '';
   let sys;
   if (modoLibre) {
     sys =
@@ -250,7 +265,7 @@ idea no los pide. NO filtres contra lista negra. La responsabilidad del copy
 en este modo es del usuario, no tuya.
 
 IDIOMA: español de España con TUTEO ("tú", "tienes", "puedes"). Es lo único
-innegociable.
+innegociable.${bloqueRef}
 
 Devuelve SOLO el texto del copy, listo para pegar. Sin comillas, sin etiquetas.`;
   } else {
@@ -274,11 +289,12 @@ Longitud total: 40 a 80 palabras. Cierra con 4 a 6 hashtags sobrios.
 - Hashtags SÍ: #VOCAI #Alicante #Automatización #InteligenciaArtificial.
 - Hashtags NO: #Innovacion #EstrategiaIA #mindset ni genéricos de relleno.
 
-${REGLAS_MARCA}${ejemplos}
+${REGLAS_MARCA}${ejemplos}${bloqueRef}
 
 Devuelve SOLO el texto del copy, listo para pegar. Sin comillas, sin etiquetas.`;
   }
-  const txt = await llamarTexto({ sys, user: `Idea: ${idea}` });
+  const txt = await llamarTexto({ sys, user: `Idea: ${idea}`,
+    imagenPath: hayRef ? referenciaPath : null });
   return txt.trim();
 }
 
