@@ -289,6 +289,14 @@ Longitud total: 40 a 80 palabras. Cierra con 4 a 6 hashtags sobrios.
 - Hashtags SÍ: #VOCAI #Alicante #Automatización #InteligenciaArtificial.
 - Hashtags NO: #Innovacion #EstrategiaIA #mindset ni genéricos de relleno.
 
+EMOJIS:
+Usa 2 a 3 emojis estratégicos en todo el copy. Uno al final del GANCHO para
+frenar el scroll; uno en el CTA si aporta; ninguno o uno suelto en el
+DESARROLLO solo si refuerza el mensaje. NUNCA pongas más de 3 emojis en total.
+- Lista blanca (coherentes con VOCAI): 🎙️ ⚡ 🤖 🚀 💡 ✨ 📈 🔥 🛠️ 🎯.
+- Lista negra (motivacional vacío o decorativo): 😍 🎉 🥳 ❤️ 👏 🙌 ✅ 👇 👀.
+- NUNCA emojis al inicio del copy ni intercalados como adorno.
+
 ${REGLAS_MARCA}${ejemplos}${bloqueRef}
 
 Devuelve SOLO el texto del copy, listo para pegar. Sin comillas, sin etiquetas.`;
