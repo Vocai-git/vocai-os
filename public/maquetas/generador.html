@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maqueta — Generador de Contenido</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css?v=3">
+  <style>
+    /* ===== Estilos específicos del módulo Generador ===== */
+
+    .gen-container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 20px 16px 80px;
+    }
+
+    .gen-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .gen-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .gen-step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--coral-dim);
+      color: var(--coral);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .gen-card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .gen-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .gen-field { margin-bottom: 14px; }
+    .gen-field:last-child { margin-bottom: 0; }
+
+    .gen-select, .gen-input, .gen-textarea {
+      width: 100%;
+      background: #181818;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      padding: 11px 12px;
+      transition: all var(--transition);
+    }
+
+    .gen-select:focus, .gen-input:focus, .gen-textarea:focus {
+      outline: none;
+      border-color: var(--coral);
+      background: #1c1c1c;
+    }
+
+    .gen-textarea {
+      min-height: 100px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .gen-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* Botones de formato grandes */
+    .gen-format-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .gen-format-btn {
+      background: #181818;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 14px;
+      cursor: pointer;
+      transition: all var(--transition);
+      text-align: center;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .gen-format-btn:hover {
+      border-color: var(--border-light);
+      color: var(--text);
+    }
+
+    .gen-format-btn.active {
+      border-color: var(--coral);
+      background: var(--coral-dim);
+      color: var(--text);
+    }
+
+    .gen-format-icon {
+      width: 32px;
+      height: 32px;
+      opacity: 0.8;
+    }
+
+    .gen-format-btn.active .gen-format-icon {
+      opacity: 1;
+      color: var(--coral);
+    }
+
+    .gen-format-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .gen-format-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Stepper de cantidad */
+    .gen-stepper {
+      display: inline-flex;
+      align-items: center;
+      background: #181818;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .gen-stepper-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 22px;
+      font-weight: 400;
+      width: 48px;
+      height: 48px;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gen-stepper-btn:hover {
+      background: #222;
+      color: var(--coral);
+    }
+
+    .gen-stepper-btn:disabled {
+      color: var(--text-dim);
+      cursor: not-allowed;
+    }
+
+    .gen-stepper-btn:disabled:hover {
+      background: transparent;
+      color: var(--text-dim);
+    }
+
+    .gen-stepper-value {
+      min-width: 64px;
+      text-align: center;
+      font-family: 'Syne', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      padding: 0 8px;
+      border: none;
+      background: transparent;
+      outline: none;
+      -moz-appearance: textfield;
+    }
+
+    .gen-stepper-value::-webkit-outer-spin-button,
+    .gen-stepper-value::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .gen-stepper-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .gen-stepper-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .gen-stepper-hint strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* Radio cards */
+    .gen-radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .gen-radio-card {
+      background: #181818;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .gen-radio-card:hover {
+      border-color: var(--border-light);
+    }
+
+    .gen-radio-card.active {
+      border-color: var(--coral);
+      background: var(--coral-dim);
+    }
+
+    .gen-radio-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid var(--text-dim);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .gen-radio-card.active .gen-radio-dot {
+      border-color: var(--coral);
+    }
+
+    .gen-radio-card.active .gen-radio-dot::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--coral);
+    }
+
+    .gen-radio-text {
+      flex: 1;
+    }
+
+    .gen-radio-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .gen-radio-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Uploader */
+    .gen-uploader {
+      border: 1.5px dashed var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all var(--transition);
+      background: #181818;
+      margin-top: 12px;
+    }
+
+    .gen-uploader:hover {
+      border-color: var(--coral);
+      color: var(--text);
+    }
+
+    .gen-uploader-icon {
+      width: 32px;
+      height: 32px;
+      margin: 0 auto 8px;
+      opacity: 0.5;
+    }
+
+    .gen-uploader:hover .gen-uploader-icon { opacity: 1; }
+
+    .gen-uploader-text {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .gen-uploader-hint {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    /* Thumbs de referencias cargadas */
+    .gen-refs-preview {
+      margin-top: 12px;
+      padding: 12px;
+      background: #181818;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+
+    .gen-refs-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .gen-refs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+      gap: 8px;
+    }
+
+    .gen-ref-thumb {
+      aspect-ratio: 1;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #2979FF22, #FF6B6B22);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      font-size: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .gen-ref-thumb.uploaded {
+      background: linear-gradient(135deg, #00C48C22, #2979FF22);
+    }
+
+    .gen-ref-thumb .gen-ref-remove {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      border: none;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gen-refs-hidden { display: none; }
+
+    /* Botón generar grande */
+    .gen-submit {
+      width: 100%;
+      background: var(--coral);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 18px;
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all var(--transition);
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .gen-submit:hover {
+      background: #ff5050;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(255,107,107,0.3);
+    }
+
+    .gen-submit-icon { width: 20px; height: 20px; }
+
+    /* Hint box cuando se selecciona cliente */
+    .gen-client-preview {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #181818;
+      border-radius: var(--radius-sm);
+      margin-top: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .gen-client-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #2979FF, #FF6B6B);
+      flex-shrink: 0;
+    }
+
+    .gen-client-info { flex: 1; }
+    .gen-client-name { font-size: 13px; font-weight: 600; }
+    .gen-client-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    .gen-client-palette { display: flex; gap: 4px; }
+    .gen-palette-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .gen-row { grid-template-columns: 1fr; }
+      .gen-format-grid { grid-template-columns: 1fr 1fr; }
+      .gen-card { padding: 16px; }
+    }
+
+    /* Badge para aclarar que es maqueta */
+    .maqueta-badge {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: var(--coral);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      z-index: 1000;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+<div class="maqueta-badge">Maqueta · no funcional</div>
+
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="/img/logo.png" alt="VOCAI" style="width:120px;display:block;margin:0 auto;mix-blend-mode:screen;">
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-title">Inicio</div>
+        <a class="nav-item">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          Dashboard
+        </a>
+      </div>
+
+      <!-- NUEVA SECCIÓN: CONTENIDO -->
+      <div class="nav-section">
+        <div class="nav-section-title">Contenido</div>
+        <a class="nav-item active" href="/maquetas/generador.html">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 4h16a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"/></svg>
+          Generador
+        </a>
+        <a class="nav-item" href="/maquetas/historial.html">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Historial
+        </a>
+        <a class="nav-item" href="/maquetas/adn.html">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          ADN Clientes
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-title">Negocio</div>
+        <a class="nav-item">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Clientes
+        </a>
+        <a class="nav-item">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          Proyectos
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-title">Finanzas</div>
+        <a class="nav-item">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+          Facturas
+        </a>
+        <a class="nav-item">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+          Gastos
+        </a>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar">A</div>
+        <div class="user-info">
+          <div class="user-name">Agus Moledo</div>
+          <div class="user-role">Fundador</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content" style="margin-left: 220px; width: calc(100% - 220px); height:100vh; overflow-y:auto;">
+    <header class="topbar" style="height:60px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:10;">
+      <h1 class="topbar-title" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;">Generador de Contenido</h1>
+    </header>
+
+    <div class="gen-container">
+
+      <!-- PASO 1: CLIENTE Y PILAR -->
+      <div class="gen-card">
+        <div class="gen-card-header">
+          <div class="gen-step-num">1</div>
+          <div class="gen-card-title">¿Para quién y sobre qué?</div>
+        </div>
+
+        <div class="gen-row">
+          <div class="gen-field">
+            <label class="gen-label">Cliente</label>
+            <select class="gen-select">
+              <option>Clínica Dental Sonrisa</option>
+              <option>Seleccionar cliente...</option>
+            </select>
+          </div>
+          <div class="gen-field">
+            <label class="gen-label">Pilar de contenido</label>
+            <select class="gen-select">
+              <option>Educativo — explicar conceptos</option>
+              <option>Autoridad — credenciales y casos</option>
+              <option>Emocional — conectar con dolor</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="gen-client-preview">
+          <div class="gen-client-logo"></div>
+          <div class="gen-client-info">
+            <div class="gen-client-name">Clínica Dental Sonrisa</div>
+            <div class="gen-client-meta">Salud · ADN visual cargado</div>
+          </div>
+          <div class="gen-client-palette">
+            <div class="gen-palette-dot" style="background:#0EA5E9"></div>
+            <div class="gen-palette-dot" style="background:#F59E0B"></div>
+            <div class="gen-palette-dot" style="background:#1E293B"></div>
+            <div class="gen-palette-dot" style="background:#F1F5F9"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 2: FORMATO -->
+      <div class="gen-card">
+        <div class="gen-card-header">
+          <div class="gen-step-num">2</div>
+          <div class="gen-card-title">Formato</div>
+        </div>
+
+        <div class="gen-format-grid" style="margin-bottom:16px;">
+          <div class="gen-format-btn active">
+            <svg class="gen-format-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="5" width="14" height="14" rx="2" stroke-width="2"/><rect x="7" y="9" width="14" height="14" rx="2" stroke-width="2" opacity="0.5"/></svg>
+            <div class="gen-format-label">Carrusel</div>
+            <div class="gen-format-sub">Post 1:1</div>
+          </div>
+          <div class="gen-format-btn">
+            <svg class="gen-format-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="7" y="3" width="10" height="18" rx="2" stroke-width="2"/></svg>
+            <div class="gen-format-label">Historia</div>
+            <div class="gen-format-sub">Vertical 9:16</div>
+          </div>
+        </div>
+
+        <div class="gen-field" style="margin-bottom:0;">
+          <label class="gen-label">Cantidad de slides</label>
+          <div class="gen-stepper-row">
+            <div class="gen-stepper">
+              <button class="gen-stepper-btn" id="btnMinus" type="button">−</button>
+              <input class="gen-stepper-value" id="qtyInput" type="number" value="6" min="1" max="20">
+              <button class="gen-stepper-btn" id="btnPlus" type="button">+</button>
+            </div>
+            <div class="gen-stepper-hint">
+              Tenés <strong><span id="qtyEcho">6</span> imágenes</strong> para generar
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 3: BRIEF -->
+      <div class="gen-card">
+        <div class="gen-card-header">
+          <div class="gen-step-num">3</div>
+          <div class="gen-card-title">¿Qué querés contar?</div>
+        </div>
+
+        <div class="gen-field">
+          <label class="gen-label">Modo</label>
+          <div class="gen-radio-group">
+            <div class="gen-radio-card active">
+              <div class="gen-radio-dot"></div>
+              <div class="gen-radio-text">
+                <div class="gen-radio-title">Tópico corto</div>
+                <div class="gen-radio-desc">Escribí el tema en una frase y la IA desarrolla el guion</div>
+              </div>
+            </div>
+            <div class="gen-radio-card">
+              <div class="gen-radio-dot"></div>
+              <div class="gen-radio-text">
+                <div class="gen-radio-title">Guion completo</div>
+                <div class="gen-radio-desc">Ya tenés el texto escrito, la IA solo lo adapta a slides</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="gen-field">
+          <label class="gen-label">Brief</label>
+          <textarea class="gen-textarea" placeholder="Ej: los 3 errores más comunes al cepillarse los dientes y cómo evitarlos"></textarea>
+        </div>
+      </div>
+
+      <!-- PASO 4: REFERENCIAS -->
+      <div class="gen-card">
+        <div class="gen-card-header">
+          <div class="gen-step-num">4</div>
+          <div class="gen-card-title">Referencias visuales</div>
+        </div>
+
+        <div class="gen-radio-group" id="refsGroup">
+          <div class="gen-radio-card active" data-ref="guardadas">
+            <div class="gen-radio-dot"></div>
+            <div class="gen-radio-text">
+              <div class="gen-radio-title">Usar las guardadas del cliente</div>
+              <div class="gen-radio-desc">4 imágenes cargadas en su ADN visual</div>
+            </div>
+          </div>
+          <div class="gen-radio-card" data-ref="nuevas">
+            <div class="gen-radio-dot"></div>
+            <div class="gen-radio-text">
+              <div class="gen-radio-title">Subir nuevas solo para esta generación</div>
+              <div class="gen-radio-desc">No reemplaza las guardadas</div>
+            </div>
+          </div>
+          <div class="gen-radio-card" data-ref="ambas">
+            <div class="gen-radio-dot"></div>
+            <div class="gen-radio-text">
+              <div class="gen-radio-title">Usar ambas</div>
+              <div class="gen-radio-desc">Guardadas + nuevas para esta generación</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview de guardadas (visible si guardadas o ambas) -->
+        <div class="gen-refs-preview" id="refsGuardadas">
+          <div class="gen-refs-title">Guardadas del cliente · 4 imágenes</div>
+          <div class="gen-refs-grid">
+            <div class="gen-ref-thumb">ref 1</div>
+            <div class="gen-ref-thumb">ref 2</div>
+            <div class="gen-ref-thumb">ref 3</div>
+            <div class="gen-ref-thumb">ref 4</div>
+          </div>
+        </div>
+
+        <!-- Uploader (visible si nuevas o ambas) -->
+        <div class="gen-refs-hidden" id="refsUploader">
+          <label class="gen-uploader" for="fileUpload">
+            <svg class="gen-uploader-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            <div class="gen-uploader-text">Arrastrá imágenes o hacé click para elegir</div>
+            <div class="gen-uploader-hint">JPG o PNG · hasta 5 imágenes · máx 5MB c/u</div>
+            <input type="file" id="fileUpload" multiple accept="image/*" style="display:none">
+          </label>
+
+          <!-- Previews subidas (simuladas para la maqueta) -->
+          <div class="gen-refs-preview" style="margin-top:10px;">
+            <div class="gen-refs-title">Subidas ahora · 2 imágenes</div>
+            <div class="gen-refs-grid">
+              <div class="gen-ref-thumb uploaded">
+                nueva 1
+                <button class="gen-ref-remove" type="button">×</button>
+              </div>
+              <div class="gen-ref-thumb uploaded">
+                nueva 2
+                <button class="gen-ref-remove" type="button">×</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GENERAR -->
+      <a href="/maquetas/resultado.html" style="text-decoration:none;">
+        <button class="gen-submit" type="button">
+          <svg class="gen-submit-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          Generar 6 imágenes
+        </button>
+      </a>
+
+      <div style="text-align:center;margin-top:14px;color:var(--text-muted);font-size:12px;">
+        Tarda ~1 minuto · se guarda en historial automáticamente
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Interactividad mínima para que Agus pueda "tocar" la maqueta
+  document.querySelectorAll('.gen-format-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.gen-format-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+    });
+  });
+  // Stepper cantidad
+  const qtyInput = document.getElementById('qtyInput');
+  const qtyEcho = document.getElementById('qtyEcho');
+  const btnSubmit = document.querySelector('.gen-submit');
+  const updateQty = () => {
+    let v = parseInt(qtyInput.value, 10);
+    if (isNaN(v) || v < 1) v = 1;
+    if (v > 20) v = 20;
+    qtyInput.value = v;
+    qtyEcho.textContent = v;
+    if (btnSubmit) btnSubmit.lastChild.textContent = ` Generar ${v} ${v === 1 ? 'imagen' : 'imágenes'}`;
+  };
+  document.getElementById('btnMinus').addEventListener('click', () => {
+    qtyInput.value = Math.max(1, parseInt(qtyInput.value, 10) - 1);
+    updateQty();
+  });
+  document.getElementById('btnPlus').addEventListener('click', () => {
+    qtyInput.value = Math.min(20, parseInt(qtyInput.value, 10) + 1);
+    updateQty();
+  });
+  qtyInput.addEventListener('input', updateQty);
+  qtyInput.addEventListener('blur', updateQty);
+  document.querySelectorAll('.gen-radio-group').forEach(group => {
+    group.querySelectorAll('.gen-radio-card').forEach(card => {
+      card.addEventListener('click', () => {
+        group.querySelectorAll('.gen-radio-card').forEach(x => x.classList.remove('active'));
+        card.classList.add('active');
+      });
+    });
+  });
+
+  // Mostrar/ocultar bloques del paso 4 según opción elegida
+  const refsGroup = document.getElementById('refsGroup');
+  const refsGuardadas = document.getElementById('refsGuardadas');
+  const refsUploader = document.getElementById('refsUploader');
+  const updateRefs = () => {
+    const active = refsGroup.querySelector('.gen-radio-card.active');
+    const mode = active ? active.dataset.ref : 'guardadas';
+    refsGuardadas.classList.toggle('gen-refs-hidden', mode === 'nuevas');
+    refsUploader.classList.toggle('gen-refs-hidden', mode === 'guardadas');
+  };
+  refsGroup.querySelectorAll('.gen-radio-card').forEach(card => {
+    card.addEventListener('click', updateRefs);
+  });
+  updateRefs();
+</script>
+
+</body>
+</html>
