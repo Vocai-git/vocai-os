@@ -109,16 +109,19 @@ async function publicarPiezaPorId(id) {
   return { ok: true };
 }
 
-// Publicación automática: piezas con fecha <= hoy y estado 'lista'.
+// Publicación automática: piezas con publish_at <= ahora y estado 'lista'.
+// Si publish_at es null, la pieza no se autopublica (es manual desde el dashboard).
 async function correrPublicaciones() {
   if (!meta.metaConfigurado()) {
     console.log('[Publisher] Sin credenciales Meta — no se publica.');
     return { publicadas: 0, errores: 0 };
   }
-  const hoy = new Date().toISOString().slice(0, 10);
+  const ahora = new Date().toISOString();
   const { data: piezas, error } = await supabase
     .from('content_pieces').select('*')
-    .lte('fecha', hoy).eq('estado', 'lista');
+    .not('publish_at', 'is', null)
+    .lte('publish_at', ahora)
+    .eq('estado', 'lista');
   if (error) {
     console.error('[Publisher] Error leyendo el calendario:', error.message);
     return { publicadas: 0, errores: 0 };

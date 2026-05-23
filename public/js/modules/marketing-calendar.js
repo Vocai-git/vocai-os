@@ -296,6 +296,16 @@ async function mktCalDrop(ev, fecha) {
   } catch (err) { toast(err.message, 'error'); }
 }
 
+// Convierte una fecha ISO (UTC) a valor para input type="datetime-local"
+// (interpreta en la zona horaria del navegador — el usuario está en España).
+function mktCalISOToLocalDatetime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+         `T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 // ── Formulario (crear / editar) ─────────────────────────────
 function mktCalForm(p) {
   const opts = (arr, sel) => arr.map(o =>
@@ -327,6 +337,16 @@ function mktCalForm(p) {
       <div class="form-group">
         <label class="form-label">Estado</label>
         <select class="form-select" id="mkf_estado">${opts(estados, p.estado)}</select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Programar publicación (hora España)</label>
+      <input class="form-input" type="datetime-local" id="mkf_publish_at"
+        value="${p.publish_at ? mktCalISOToLocalDatetime(p.publish_at) : ''}">
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.4;">
+        Dejá vacío para no autopublicar. Si pones fecha y hora, la pieza se publica
+        en Instagram + Facebook automáticamente en ese momento. El estado debe
+        estar en "Lista" para que se publique.
       </div>
     </div>
     <div class="form-group">
@@ -417,6 +437,7 @@ async function mktCalSave(id) {
     const tag = orig ? /\[media:[^\]]+\]/.exec(orig.notas || '') : null;
     if (tag) notas = tag[0] + (notas ? ' ' + notas : '');
   }
+  const publishStr = document.getElementById('mkf_publish_at').value;
   const body = {
     titulo:  document.getElementById('mkf_titulo').value.trim(),
     fecha:   document.getElementById('mkf_fecha').value,
@@ -425,6 +446,7 @@ async function mktCalSave(id) {
     estado:  document.getElementById('mkf_estado').value,
     cta:     document.getElementById('mkf_cta').value.trim(),
     notas:   notas,
+    publish_at: publishStr ? new Date(publishStr).toISOString() : null,
   };
   if (!body.titulo) { toast('El título es obligatorio', 'error'); return; }
   if (!body.fecha)  { toast('La fecha es obligatoria', 'error'); return; }

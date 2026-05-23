@@ -26,19 +26,20 @@ function iniciarScheduler() {
     console.log('[Scheduler] Sin XAI_API_KEY — Radar IA no se agenda.');
   }
 
-  // ── Publicación automática — todos los días a una hora fija ─
+  // ── Publicación automática — cada 15 min revisa si hay piezas listas ─
+  // Una pieza se publica cuando su publish_at <= ahora y estado = 'lista'.
   if (metaConfigurado()) {
-    const hora = parseInt(process.env.PUBLISH_HOUR || '10', 10);
-    cron.schedule(`0 ${hora} * * *`, async () => {
-      console.log('[Scheduler] Disparando publicaciones del día...');
+    cron.schedule(`*/15 * * * *`, async () => {
       try {
         const r = await correrPublicaciones();
-        console.log(`[Scheduler] Publicaciones — ${r.publicadas} OK, ${r.errores} con error.`);
+        if (r.publicadas || r.errores) {
+          console.log(`[Scheduler] Publicaciones — ${r.publicadas} OK, ${r.errores} con error.`);
+        }
       } catch (err) {
         console.error('[Scheduler] Publicaciones ERROR:', err.message);
       }
     }, { timezone: 'Europe/Madrid' });
-    console.log(`[Scheduler] Publicación automática agendada — todos los días ${hora}:00 Europe/Madrid.`);
+    console.log('[Scheduler] Publicación automática agendada — cada 15 min (chequea publish_at).');
   } else {
     console.log('[Scheduler] Sin credenciales Meta — publicación automática no agendada.');
   }
