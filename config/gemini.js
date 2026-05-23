@@ -467,11 +467,13 @@ async function generarImagen(prompt, savePath, aspecto = '9:16', referenciaPath 
 async function editarImagen(imagenPath, instruccion, savePath, aspecto = '9:16') {
   const b64in = fs.readFileSync(imagenPath).toString('base64');
   const prompt =
-    `You are editing this existing image. Apply the following change and make it ` +
-    `clearly and obviously visible in the result — the difference must be noticeable ` +
-    `at a glance: ${instruccion}. ` +
-    `The requested change has priority over keeping things as they are; only keep ` +
-    `the parts of the image that the change does not mention. ` +
+    `You are editing this existing image. Apply ONLY the following targeted ` +
+    `change, keeping the rest of the image unchanged: ${instruccion}. ` +
+    `CRITICAL: preserve the rest of the image — composition, colors, subjects, ` +
+    `lighting, mood, style — exactly as it is. Modify only what the change ` +
+    `explicitly mentions; nothing else. Do NOT regenerate the image from ` +
+    `scratch. The user wants a surgical correction on this existing image, ` +
+    `not a new image. The change must be visible but localized to what was asked. ` +
     `This is a background illustration: absolutely no text, no letters, no numbers, ` +
     `no words. Output a clean ${aspecto} vertical image.`;
   const res = await fetchConReintentos(`${BASE}/gemini-3-pro-image-preview:generateContent`, {
