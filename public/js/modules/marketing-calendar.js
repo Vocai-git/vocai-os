@@ -52,6 +52,10 @@ function mktCalInjectStyles() {
       background:#252525; border-left:3px solid var(--blue); transition:transform .1s; }
     .mkt-piece:hover { transform:translateX(1px); border-color:rgba(255,255,255,0.1); }
     .mkt-piece.dragging { opacity:.35; }
+    .mkt-piece.publicada { background:rgba(0,196,140,0.13); }
+    .mkt-piece.publicada .mkt-piece-tit { text-decoration:line-through;
+      text-decoration-color:rgba(255,255,255,0.35); opacity:.78; }
+    .mkt-piece.error { background:rgba(255,107,107,0.13); }
     .mkt-piece-fmt { font-size:8px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; }
     .mkt-piece-tit { font-size:11px; font-weight:500; line-height:1.25; margin-top:1px; color:var(--text); }
     .mkt-piece-est { margin-top:3px; font-size:9px; display:flex; align-items:center; gap:3px; }
@@ -197,8 +201,10 @@ function mktPieceHTML(p) {
     ? `<span class="mkt-piece-eye" title="Previsualizar"
          onclick="event.stopPropagation();mktCalPreview('${p.id}')">👁</span>`
     : '';
+  const claseEstado = p.estado === 'publicada' ? ' publicada'
+    : p.estado === 'error' ? ' error' : '';
   return `
-    <div class="mkt-piece" draggable="true" style="border-left-color:${pilar.color}"
+    <div class="mkt-piece${claseEstado}" draggable="true" style="border-left-color:${pilar.color}"
          ondragstart="mktCalDragStart(event,'${p.id}')" ondragend="mktCalDragEnd(event)"
          onclick="mktCalEdit('${p.id}')">
       <div class="mkt-piece-fmt" style="color:${pilar.color};display:flex;
@@ -344,9 +350,10 @@ function mktCalForm(p) {
       <input class="form-input" type="datetime-local" id="mkf_publish_at"
         value="${p.publish_at ? mktCalISOToLocalDatetime(p.publish_at) : ''}">
       <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.4;">
-        Dejá vacío para no autopublicar. Si pones fecha y hora, la pieza se publica
-        en Instagram + Facebook automáticamente en ese momento. El estado debe
-        estar en "Lista" para que se publique.
+        Dejá vacío si no querés programar. Si pones fecha y hora + estado "Lista" +
+        <b>Guardás</b>, la pieza se publica sola en Instagram y Facebook en ese momento.
+        Para publicar YA mismo (sin programar), usá el botón <b>⚡ Publicar al instante</b>
+        del pie del modal.
       </div>
     </div>
     <div class="form-group">
@@ -404,7 +411,8 @@ async function mktCalEdit(id) {
   }
 
   const btnPub = media
-    ? `<button class="btn btn-secondary" onclick="mktCalPublicar('${id}')">Publicar ahora</button>`
+    ? `<button class="btn btn-secondary" onclick="mktCalPublicar('${id}')"
+        title="Publica YA, ignorando lo que tengas en 'Programar publicación'">⚡ Publicar al instante</button>`
     : '';
   createModal('mktCalModal', 'Editar pieza', previewHTML + mktCalForm(p), `
     <button class="btn btn-danger" onclick="mktCalDelete('${id}')"
