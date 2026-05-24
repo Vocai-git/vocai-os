@@ -5,7 +5,7 @@
    ============================================================ */
 
 const cron = require('node-cron');
-const { runRadarIA } = require('./radar-ia');
+const { runRadarIA, avisarErrorTelegram } = require('./radar-ia');
 const { correrPublicaciones } = require('./publisher');
 const { metaConfigurado } = require('../config/meta');
 
@@ -19,6 +19,7 @@ function iniciarScheduler() {
         console.log(`[Scheduler] Radar IA OK — ${r.total} temas.`);
       } catch (err) {
         console.error('[Scheduler] Radar IA ERROR:', err.message);
+        await avisarErrorTelegram(err);
       }
     }, { timezone: 'Europe/Madrid' });
     console.log('[Scheduler] Radar IA agendado — cada 3 días, 09:00 Europe/Madrid.');

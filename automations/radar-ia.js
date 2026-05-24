@@ -145,6 +145,22 @@ async function digest(items) {
   if (!res.ok) throw new Error(`Telegram ${res.status}: ${await res.text()}`);
 }
 
+// Aviso de error por Telegram — si el radar falla, te enterás en vez de
+// quedarte sin saber por qué no llegó el digest.
+async function avisarErrorTelegram(err) {
+  if (!TG_TOKEN || !TG_CHAT) return;
+  const texto = `⚠️ <b>Radar IA falló</b>\n\n<code>${escHtml(err.message || String(err))}</code>` +
+                `\n\nIntentá disparar el Radar manualmente desde el dashboard ` +
+                `(Marketing · Inteligencia · "Correr Radar ahora").`;
+  try {
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TG_CHAT, text: texto, parse_mode: 'HTML' }),
+    });
+  } catch (e) { /* ya estamos en el manejador de error, no doble-fallar */ }
+}
+
 // ── Orquestador ─────────────────────────────────────────────
 async function runRadarIA() {
   console.log('[Radar IA] Buscando novedades con Grok (web + X)...');
@@ -174,7 +190,7 @@ async function pruebaDigest() {
   console.log('[Radar IA] Digest de prueba enviado.');
 }
 
-module.exports = { runRadarIA };
+module.exports = { runRadarIA, avisarErrorTelegram };
 
 // Ejecutar directo:  node automations/radar-ia.js  [--digest-test]
 if (require.main === module) {

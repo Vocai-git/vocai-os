@@ -45,7 +45,13 @@ async function renderMarketingIntelligence(el) {
   el.innerHTML = `
     <div class="section-header">
       <h2 class="section-title">Inteligencia · Banco de temas</h2>
-      <button class="btn btn-primary" onclick="mktIntNew()">+ Nuevo tema</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="mktIntCorrerRadar()"
+          title="Disparar el Radar IA ahora (busca novedades en Grok + Telegram digest)">
+          📡 Correr Radar ahora
+        </button>
+        <button class="btn btn-primary" onclick="mktIntNew()">+ Nuevo tema</button>
+      </div>
     </div>
 
     <div class="card" style="margin-bottom:20px;display:flex;align-items:center;
@@ -173,6 +179,21 @@ function mktIntFechaCorta(s) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || ''));
   if (!m) return escHtml(s || '');
   return `${+m[3]} ${MKT_MESES_CORTO[+m[2] - 1]}`;
+}
+
+// Dispara el Radar IA ahora — fuera de la corrida automática del cron.
+// La llamada puede tardar 1-2 minutos (Grok + xAI hace web/X search).
+async function mktIntCorrerRadar() {
+  if (!confirm('¿Disparar el Radar IA ahora? Puede tardar 1-2 minutos.\n\n' +
+    'Cuando termine te llega el digest a Telegram y los temas aparecen en este banco.')) return;
+  toast('Radar corriendo… esperá 1-2 min', 'info');
+  try {
+    const r = await API.post('/radar/run');
+    toast(`Radar OK · ${r.total} temas nuevos · revisá Telegram`, 'success');
+    navigate('marketing-intelligence');
+  } catch (err) {
+    toast('Radar falló: ' + err.message, 'error');
+  }
 }
 
 function mktIntSetPilar(v)  { mktIntFPilar = v;  navigate('marketing-intelligence'); }
