@@ -10,9 +10,9 @@ const { correrPublicaciones } = require('./publisher');
 const { metaConfigurado } = require('../config/meta');
 
 function iniciarScheduler() {
-  // ── Radar IA — cada 3 días a las 09:00 ────────────────────
+  // ── Radar IA — todos los días a las 09:00 ─────────────────
   if (process.env.XAI_API_KEY) {
-    cron.schedule('0 9 */3 * *', async () => {
+    cron.schedule('0 9 * * *', async () => {
       console.log('[Scheduler] Disparando Radar IA...');
       try {
         const r = await runRadarIA();
@@ -22,7 +22,7 @@ function iniciarScheduler() {
         await avisarErrorTelegram(err);
       }
     }, { timezone: 'Europe/Madrid' });
-    console.log('[Scheduler] Radar IA agendado — cada 3 días, 09:00 Europe/Madrid.');
+    console.log('[Scheduler] Radar IA agendado — todos los días, 09:00 Europe/Madrid.');
   } else {
     console.log('[Scheduler] Sin XAI_API_KEY — Radar IA no se agenda.');
   }
