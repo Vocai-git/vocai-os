@@ -13,7 +13,29 @@ const XAI_KEY  = process.env.XAI_API_KEY;
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TG_CHAT  = process.env.TELEGRAM_CHAT_ID;
 
-const TIPO_EMOJI = { herramienta: '🛠', caso: '📈', debate: '💬', hype: '🔥', espana: '🇪🇸' };
+const TIPO_EMOJI = { herramienta: '🛠', caso: '📈', debate: '💬', hype: '🔥', espana: '🇪🇸', youtube: '📺' };
+
+// Secciones del digest — orden + título por categoría. Si una sección no tiene
+// items ese día, no aparece.
+const SECCIONES = [
+  { tipo: 'herramienta', titulo: '🛠 HERRAMIENTAS NUEVAS' },
+  { tipo: 'caso',        titulo: '📈 CASOS REALES' },
+  { tipo: 'hype',        titulo: '🔥 TENDENCIA / LO QUE PEGA' },
+  { tipo: 'debate',      titulo: '💬 DEBATES DEL SECTOR' },
+  { tipo: 'espana',      titulo: '🇪🇸 EVENTOS EN ESPAÑA' },
+];
+
+// Whitelist de medios confiables — solo se aceptan URLs de estos dominios.
+// Cualquier otra fuente que Grok devuelva se descarta en el filtro.
+const MEDIOS_TRUSTED = [
+  'xataka.com', 'elpais.com', 'techcrunch.com', 'theverge.com',
+  'technologyreview.com', 'wired.com', 'arstechnica.com',
+];
+
+// Referentes de X/Twitter — sus cuentas son fuente confiable.
+const REFERENTES_X = [
+  'elonmusk', 'sama', 'openai', 'anthropicai', 'googledeepmind',
+];
 
 // Referentes de YouTube — qué canales monitoreamos cada día.
 // El channel_id (UC...) se resuelve la primera vez scrapeando el canal y queda
@@ -52,9 +74,13 @@ const PROMPT_USUARIO =
 Incluí siempre al menos una sobre marketing + IA en España: eventos,
 congresos, ferias o novedades del sector allá.
 
-Priorizá estas fuentes:
-- Medios: Xataka, El País (sección Tecnología), TechCrunch, The Verge, MIT Technology Review.
-- Cuentas de X: @elonmusk, @sama, @OpenAI, @AnthropicAI, @GoogleDeepMind.
+REGLA OBLIGATORIA DE FUENTES — solo aceptamos estas, las demás se descartan:
+- Medios trusted: Xataka, El País (Tecnología), TechCrunch, The Verge,
+  MIT Technology Review, Wired, Ars Technica.
+- Cuentas de X verificadas: @elonmusk, @sama, @OpenAI, @AnthropicAI, @GoogleDeepMind.
+Si la noticia no está publicada en uno de esos medios o cuentas, NO la incluyas.
+La fuente_url tiene que ser del dominio exacto del medio (ej. techcrunch.com,
+no techcrunch.news ni news-techcrunch.com). NO inventes URLs.
 
 Cada item, un objeto con:
 - titulo: titular corto y claro
@@ -101,6 +127,23 @@ async function buscarNovedades() {
   }
 }
 
+// Valida que una URL pertenezca a un medio trusted o a un referente de X/YouTube.
+// Si no, devuelve false y el item se descarta antes de guardarlo o publicarlo.
+function fuenteConfiable(url) {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, '').toLowerCase();
+    if (MEDIOS_TRUSTED.some(d => host === d || host.endsWith('.' + d))) return true;
+    if (host === 'twitter.com' || host === 'x.com') {
+      const m = u.pathname.match(/^\/([^/?#]+)/);
+      if (m && REFERENTES_X.includes(m[1].toLowerCase())) return true;
+    }
+    if (host === 'youtube.com' || host === 'youtu.be') return true;
+    return false;
+  } catch { return false; }
+}
+
 // ── 2. Guardar en el banco de temas ─────────────────────────
 async function guardar(items) {
   const filas = items.map(it => ({
@@ -145,16 +188,27 @@ function renderItem(it, i) {
 async function digest(novedades, yt = []) {
   const fecha = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   const total = novedades.length + yt.length;
-  let texto = `📡 <b>RADAR IA</b> · ${fecha} · ${total} temas nuevos\n\n`;
+  let texto = `📡 <b>RADAR IA</b> · ${fecha} · ${total} ${total === 1 ? 'tema' : 'temas'}\n\n`;
 
-  if (novedades.length) {
-    texto += `<b>NOVEDADES DEL SECTOR</b>\n\n`;
-    novedades.forEach((it, i) => { texto += renderItem(it, i); });
+  // Render por categoría: solo aparece la sección si tiene items ese día.
+  let n = 0;
+  for (const sec of SECCIONES) {
+    const items = novedades.filter(it => it.tipo === sec.tipo);
+    if (!items.length) continue;
+    texto += `<b>${sec.titulo}</b>\n\n`;
+    items.forEach(it => { texto += renderItem(it, ++n); });
+  }
+
+  // Items con tipo no estándar — los renderizo aparte para no perderlos.
+  const otros = novedades.filter(it => !SECCIONES.some(s => s.tipo === it.tipo));
+  if (otros.length) {
+    texto += `<b>• OTROS</b>\n\n`;
+    otros.forEach(it => { texto += renderItem(it, ++n); });
   }
 
   if (yt.length) {
     texto += `<b>📺 REFERENTES YOUTUBE</b>\n\n`;
-    yt.forEach((it, i) => { texto += renderItem(it, i); });
+    yt.forEach(it => { texto += renderItem(it, ++n); });
   }
 
   texto += `→ Detalle completo en el dashboard · Marketing · Inteligencia`;
@@ -323,8 +377,21 @@ async function monitorearYoutube() {
 // ── Orquestador ─────────────────────────────────────────────
 async function runRadarIA() {
   console.log('[Radar IA] Buscando novedades con Grok (web + X)...');
-  const novedades = await buscarNovedades();
-  console.log(`[Radar IA] ${novedades.length} novedades de Grok.`);
+  const crudas = await buscarNovedades();
+  console.log(`[Radar IA] ${crudas.length} novedades de Grok (crudas).`);
+
+  // Filtro de confiabilidad — solo medios trusted o referentes X/YouTube.
+  const novedades = [];
+  const descartadas = [];
+  for (const it of crudas) {
+    if (fuenteConfiable(it.fuente_url)) novedades.push(it);
+    else descartadas.push(it);
+  }
+  if (descartadas.length) {
+    console.log(`[Radar IA] ${descartadas.length} descartadas por fuente no confiable:`);
+    descartadas.forEach(d => console.log(`  · "${d.titulo}" — ${d.fuente_url || '(sin URL)'}`));
+  }
+  console.log(`[Radar IA] ${novedades.length} novedades confiables.`);
 
   let yt = [];
   try {
@@ -334,6 +401,12 @@ async function runRadarIA() {
     console.error('[Radar IA] YouTube falló (sigo sin él):', err.message);
   }
 
+  // Opción B: si no hay nada confiable, no se manda digest (evita ruido).
+  if (!novedades.length && !yt.length) {
+    console.log('[Radar IA] Sin novedades confiables hoy — no se manda digest.');
+    return { total: 0, grok: 0, youtube: 0, descartadas: descartadas.length };
+  }
+
   const items = [...novedades, ...yt];
   const n = await guardar(items);
   console.log(`[Radar IA] ${n} guardadas en content_topics.`);
@@ -341,7 +414,7 @@ async function runRadarIA() {
   await digest(novedades, yt);
   console.log('[Radar IA] Digest enviado por Telegram.');
 
-  return { total: items.length, grok: novedades.length, youtube: yt.length };
+  return { total: items.length, grok: novedades.length, youtube: yt.length, descartadas: descartadas.length };
 }
 
 // Reenvía el digest con los últimos temas guardados, sin buscar (para testing).
