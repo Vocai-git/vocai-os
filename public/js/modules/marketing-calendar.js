@@ -7,6 +7,7 @@ let mktCalDate = new Date();   // mes actualmente mostrado
 let mktCalDragId = null;       // pieza que se está arrastrando
 let mktCalPiezas = [];         // piezas del mes en memoria
 let mktCalCanal = 'feed';      // 'feed' | 'historias'
+let mktCalPlan = null;         // objetivos del mes (content_months)
 
 const MKT_PILAR = {
   ia:       { label: 'IA y automatización', color: '#2979FF' },
@@ -128,14 +129,18 @@ async function mktCalRenderPanel(el) {
   const m = mktCalDate.getMonth();
   const mesStr = `${y}-${String(m + 1).padStart(2, '0')}`;
 
-  let piezas;
+  let piezas, planning;
   try {
-    piezas = await API.get(`/marketing-calendar?mes=${mesStr}&canal=${mktCalCanal}`);
+    [piezas, planning] = await Promise.all([
+      API.get(`/marketing-calendar?mes=${mesStr}&canal=${mktCalCanal}`),
+      API.get(`/marketing-planning?mes=${mesStr}`).catch(() => ({ plan: null })),
+    ]);
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">Error al cargar: ${escHtml(err.message)}</div>`;
     return;
   }
   mktCalPiezas = piezas;
+  mktCalPlan = (planning && planning.plan) || null;
 
   const tally = { ia: 0, estudio: 0, casos: 0, personas: 0 };
   piezas.forEach(p => { if (tally[p.pilar] !== undefined) tally[p.pilar]++; });
@@ -179,6 +184,10 @@ async function mktCalRenderPanel(el) {
           `<div class="mkt-legend-item"><span class="mkt-legend-dot"
             style="background:${v.color}"></span>${v.label}</div>`).join('')}
       </div>
+    </div>
+
+    <div id="mcal-objetivos" style="margin-bottom:16px;">
+      ${mktCalObjCardHTML('view')}
     </div>
 
     <div class="mkt-grid">
@@ -480,5 +489,123 @@ async function mktCalDelete(id) {
     toast('Pieza eliminada', 'success');
     closeModal('mktCalModal');
     mktCalRecargar();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+// ── Objetivos del mes (bloque dentro del Calendario) ────────
+function mktCalObjMesStr() {
+  const y = mktCalDate.getFullYear();
+  const m = mktCalDate.getMonth();
+  return `${y}-${String(m + 1).padStart(2, '0')}`;
+}
+function mktCalObjMesLabel() {
+  return `${MKT_MESES[mktCalDate.getMonth()]} ${mktCalDate.getFullYear()}`;
+}
+function mktCalObjHasContent(p) {
+  if (!p) return false;
+  return !!(p.mes_anterior || p.objetivos || p.foco || p.puntual);
+}
+function mktCalObjCardHTML(mode) {
+  const p = mktCalPlan || {};
+  const has = mktCalObjHasContent(p);
+  const header = `
+    <div class="card-header">
+      <h3 class="card-title">🎯 Objetivos del mes — ${mktCalObjMesLabel()}</h3>
+      <div style="display:flex;gap:8px;">
+        ${mode === 'view' ? `
+          <button class="btn btn-sm btn-secondary" onclick="mktCalObjEdit()">${has ? 'Editar' : 'Llenar'}</button>
+          ${has ? `<button class="btn btn-sm btn-secondary" onclick="mktCalObjDelete()" title="Borrar objetivos del mes">Borrar</button>` : ''}
+        ` : `
+          <button class="btn btn-sm btn-secondary" onclick="mktCalObjCancel()">Cancelar</button>
+          <button class="btn btn-sm btn-primary" onclick="mktCalObjSave()">Guardar</button>
+        `}
+      </div>
+    </div>`;
+
+  if (mode === 'edit') {
+    return `<div class="card">
+      ${header}
+      <div class="form-group">
+        <label class="form-label">1 · Qué pasó el mes anterior</label>
+        <textarea class="form-textarea" id="mcobj_anterior"
+          placeholder="Funcionó… / No funcionó… / Pivoteamos…">${escHtml(p.mes_anterior || '')}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">2 · Objetivos de este mes (1 a 3)</label>
+        <textarea class="form-textarea" id="mcobj_objetivos"
+          placeholder="Objetivos concretos del mes">${escHtml(p.objetivos || '')}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">3 · Foco del mes (una frase)</label>
+        <input class="form-input" id="mcobj_foco" value="${escHtml(p.foco || '')}"
+          placeholder="ej. Presentarnos: que en 30 seg se entienda qué es VOCAI">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">4 · Puntual del mes</label>
+        <input class="form-input" id="mcobj_puntual" value="${escHtml(p.puntual || '')}"
+          placeholder="Campaña, evento, lanzamiento o pauta">
+      </div>
+    </div>`;
+  }
+
+  if (!has) {
+    return `<div class="card">
+      ${header}
+      <div class="empty-state" style="padding:16px;">
+        <div class="empty-sub">Todavía no hay objetivos para ${mktCalObjMesLabel()}.</div>
+      </div>
+    </div>`;
+  }
+
+  const block = (label, val) => val ? `
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+        color:var(--text-dim);margin-bottom:5px;">${label}</div>
+      <div style="font-size:13px;line-height:1.5;color:var(--text);white-space:pre-wrap;">${escHtml(val)}</div>
+    </div>` : '';
+
+  return `<div class="card">
+    ${header}
+    ${block('Mes anterior', p.mes_anterior)}
+    ${block('Objetivos', p.objetivos)}
+    ${block('Foco', p.foco)}
+    ${p.puntual ? `<div style="margin-bottom:0;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+        color:var(--text-dim);margin-bottom:5px;">Puntual</div>
+      <div style="font-size:13px;line-height:1.5;color:var(--text);white-space:pre-wrap;">${escHtml(p.puntual)}</div>
+    </div>` : ''}
+  </div>`;
+}
+function mktCalObjRender(mode) {
+  const cont = document.getElementById('mcal-objetivos');
+  if (cont) cont.innerHTML = mktCalObjCardHTML(mode);
+}
+function mktCalObjEdit()   { mktCalObjRender('edit'); }
+function mktCalObjCancel() { mktCalObjRender('view'); }
+
+async function mktCalObjSave() {
+  const body = {
+    mes: mktCalObjMesStr(),
+    mes_anterior: document.getElementById('mcobj_anterior').value.trim(),
+    objetivos:    document.getElementById('mcobj_objetivos').value.trim(),
+    foco:         document.getElementById('mcobj_foco').value.trim(),
+    puntual:      document.getElementById('mcobj_puntual').value.trim(),
+  };
+  try {
+    const saved = await API.post('/marketing-planning', body);
+    mktCalPlan = saved || body;
+    toast('Objetivos guardados', 'success');
+    mktCalObjRender('view');
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function mktCalObjDelete() {
+  if (!confirm(`¿Borrar los objetivos de ${mktCalObjMesLabel()}? Se vacían los 4 campos.`)) return;
+  const body = { mes: mktCalObjMesStr(), mes_anterior: '', objetivos: '', foco: '', puntual: '' };
+  try {
+    const saved = await API.post('/marketing-planning', body);
+    mktCalPlan = saved || body;
+    toast('Objetivos borrados', 'success');
+    mktCalObjRender('view');
   } catch (err) { toast(err.message, 'error'); }
 }
