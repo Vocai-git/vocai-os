@@ -1,14 +1,29 @@
+const DASH_MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+let dashObjPlan = null;
+let dashObjMes = '';
+
 async function renderDashboard(el) {
-  const [data, allInvoices] = await Promise.all([
+  const now = new Date();
+  dashObjMes = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const [data, allInvoices, planning] = await Promise.all([
     API.get('/dashboard'),
-    API.get('/invoices')
+    API.get('/invoices'),
+    API.get(`/marketing-planning?mes=${dashObjMes}`).catch(() => ({ plan: null }))
   ]);
   const { kpis, tasks, todayBookings } = data;
+  dashObjPlan = planning.plan || null;
 
   // Build last 6 months revenue data
   const monthlyRevenue = buildMonthlyRevenue(allInvoices);
 
   el.innerHTML = `
+    <!-- Objetivos del mes -->
+    <div id="dash-objetivos" style="margin-bottom:24px;">
+      ${dashObjCardHTML('view')}
+    </div>
+
     <!-- KPI Grid -->
     <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);">
       <div class="kpi-card gradient">
@@ -106,6 +121,124 @@ async function renderDashboard(el) {
 
   // Init chart after DOM render
   requestAnimationFrame(() => initRevenueChart(monthlyRevenue));
+}
+
+// ── Objetivos del mes (bloque del Dashboard) ────────────────
+function dashObjMesLabel() {
+  const [y, m] = dashObjMes.split('-');
+  return `${DASH_MESES[parseInt(m) - 1]} ${y}`;
+}
+
+function dashObjHasContent(p) {
+  if (!p) return false;
+  return !!(p.mes_anterior || p.objetivos || p.foco || p.puntual);
+}
+
+function dashObjCardHTML(mode) {
+  const p = dashObjPlan || {};
+  const has = dashObjHasContent(p);
+  const header = `
+    <div class="card-header">
+      <h3 class="card-title">🎯 Objetivos del mes — ${dashObjMesLabel()}</h3>
+      <div style="display:flex;gap:8px;">
+        ${mode === 'view' ? `
+          <button class="btn btn-sm btn-secondary" onclick="dashObjEdit()">${has ? 'Editar' : 'Llenar'}</button>
+          ${has ? `<button class="btn btn-sm btn-secondary" onclick="dashObjDelete()" title="Borrar objetivos del mes">Borrar</button>` : ''}
+        ` : `
+          <button class="btn btn-sm btn-secondary" onclick="dashObjCancel()">Cancelar</button>
+          <button class="btn btn-sm btn-primary" onclick="dashObjSave()">Guardar</button>
+        `}
+      </div>
+    </div>`;
+
+  if (mode === 'edit') {
+    return `<div class="card">
+      ${header}
+      <div class="form-group">
+        <label class="form-label">1 · Qué pasó el mes anterior</label>
+        <textarea class="form-textarea" id="dobj_anterior"
+          placeholder="Funcionó… / No funcionó… / Pivoteamos…">${escHtml(p.mes_anterior || '')}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">2 · Objetivos de este mes (1 a 3)</label>
+        <textarea class="form-textarea" id="dobj_objetivos"
+          placeholder="Objetivos concretos del mes">${escHtml(p.objetivos || '')}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">3 · Foco del mes (una frase)</label>
+        <input class="form-input" id="dobj_foco" value="${escHtml(p.foco || '')}"
+          placeholder="ej. Presentarnos: que en 30 seg se entienda qué es VOCAI">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">4 · Puntual del mes</label>
+        <input class="form-input" id="dobj_puntual" value="${escHtml(p.puntual || '')}"
+          placeholder="Campaña, evento, lanzamiento o pauta">
+      </div>
+    </div>`;
+  }
+
+  if (!has) {
+    return `<div class="card">
+      ${header}
+      <div class="empty-state" style="padding:20px;">
+        <div class="empty-sub">Todavía no hay objetivos para ${dashObjMesLabel()}.</div>
+      </div>
+    </div>`;
+  }
+
+  const block = (label, val) => val ? `
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+        color:var(--text-dim);margin-bottom:6px;">${label}</div>
+      <div style="font-size:14px;line-height:1.5;color:var(--text);white-space:pre-wrap;">${escHtml(val)}</div>
+    </div>` : '';
+
+  return `<div class="card">
+    ${header}
+    ${block('Mes anterior', p.mes_anterior)}
+    ${block('Objetivos', p.objetivos)}
+    ${block('Foco', p.foco)}
+    ${p.puntual ? `<div style="margin-bottom:0;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+        color:var(--text-dim);margin-bottom:6px;">Puntual</div>
+      <div style="font-size:14px;line-height:1.5;color:var(--text);white-space:pre-wrap;">${escHtml(p.puntual)}</div>
+    </div>` : ''}
+  </div>`;
+}
+
+function dashObjRender(mode) {
+  const cont = document.getElementById('dash-objetivos');
+  if (cont) cont.innerHTML = dashObjCardHTML(mode);
+}
+
+function dashObjEdit()   { dashObjRender('edit'); }
+function dashObjCancel() { dashObjRender('view'); }
+
+async function dashObjSave() {
+  const body = {
+    mes: dashObjMes,
+    mes_anterior: document.getElementById('dobj_anterior').value.trim(),
+    objetivos:    document.getElementById('dobj_objetivos').value.trim(),
+    foco:         document.getElementById('dobj_foco').value.trim(),
+    puntual:      document.getElementById('dobj_puntual').value.trim(),
+  };
+  try {
+    const saved = await API.post('/marketing-planning', body);
+    dashObjPlan = saved || body;
+    toast('Objetivos guardados', 'success');
+    dashObjRender('view');
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function dashObjDelete() {
+  if (!confirm(`¿Borrar los objetivos de ${dashObjMesLabel()}? Se vacían los 4 campos.`)) return;
+  const body = { mes: dashObjMes, mes_anterior: '', objetivos: '', foco: '', puntual: '' };
+  try {
+    const saved = await API.post('/marketing-planning', body);
+    dashObjPlan = saved || body;
+    toast('Objetivos borrados', 'success');
+    dashObjRender('view');
+  } catch (err) { toast(err.message, 'error'); }
 }
 
 function buildMonthlyRevenue(invoices) {
