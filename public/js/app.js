@@ -234,6 +234,7 @@ const MODULES = {
   contracts: { title: 'Contratos', render: renderContracts },
   invoices:  { title: 'Facturas',  render: renderInvoices },
   expenses:  { title: 'Gastos',    render: renderExpenses },
+  finanzas:  { title: 'Finanzas',  render: renderFinanzas },
   goals:     { title: 'Metas',     render: renderGoals },
   bookings:  { title: 'Reservas de Estudio', render: renderBookings },
   episodes:  { title: 'Episodios', render: renderEpisodes },
