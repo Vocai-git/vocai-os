@@ -148,11 +148,16 @@ function buildExpensesHTML(el, expenses, acumulado) {
       </div>
     </div>
 
-    <!-- Filtros -->
-    <div id="expFiltros" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-      <button class="btn btn-primary" style="font-size:12px;padding:6px 12px;" data-filtro="todos" onclick="filtrarGastos('todos')">Todos</button>
-      <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;" data-filtro="Agus" onclick="filtrarGastos('Agus')">Agus</button>
-      <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;" data-filtro="Santi" onclick="filtrarGastos('Santi')">Santi</button>
+    <!-- Filtros + buscador -->
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+      <div id="expFiltros" style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-primary" style="font-size:12px;padding:6px 12px;" data-filtro="todos" onclick="filtrarGastos('todos')">Todos</button>
+        <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;" data-filtro="Agus" onclick="filtrarGastos('Agus')">Agus</button>
+        <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;" data-filtro="Santi" onclick="filtrarGastos('Santi')">Santi</button>
+      </div>
+      <input id="expSearch" type="search" placeholder="Buscar por concepto, categoría o responsable…"
+        oninput="filtrarBusquedaGastos(this.value)"
+        style="flex:1;min-width:220px;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;">
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;">
@@ -211,8 +216,9 @@ function renderExpRows(expenses) {
     const tipoActual = e.tipo || (e.recurrente ? 'recurrente' : 'inversion');
     const tipoDestino = tipoActual === 'recurrente' ? 'inversion' : 'recurrente';
     const tipoDestinoLabel = tipoDestino === 'inversion' ? 'Inversión' : 'Recurrentes';
+    const searchBlob = `${e.nombre||''} ${e.categoria||''} ${resp} ${e.notas||''}`.toLowerCase();
     return `
-    <tr class="gasto-fila" data-responsable="${escHtml(resp)}" data-importe="${e.importe||0}" data-categoria="${escHtml(e.categoria||'otros')}">
+    <tr class="gasto-fila" data-responsable="${escHtml(resp)}" data-importe="${e.importe||0}" data-categoria="${escHtml(e.categoria||'otros')}" data-search="${escHtml(searchBlob)}">
       <td><strong>${escHtml(e.nombre)}</strong></td>
       <td><span style="display:inline-block;padding:3px 10px;border-radius:6px;font-size:12px;text-transform:capitalize;background:${color}22;color:${color};border:1px solid ${color}44;">${escHtml(e.categoria||'otros')}</span></td>
       <td>${responsablePill(resp||'—')}</td>
@@ -230,6 +236,18 @@ function renderExpRows(expenses) {
 }
 
 function filtrarGastos(responsable) {
+  window._expRespFiltro = responsable;
+  aplicarFiltrosExp();
+}
+
+function filtrarBusquedaGastos(q) {
+  window._expSearchQuery = (q || '').toLowerCase().trim();
+  aplicarFiltrosExp();
+}
+
+function aplicarFiltrosExp() {
+  const responsable = window._expRespFiltro || 'todos';
+  const q = window._expSearchQuery || '';
   const filas = document.querySelectorAll('.gasto-fila');
   let totalVisible = 0;
   const byCat = {};
@@ -242,8 +260,11 @@ function filtrarGastos(responsable) {
     const resp = fila.dataset.responsable || '';
     const importe = parseFloat(fila.dataset.importe) || 0;
     const cat = fila.dataset.categoria || 'otros';
+    const blob = fila.dataset.search || '';
+    const okResp = (responsable === 'todos' || resp.toLowerCase() === responsable.toLowerCase());
+    const okSearch = (!q || blob.includes(q));
 
-    if (responsable === 'todos' || resp.toLowerCase() === responsable.toLowerCase()) {
+    if (okResp && okSearch) {
       fila.style.display = '';
       totalVisible += importe;
       byCat[cat] = (byCat[cat] || 0) + importe;

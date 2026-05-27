@@ -53,6 +53,16 @@ async function cargarFinanzasMes(el) {
   });
 }
 
+// Filtra in-memory las filas de una tabla por una query libre
+// (compara contra el data-search de cada <tr>).
+function finFiltrarFilas(rowClass, query) {
+  const q = (query || '').toLowerCase().trim();
+  document.querySelectorAll('.' + rowClass).forEach(tr => {
+    const blob = tr.dataset.search || '';
+    tr.style.display = (!q || blob.includes(q)) ? '' : 'none';
+  });
+}
+
 // Wrapper para crear un gasto recurrente desde Finanzas:
 // fija el tipo del modal en 'recurrente' antes de abrir el form.
 function finNewGastoRecurrente() {
@@ -217,14 +227,19 @@ function buildFinanzasHTML(el, d) {
         </div>
         ${ingresosOrdenados.length === 0
           ? '<div class="empty-state" style="padding:20px;"><div class="empty-sub">Sin facturas cobradas este mes</div></div>'
-          : `<div class="table-wrapper">
+          : `<input type="search" placeholder="Buscar en ingresos…"
+              oninput="finFiltrarFilas('finIngresoRow', this.value)"
+              style="width:100%;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;margin-bottom:12px;">
+            <div class="table-wrapper">
               <table>
                 <thead><tr>
                   <th>Concepto</th><th>Cliente</th><th>Importe</th><th>Fecha</th><th></th>
                 </tr></thead>
                 <tbody>
-                  ${ingresosOrdenados.map(i => `
-                    <tr>
+                  ${ingresosOrdenados.map(i => {
+                    const blob = `${i.concepto||''} ${i.numero||''} ${i.clients?.nombre||''} ${i.notas||''}`.toLowerCase();
+                    return `
+                    <tr class="finIngresoRow" data-search="${escHtml(blob)}">
                       <td><strong>${escHtml(i.concepto || i.numero || '—')}</strong></td>
                       <td style="color:#aaa;">${escHtml(i.clients?.nombre || '—')}</td>
                       <td><strong style="color:#00C48C;">${formatMoney(montoOf(i))}</strong></td>
@@ -235,7 +250,8 @@ function buildFinanzasHTML(el, d) {
                           <button class="btn btn-ghost btn-icon btn-sm" onclick="deleteInvoice('${i.id}')" title="Eliminar">🗑️</button>
                         </div>
                       </td>
-                    </tr>`).join('')}
+                    </tr>`;
+                  }).join('')}
                 </tbody>
               </table>
             </div>`
@@ -253,14 +269,19 @@ function buildFinanzasHTML(el, d) {
         </div>
         ${gastosOrdenados.length === 0
           ? '<div class="empty-state" style="padding:20px;"><div class="empty-sub">Sin gastos recurrentes este mes</div></div>'
-          : `<div class="table-wrapper">
+          : `<input type="search" placeholder="Buscar en gastos recurrentes…"
+              oninput="finFiltrarFilas('finGastoRow', this.value)"
+              style="width:100%;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;margin-bottom:12px;">
+            <div class="table-wrapper">
               <table>
                 <thead><tr>
                   <th>Concepto</th><th>Categoría</th><th>Importe</th><th>Fecha</th><th></th>
                 </tr></thead>
                 <tbody>
-                  ${gastosOrdenados.map(e => `
-                    <tr>
+                  ${gastosOrdenados.map(e => {
+                    const blob = `${e.nombre||''} ${e.categoria||''} ${e.responsable||''} ${e.notas||''}`.toLowerCase();
+                    return `
+                    <tr class="finGastoRow" data-search="${escHtml(blob)}">
                       <td><strong>${escHtml(e.nombre || '—')}</strong></td>
                       <td style="color:#aaa;text-transform:capitalize;">${escHtml(e.categoria || 'otros')}</td>
                       <td><strong style="color:#FF6B6B;">${formatMoney(montoOf(e))}</strong></td>
@@ -272,7 +293,8 @@ function buildFinanzasHTML(el, d) {
                           <button class="btn btn-ghost btn-icon btn-sm" onclick="deleteExpense('${e.id}')" title="Eliminar">🗑️</button>
                         </div>
                       </td>
-                    </tr>`).join('')}
+                    </tr>`;
+                  }).join('')}
                 </tbody>
               </table>
             </div>`
