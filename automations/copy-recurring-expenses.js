@@ -28,7 +28,7 @@ function mesActual() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}`;
 }
 
-async function copyRecurringExpenses({ from, to } = {}) {
+async function copyRecurringExpenses({ from, to, ids } = {}) {
   const mesTo = to || mesActual();
   const mesFrom = from || mesAnterior(mesTo);
 
@@ -36,11 +36,16 @@ async function copyRecurringExpenses({ from, to } = {}) {
   const rTo   = rangoMes(mesTo);
 
   // Traemos los gastos recurrentes del mes origen
-  const { data: sourceExpenses, error: errFrom } = await supabase
+  let query = supabase
     .from('expenses')
     .select('*')
     .eq('tipo', 'recurrente')
     .gte('fecha', rFrom.from).lte('fecha', rFrom.to);
+  // Si pasan ids específicos, copiamos solo esos
+  if (Array.isArray(ids) && ids.length > 0) {
+    query = query.in('id', ids);
+  }
+  const { data: sourceExpenses, error: errFrom } = await query;
   if (errFrom) throw new Error('Error leyendo gastos del mes origen: ' + errFrom.message);
 
   if (!sourceExpenses || sourceExpenses.length === 0) {

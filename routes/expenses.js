@@ -8,8 +8,8 @@ const { copyRecurringExpenses } = require('../automations/copy-recurring-expense
 // Si no se especifican from/to, usa mes anterior → mes actual.
 router.post('/copy-recurring', auth, async (req, res) => {
   try {
-    const { from, to } = req.body || {};
-    const result = await copyRecurringExpenses({ from, to });
+    const { from, to, ids } = req.body || {};
+    const result = await copyRecurringExpenses({ from, to, ids });
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });

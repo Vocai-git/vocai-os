@@ -70,23 +70,80 @@ function finNewGastoRecurrente() {
   newExpense();
 }
 
-// Copia los gastos recurrentes del mes anterior al mes que se está viendo.
-// Útil para catch-up manual (el cron del día 1 ya lo hace solo cada mes).
+// Abre un modal con la lista de gastos recurrentes del mes anterior y
+// permite elegir cuáles copiar al mes actual. Por defecto vienen todos
+// los que aún no existen tildados; los que ya existen aparecen marcados
+// como "ya cargado".
 async function finCopiarRecurrentes() {
   const mesTo = `${window._finYear}-${String(window._finMonth).padStart(2,'0')}`;
-  // mes anterior del mes mostrado:
   const [y, m] = mesTo.split('-').map(Number);
   const mesFrom = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2,'0')}`;
-  if (!confirm(`Copiar los gastos recurrentes de ${mesFrom} a ${mesTo}?\n\nNo se duplican los que ya existen.`)) return;
+
+  let prevExpenses, currExpenses;
   try {
-    const r = await API.post('/expenses/copy-recurring', { from: mesFrom, to: mesTo });
-    if (r.copiados === 0 && r.omitidos === 0) {
-      toast(`Sin gastos recurrentes en ${mesFrom}`, 'info');
-    } else if (r.copiados === 0) {
-      toast(`Nada que copiar: los ${r.omitidos} gastos del mes anterior ya están cargados`, 'info');
+    [prevExpenses, currExpenses] = await Promise.all([
+      API.get(`/expenses?mes=${mesFrom}&tipo=recurrente`),
+      API.get(`/expenses?mes=${mesTo}&tipo=recurrente`)
+    ]);
+  } catch (err) { toast(err.message, 'error'); return; }
+
+  if (!prevExpenses || prevExpenses.length === 0) {
+    toast(`No hay gastos recurrentes en ${mesFrom} para copiar`, 'info');
+    return;
+  }
+
+  const yaExiste = new Set(
+    (currExpenses || []).map(e => `${(e.nombre||'').toLowerCase().trim()}|${(e.responsable||'').toLowerCase().trim()}`)
+  );
+
+  const montoOf = x => (x.total != null ? x.total : (x.importe || 0));
+  const filas = prevExpenses.map(e => {
+    const key = `${(e.nombre||'').toLowerCase().trim()}|${(e.responsable||'').toLowerCase().trim()}`;
+    const yaCopiado = yaExiste.has(key);
+    return `
+      <label style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);cursor:${yaCopiado?'not-allowed':'pointer'};opacity:${yaCopiado?0.5:1};">
+        <input type="checkbox" class="finCopyChk" value="${e.id}" ${yaCopiado ? 'disabled' : 'checked'} style="width:16px;height:16px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:500;">${escHtml(e.nombre || '—')}</div>
+          <div style="font-size:11px;color:#888;">${escHtml(e.categoria || 'otros')} · ${escHtml(e.responsable || '—')}${yaCopiado ? ' · <span style=\"color:#FF8C42;\">ya cargado este mes</span>' : ''}</div>
+        </div>
+        <strong style="color:#FF6B6B;font-size:13px;">${formatMoney(montoOf(e))}</strong>
+      </label>`;
+  }).join('');
+
+  createModal('finCopyModal', `Copiar gastos recurrentes de ${mesFrom} a ${mesTo}`, `
+    <div style="font-size:13px;color:#888;margin-bottom:12px;">Destildá los que no quieras copiar. Los que ya están cargados en ${mesTo} aparecen deshabilitados.</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="finCopyTogglePicked(true)">Tildar todos</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="finCopyTogglePicked(false)">Destildar todos</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto;">
+      ${filas}
+    </div>
+  `, `
+    <button class="btn btn-secondary" onclick="closeModal('finCopyModal')">Cancelar</button>
+    <button class="btn btn-primary" onclick="finCopyConfirm('${mesFrom}','${mesTo}')">Copiar seleccionados</button>
+  `);
+}
+
+function finCopyTogglePicked(checked) {
+  document.querySelectorAll('.finCopyChk:not([disabled])').forEach(chk => { chk.checked = checked; });
+}
+
+async function finCopyConfirm(mesFrom, mesTo) {
+  const ids = [...document.querySelectorAll('.finCopyChk:checked')].map(chk => chk.value);
+  if (ids.length === 0) {
+    toast('No seleccionaste ningún gasto para copiar', 'error');
+    return;
+  }
+  try {
+    const r = await API.post('/expenses/copy-recurring', { from: mesFrom, to: mesTo, ids });
+    if (r.copiados === 0) {
+      toast('Nada que copiar (ya estaban cargados)', 'info');
     } else {
-      toast(`${r.copiados} copiados${r.omitidos ? `, ${r.omitidos} omitidos (ya existían)` : ''}`, 'success');
+      toast(`${r.copiados} copiados${r.omitidos ? `, ${r.omitidos} omitidos` : ''}`, 'success');
     }
+    closeModal('finCopyModal');
     cargarFinanzasMes();
   } catch (err) { toast(err.message, 'error'); }
 }
