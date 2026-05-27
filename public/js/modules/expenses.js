@@ -1,6 +1,7 @@
 // Estado global del módulo
 window._expYear = null;
 window._expMonth = null;
+window._expTipo = 'recurrente'; // 'recurrente' | 'inversion'
 
 const MESES_NOMBRE = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -14,10 +15,15 @@ async function renderExpenses(el) {
 
 async function cargarGastosMes(el) {
   const mes = `${window._expYear}-${String(window._expMonth).padStart(2,'0')}`;
-  const [expenses, yearExpenses] = await Promise.all([
+  const tipo = window._expTipo;
+  const [expensesAll, yearExpensesAll] = await Promise.all([
     API.get(`/expenses?mes=${mes}`),
     API.get(`/expenses?year=${window._expYear}`)
   ]);
+  // Tratamos los gastos sin 'tipo' (datos viejos) como 'recurrente' por defecto.
+  const tipoOf = e => e.tipo || (e.recurrente ? 'recurrente' : 'inversion');
+  const expenses = expensesAll.filter(e => tipoOf(e) === tipo);
+  const yearExpenses = yearExpensesAll.filter(e => tipoOf(e) === tipo);
   window._expensesAll = expenses;
 
   const acumulado = {
@@ -27,6 +33,12 @@ async function cargarGastosMes(el) {
   };
 
   buildExpensesHTML(el || document.getElementById('pageContent'), expenses, acumulado);
+}
+
+function cambiarTipoExp(tipo) {
+  if (tipo !== 'inversion' && tipo !== 'recurrente') return;
+  window._expTipo = tipo;
+  cargarGastosMes();
 }
 
 function mesLabel() {
@@ -66,6 +78,14 @@ function buildExpensesHTML(el, expenses, acumulado) {
   const byCat = {};
   expenses.forEach(e => { byCat[e.categoria||'otros'] = (byCat[e.categoria||'otros']||0) + e.importe; });
 
+  const tipoActivo = window._expTipo;
+  const tabBtn = (val, label) => `
+    <button type="button"
+      onclick="cambiarTipoExp('${val}')"
+      style="background:${tipoActivo===val?'#2979FF':'transparent'};color:${tipoActivo===val?'#fff':'#888'};
+        border:none;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;border-radius:8px;
+        transition:all .15s;">${label}</button>`;
+
   el.innerHTML = `
     <div class="section-header">
       <h2 class="section-title">Gastos</h2>
@@ -77,6 +97,12 @@ function buildExpensesHTML(el, expenses, acumulado) {
         </div>
         <button class="btn btn-primary" onclick="newExpense()">+ Nuevo gasto</button>
       </div>
+    </div>
+
+    <!-- Tabs Inversión / Gastos recurrentes -->
+    <div style="display:flex;gap:6px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:4px;margin-bottom:20px;width:fit-content;">
+      ${tabBtn('inversion', 'Inversión')}
+      ${tabBtn('recurrente', 'Gastos recurrentes')}
     </div>
 
     <!-- KPIs -->
@@ -183,6 +209,9 @@ function renderExpRows(expenses) {
   return expenses.map(e => {
     const color = catColors[e.categoria] || '#888';
     const resp = e.responsable || '';
+    const tipoActual = e.tipo || (e.recurrente ? 'recurrente' : 'inversion');
+    const tipoDestino = tipoActual === 'recurrente' ? 'inversion' : 'recurrente';
+    const tipoDestinoLabel = tipoDestino === 'inversion' ? 'Inversión' : 'Recurrentes';
     return `
     <tr class="gasto-fila" data-responsable="${escHtml(resp)}" data-importe="${e.importe||0}" data-categoria="${escHtml(e.categoria||'otros')}">
       <td><strong>${escHtml(e.nombre)}</strong></td>
@@ -192,6 +221,7 @@ function renderExpRows(expenses) {
       <td style="color:#888;">${formatDate(e.fecha)}</td>
       <td>
         <div style="display:flex;gap:4px;">
+          <button class="btn btn-ghost btn-icon btn-sm" onclick="moverTipoExp('${e.id}','${tipoDestino}')" title="Mover a ${tipoDestinoLabel}" style="font-size:14px;">↔️</button>
           <button class="btn btn-ghost btn-icon btn-sm" onclick="editExpense('${e.id}')" title="Editar">✏️</button>
           <button class="btn btn-ghost btn-icon btn-sm" onclick="deleteExpense('${e.id}')" title="Eliminar">🗑️</button>
         </div>
@@ -260,7 +290,15 @@ async function editExpense(id) {
 function showExpenseForm(data) {
   const isEdit = !!data;
   const hoy = new Date().toISOString().split('T')[0];
+  const tipoDefault = data?.tipo || window._expTipo || 'recurrente';
   createModal('expModal', isEdit ? 'Editar gasto' : 'Nuevo gasto', `
+    <div class="form-group">
+      <label class="form-label">Tipo *</label>
+      <select class="form-select" id="ef_tipo">
+        <option value="inversion" ${tipoDefault==='inversion'?'selected':''}>Inversión (capital / compra única)</option>
+        <option value="recurrente" ${tipoDefault==='recurrente'?'selected':''}>Gasto recurrente (mensual)</option>
+      </select>
+    </div>
     <div class="form-group">
       <label class="form-label">Concepto *</label>
       <input class="form-input" id="ef_nombre" value="${escHtml(data?.nombre||'')}" placeholder="ej. Supabase, Adobe, Oficina">
@@ -295,10 +333,6 @@ function showExpenseForm(data) {
         <input class="form-input" id="ef_fecha" type="date" value="${data?.fecha||hoy}">
       </div>
     </div>
-    <div class="form-group" style="display:flex;align-items:center;gap:10px;">
-      <input type="checkbox" id="ef_rec" ${data?.recurrente?'checked':''} style="width:16px;height:16px;">
-      <label for="ef_rec" style="font-size:14px;cursor:pointer;">Gasto recurrente</label>
-    </div>
     <div class="form-group">
       <label class="form-label">Notas</label>
       <textarea class="form-textarea" id="ef_notas" style="min-height:60px;">${escHtml(data?.notas||'')}</textarea>
@@ -310,13 +344,15 @@ function showExpenseForm(data) {
 }
 
 async function saveExpense(id) {
+  const tipo = document.getElementById('ef_tipo').value;
   const body = {
     nombre: document.getElementById('ef_nombre').value.trim(),
     categoria: document.getElementById('ef_cat').value,
     importe: parseFloat(document.getElementById('ef_importe').value) || 0,
     fecha: document.getElementById('ef_fecha').value,
     responsable: document.getElementById('ef_responsable').value,
-    recurrente: document.getElementById('ef_rec').checked,
+    recurrente: tipo === 'recurrente',
+    tipo: tipo,
     notas: document.getElementById('ef_notas').value
   };
   if (!body.nombre || !body.importe) { toast('Concepto e importe obligatorios', 'error'); return; }
@@ -325,6 +361,26 @@ async function saveExpense(id) {
     else await API.post('/expenses', body);
     toast(id ? 'Gasto actualizado' : 'Gasto añadido', 'success');
     closeModal('expModal');
+    cargarGastosMes();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
+async function moverTipoExp(id, nuevoTipo) {
+  const e = (window._expensesAll || []).find(x => x.id === id);
+  if (!e) { toast('Gasto no encontrado', 'error'); return; }
+  const body = {
+    nombre: e.nombre,
+    categoria: e.categoria,
+    importe: e.importe,
+    fecha: e.fecha,
+    responsable: e.responsable,
+    recurrente: nuevoTipo === 'recurrente',
+    tipo: nuevoTipo,
+    notas: e.notas || ''
+  };
+  try {
+    await API.put(`/expenses/${id}`, body);
+    toast(`Movido a ${nuevoTipo === 'inversion' ? 'Inversión' : 'Gastos recurrentes'}`, 'success');
     cargarGastosMes();
   } catch (err) { toast(err.message, 'error'); }
 }

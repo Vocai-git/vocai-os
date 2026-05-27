@@ -98,6 +98,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   importe DECIMAL(10,2) NOT NULL,
   fecha DATE DEFAULT CURRENT_DATE,
   recurrente BOOLEAN DEFAULT FALSE,
+  tipo TEXT DEFAULT 'recurrente' CHECK (tipo IN ('inversion', 'recurrente')),
   notas TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -4,7 +4,7 @@ const auth = require('../middleware/auth');
 const { supabase } = require('../config/supabase');
 
 router.get('/', auth, async (req, res) => {
-  const { mes, year, categoria, responsable } = req.query;
+  const { mes, year, categoria, responsable, tipo } = req.query;
   let query = supabase.from('expenses').select('*').order('fecha', { ascending: false });
   if (mes) {
     const [y, m] = mes.split('-').map(Number);
@@ -17,6 +17,7 @@ router.get('/', auth, async (req, res) => {
   }
   if (categoria) query = query.eq('categoria', categoria);
   if (responsable) query = query.eq('responsable', responsable);
+  if (tipo) query = query.eq('tipo', tipo);
   const { data, error } = await query;
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
@@ -30,6 +31,7 @@ router.post('/', auth, async (req, res) => {
     fecha: req.body.fecha,
     responsable: req.body.responsable || 'Agus',
     recurrente: req.body.recurrente || false,
+    tipo: req.body.tipo || 'recurrente',
     notas: req.body.notas || ''
   };
   console.log('[Expenses] POST body:', JSON.stringify(body));
@@ -47,6 +49,7 @@ router.put('/:id', auth, async (req, res) => {
     fecha: req.body.fecha,
     responsable: req.body.responsable || 'Agus',
     recurrente: req.body.recurrente || false,
+    tipo: req.body.tipo || 'recurrente',
     notas: req.body.notas || ''
   };
   console.log('[Expenses] PUT body:', JSON.stringify(body));
