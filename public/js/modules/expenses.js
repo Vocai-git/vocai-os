@@ -1,7 +1,8 @@
-// Estado global del módulo
+// Estado global del módulo — este módulo ahora solo muestra Inversión.
+// Los gastos recurrentes viven en el módulo Finanzas.
 window._expYear = null;
 window._expMonth = null;
-window._expTipo = 'recurrente'; // 'recurrente' | 'inversion'
+window._expTipo = 'inversion';
 
 const MESES_NOMBRE = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -9,6 +10,7 @@ async function renderExpenses(el) {
   const now = new Date();
   window._expYear = now.getFullYear();
   window._expMonth = now.getMonth() + 1; // 1-12
+  window._expTipo = 'inversion'; // Este módulo solo muestra inversión.
 
   await cargarGastosMes(el);
 }
@@ -39,6 +41,17 @@ function cambiarTipoExp(tipo) {
   if (tipo !== 'inversion' && tipo !== 'recurrente') return;
   window._expTipo = tipo;
   cargarGastosMes();
+}
+
+// Después de crear/editar/borrar/mover un gasto, refrescamos la vista
+// activa: si estamos en el módulo Gastos refrescamos local, si estamos
+// en otro módulo (típicamente Finanzas) hacemos navigate para recargar.
+function refreshExpenseView() {
+  if (typeof currentModule !== 'undefined' && currentModule && currentModule !== 'expenses') {
+    navigate(currentModule);
+  } else {
+    cargarGastosMes();
+  }
 }
 
 function mesLabel() {
@@ -78,31 +91,17 @@ function buildExpensesHTML(el, expenses, acumulado) {
   const byCat = {};
   expenses.forEach(e => { byCat[e.categoria||'otros'] = (byCat[e.categoria||'otros']||0) + e.importe; });
 
-  const tipoActivo = window._expTipo;
-  const tabBtn = (val, label) => `
-    <button type="button"
-      onclick="cambiarTipoExp('${val}')"
-      style="background:${tipoActivo===val?'#2979FF':'transparent'};color:${tipoActivo===val?'#fff':'#888'};
-        border:none;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;border-radius:8px;
-        transition:all .15s;">${label}</button>`;
-
   el.innerHTML = `
     <div class="section-header">
-      <h2 class="section-title">Gastos</h2>
+      <h2 class="section-title">Inversión</h2>
       <div style="display:flex;gap:10px;align-items:center;">
         <div style="display:flex;align-items:center;gap:8px;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:6px 12px;">
           <button type="button" id="btnMesAnt" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;padding:4px 8px;">&#8249;</button>
           <span id="expMesLabel" style="font-size:14px;font-weight:600;color:#fff;min-width:140px;text-align:center;">${mesLabel()}</span>
           <button type="button" id="btnMesSig" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;padding:4px 8px;">&#8250;</button>
         </div>
-        <button class="btn btn-primary" onclick="newExpense()">+ Nuevo gasto</button>
+        <button class="btn btn-primary" onclick="newExpense()">+ Nueva inversión</button>
       </div>
-    </div>
-
-    <!-- Tabs Inversión / Gastos recurrentes -->
-    <div style="display:flex;gap:6px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:4px;margin-bottom:20px;width:fit-content;">
-      ${tabBtn('inversion', 'Inversión')}
-      ${tabBtn('recurrente', 'Gastos recurrentes')}
     </div>
 
     <!-- KPIs -->
@@ -290,15 +289,11 @@ async function editExpense(id) {
 function showExpenseForm(data) {
   const isEdit = !!data;
   const hoy = new Date().toISOString().split('T')[0];
+  // El tipo se hereda del módulo activo: 'inversion' desde Gastos, 'recurrente' desde Finanzas.
   const tipoDefault = data?.tipo || window._expTipo || 'recurrente';
-  createModal('expModal', isEdit ? 'Editar gasto' : 'Nuevo gasto', `
-    <div class="form-group">
-      <label class="form-label">Tipo *</label>
-      <select class="form-select" id="ef_tipo">
-        <option value="inversion" ${tipoDefault==='inversion'?'selected':''}>Inversión (capital / compra única)</option>
-        <option value="recurrente" ${tipoDefault==='recurrente'?'selected':''}>Gasto recurrente (mensual)</option>
-      </select>
-    </div>
+  const tipoLabel = tipoDefault === 'inversion' ? 'inversión' : 'gasto recurrente';
+  createModal('expModal', isEdit ? `Editar ${tipoLabel}` : `Nueva ${tipoLabel}`, `
+    <input type="hidden" id="ef_tipo" value="${tipoDefault}">
     <div class="form-group">
       <label class="form-label">Concepto *</label>
       <input class="form-input" id="ef_nombre" value="${escHtml(data?.nombre||'')}" placeholder="ej. Supabase, Adobe, Oficina">
@@ -361,7 +356,7 @@ async function saveExpense(id) {
     else await API.post('/expenses', body);
     toast(id ? 'Gasto actualizado' : 'Gasto añadido', 'success');
     closeModal('expModal');
-    cargarGastosMes();
+    refreshExpenseView();
   } catch (err) { toast(err.message, 'error'); }
 }
 
@@ -381,7 +376,7 @@ async function moverTipoExp(id, nuevoTipo) {
   try {
     await API.put(`/expenses/${id}`, body);
     toast(`Movido a ${nuevoTipo === 'inversion' ? 'Inversión' : 'Gastos recurrentes'}`, 'success');
-    cargarGastosMes();
+    refreshExpenseView();
   } catch (err) { toast(err.message, 'error'); }
 }
 
@@ -390,6 +385,6 @@ async function deleteExpense(id) {
   try {
     await API.del(`/expenses/${id}`);
     toast('Gasto eliminado', 'success');
-    cargarGastosMes();
+    refreshExpenseView();
   } catch (err) { toast(err.message, 'error'); }
 }

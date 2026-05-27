@@ -47,8 +47,15 @@ async function cargarFinanzasMes(el) {
 
   buildFinanzasHTML(el || document.getElementById('pageContent'), {
     totalIngresos, totalGastos, resultado, totalInversion,
-    ingresosMes, expRecurrentes, expInversion, evol
+    ingresosMes, expRecurrentes, expInversion, evol, invoices
   });
+}
+
+// Wrapper para crear un gasto recurrente desde Finanzas:
+// fija el tipo del modal en 'recurrente' antes de abrir el form.
+function finNewGastoRecurrente() {
+  window._expTipo = 'recurrente';
+  newExpense();
 }
 
 function finMesLabel() {
@@ -100,15 +107,19 @@ function fillEvolucionGastos(months, expenses) {
 
 function buildFinanzasHTML(el, d) {
   const { totalIngresos, totalGastos, resultado, totalInversion,
-    ingresosMes, expRecurrentes, expInversion, evol } = d;
+    ingresosMes, expRecurrentes, expInversion, evol, invoices } = d;
 
   const resColor = resultado >= 0 ? '#00C48C' : '#FF6B6B';
   const resSign = resultado >= 0 ? '+' : '−';
   const resAbs = Math.abs(resultado);
 
-  // Top 5 gastos del mes ordenados desc
-  const topGastos = [...(expRecurrentes || [])].sort((a,b) => (b.importe||0) - (a.importe||0)).slice(0,5);
-  const topIngresos = [...ingresosMes].sort((a,b) => (b.importe||0) - (a.importe||0)).slice(0,5);
+  // Listas completas del mes (orden por importe desc)
+  const gastosOrdenados = [...(expRecurrentes || [])].sort((a,b) => (b.importe||0) - (a.importe||0));
+  const ingresosOrdenados = [...ingresosMes].sort((a,b) => (b.importe||0) - (a.importe||0));
+
+  // Cacheo para que los botones de editar/mover encuentren el dato sin volver a pedir
+  window._expensesAll = expRecurrentes;
+  window._invoicesData = invoices;
 
   el.innerHTML = `
     <div class="section-header">
@@ -169,32 +180,73 @@ function buildFinanzasHTML(el, d) {
       <canvas id="finChart"></canvas>
     </div>
 
-    <!-- Desglose: top ingresos / top gastos -->
+    <!-- Listas completas con CRUD: ingresos / gastos recurrentes -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+      <!-- Ingresos del mes (facturas) -->
       <div class="card">
-        <div class="card-header"><h3 class="card-title" style="color:#00C48C;">Top ingresos del mes</h3></div>
-        ${topIngresos.length === 0
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <h3 class="card-title" style="color:#00C48C;">Ingresos del mes</h3>
+          <button class="btn btn-primary btn-sm" onclick="newInvoice()">+ Nueva factura</button>
+        </div>
+        ${ingresosOrdenados.length === 0
           ? '<div class="empty-state" style="padding:20px;"><div class="empty-sub">Sin facturas cobradas este mes</div></div>'
-          : `<div style="display:flex;flex-direction:column;gap:8px;">
-            ${topIngresos.map(i => `
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);">
-                <div style="font-size:13px;">${escHtml(i.concepto || i.numero || '—')}</div>
-                <strong style="color:#00C48C;">${formatMoney(i.importe)}</strong>
-              </div>`).join('')}
-          </div>`
+          : `<div class="table-wrapper">
+              <table>
+                <thead><tr>
+                  <th>Concepto</th><th>Cliente</th><th>Importe</th><th>Fecha</th><th></th>
+                </tr></thead>
+                <tbody>
+                  ${ingresosOrdenados.map(i => `
+                    <tr>
+                      <td><strong>${escHtml(i.concepto || i.numero || '—')}</strong></td>
+                      <td style="color:#aaa;">${escHtml(i.clients?.nombre || '—')}</td>
+                      <td><strong style="color:#00C48C;">${formatMoney(i.importe)}</strong></td>
+                      <td style="color:#888;">${formatDate(i.fecha)}</td>
+                      <td>
+                        <div style="display:flex;gap:4px;">
+                          <button class="btn btn-ghost btn-icon btn-sm" onclick="editInvoice('${i.id}')" title="Editar">✏️</button>
+                          <button class="btn btn-ghost btn-icon btn-sm" onclick="deleteInvoice('${i.id}')" title="Eliminar">🗑️</button>
+                        </div>
+                      </td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`
         }
       </div>
+
+      <!-- Gastos recurrentes del mes -->
       <div class="card">
-        <div class="card-header"><h3 class="card-title" style="color:#FF6B6B;">Top gastos del mes</h3></div>
-        ${topGastos.length === 0
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+          <h3 class="card-title" style="color:#FF6B6B;">Gastos recurrentes del mes</h3>
+          <button class="btn btn-primary btn-sm" onclick="finNewGastoRecurrente()">+ Nuevo gasto</button>
+        </div>
+        ${gastosOrdenados.length === 0
           ? '<div class="empty-state" style="padding:20px;"><div class="empty-sub">Sin gastos recurrentes este mes</div></div>'
-          : `<div style="display:flex;flex-direction:column;gap:8px;">
-            ${topGastos.map(e => `
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);">
-                <div style="font-size:13px;">${escHtml(e.nombre || '—')}</div>
-                <strong style="color:#FF6B6B;">${formatMoney(e.importe)}</strong>
-              </div>`).join('')}
-          </div>`
+          : `<div class="table-wrapper">
+              <table>
+                <thead><tr>
+                  <th>Concepto</th><th>Categoría</th><th>Importe</th><th>Fecha</th><th></th>
+                </tr></thead>
+                <tbody>
+                  ${gastosOrdenados.map(e => `
+                    <tr>
+                      <td><strong>${escHtml(e.nombre || '—')}</strong></td>
+                      <td style="color:#aaa;text-transform:capitalize;">${escHtml(e.categoria || 'otros')}</td>
+                      <td><strong style="color:#FF6B6B;">${formatMoney(e.importe)}</strong></td>
+                      <td style="color:#888;">${formatDate(e.fecha)}</td>
+                      <td>
+                        <div style="display:flex;gap:4px;">
+                          <button class="btn btn-ghost btn-icon btn-sm" onclick="moverTipoExp('${e.id}','inversion')" title="Mover a Inversión" style="font-size:14px;">↔️</button>
+                          <button class="btn btn-ghost btn-icon btn-sm" onclick="editExpense('${e.id}')" title="Editar">✏️</button>
+                          <button class="btn btn-ghost btn-icon btn-sm" onclick="deleteExpense('${e.id}')" title="Eliminar">🗑️</button>
+                        </div>
+                      </td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>`
         }
       </div>
     </div>`;

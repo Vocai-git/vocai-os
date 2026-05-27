@@ -233,7 +233,7 @@ const MODULES = {
   proposals: { title: 'Propuestas', render: renderProposals },
   contracts: { title: 'Contratos', render: renderContracts },
   invoices:  { title: 'Facturas',  render: renderInvoices },
-  expenses:  { title: 'Gastos',    render: renderExpenses },
+  expenses:  { title: 'Inversión', render: renderExpenses },
   finanzas:  { title: 'Finanzas',  render: renderFinanzas },
   goals:     { title: 'Metas',     render: renderGoals },
   bookings:  { title: 'Reservas de Estudio', render: renderBookings },

@@ -164,7 +164,7 @@ async function saveInvoice(id) {
     else await API.post('/invoices', body);
     toast(id ? 'Factura actualizada' : 'Factura creada', 'success');
     closeModal('invoiceModal');
-    navigate('invoices');
+    navigate(typeof currentModule !== 'undefined' && currentModule ? currentModule : 'invoices');
   } catch (err) { toast(err.message, 'error'); }
 }
 
@@ -173,7 +173,7 @@ async function deleteInvoice(id) {
   try {
     await API.del(`/invoices/${id}`);
     toast('Factura eliminada', 'success');
-    navigate('invoices');
+    navigate(typeof currentModule !== 'undefined' && currentModule ? currentModule : 'invoices');
   } catch (err) { toast(err.message, 'error'); }
 }
 
