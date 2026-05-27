@@ -1,6 +1,14 @@
 // Módulo Finanzas — P&L mensual: ingresos vs gastos recurrentes + inversión acumulada
 window._finYear = null;
 window._finMonth = null;
+// Vista de ingresos: 'cobradas' (solo estado=cobrada) | 'facturadas' (todas las emitidas, excluye borrador)
+window._finIngresoVista = 'cobradas';
+
+function finMatchIngreso(inv, vista) {
+  if (!inv || !inv.estado) return false;
+  if (vista === 'facturadas') return inv.estado !== 'borrador';
+  return inv.estado === 'cobrada';
+}
 
 const FIN_MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -20,10 +28,11 @@ async function cargarFinanzasMes(el) {
     API.get('/expenses?tipo=inversion')
   ]);
 
-  // Ingresos del mes (facturas cobradas)
+  // Ingresos del mes — según vista activa (cobradas o todas las facturadas)
+  const vista = window._finIngresoVista || 'cobradas';
   const [y, m] = mes.split('-').map(Number);
   const ingresosMes = (invoices || [])
-    .filter(i => i.estado === 'cobrada' && i.fecha)
+    .filter(i => finMatchIngreso(i, vista) && i.fecha)
     .filter(i => {
       const d = new Date(i.fecha);
       return d.getFullYear() === y && d.getMonth() + 1 === m;
@@ -51,6 +60,12 @@ async function cargarFinanzasMes(el) {
     totalIngresos, totalGastos, resultado, totalInversion,
     ingresosMes, expRecurrentes, expInversion, evol, invoices
   });
+}
+
+function finCambiarVistaIngresos(vista) {
+  if (vista !== 'cobradas' && vista !== 'facturadas') return;
+  window._finIngresoVista = vista;
+  cargarFinanzasMes();
 }
 
 // Filtra in-memory las filas de una tabla por una query libre
@@ -177,8 +192,9 @@ function buildEvolucion(invoices, year, month) {
       gastos: 0
     });
   }
+  const vista = window._finIngresoVista || 'cobradas';
   const montoOf = x => (x.total != null ? x.total : (x.importe || 0));
-  (invoices || []).filter(i => i.estado === 'cobrada' && i.fecha).forEach(i => {
+  (invoices || []).filter(i => finMatchIngreso(i, vista) && i.fecha).forEach(i => {
     const d = new Date(i.fecha);
     const m = months.find(x => x.year === d.getFullYear() && x.month === d.getMonth() + 1);
     if (m) m.ingresos += montoOf(i);
@@ -229,11 +245,11 @@ function buildFinanzasHTML(el, d) {
     <!-- Resumen del mes -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">
       <div class="card" style="padding:24px;text-align:center;border-left:3px solid #00C48C;">
-        <div style="font-size:13px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Ingresos</div>
+        <div style="font-size:13px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Ingresos ${(window._finIngresoVista||'cobradas')==='facturadas'?'(facturados)':'(cobrados)'}</div>
         <div style="font-family:'Syne',sans-serif;font-size:34px;font-weight:800;color:#00C48C;">
           <span style="font-size:16px;font-family:Outfit,sans-serif;font-weight:400;opacity:.7;">€</span>${totalIngresos.toLocaleString('es-ES',{minimumFractionDigits:2})}
         </div>
-        <div style="font-size:11px;color:#666;margin-top:6px;">${ingresosMes.length} factura${ingresosMes.length===1?'':'s'} cobrada${ingresosMes.length===1?'':'s'}</div>
+        <div style="font-size:11px;color:#666;margin-top:6px;">${ingresosMes.length} factura${ingresosMes.length===1?'':'s'} ${(window._finIngresoVista||'cobradas')==='facturadas'?'emitida':'cobrada'}${ingresosMes.length===1?'':'s'}</div>
       </div>
       <div class="card" style="padding:24px;text-align:center;border-left:3px solid #FF6B6B;">
         <div style="font-size:13px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Gastos recurrentes</div>
@@ -278,8 +294,16 @@ function buildFinanzasHTML(el, d) {
 
       <!-- Ingresos del mes (facturas) -->
       <div class="card">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-          <h3 class="card-title" style="color:#00C48C;">Ingresos del mes</h3>
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <h3 class="card-title" style="color:#00C48C;">Ingresos del mes</h3>
+            <div style="display:flex;gap:4px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:3px;">
+              <button type="button" onclick="finCambiarVistaIngresos('cobradas')"
+                style="background:${(window._finIngresoVista||'cobradas')==='cobradas'?'#00C48C':'transparent'};color:${(window._finIngresoVista||'cobradas')==='cobradas'?'#fff':'#888'};border:none;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;border-radius:6px;">Cobradas</button>
+              <button type="button" onclick="finCambiarVistaIngresos('facturadas')"
+                style="background:${(window._finIngresoVista||'cobradas')==='facturadas'?'#2979FF':'transparent'};color:${(window._finIngresoVista||'cobradas')==='facturadas'?'#fff':'#888'};border:none;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;border-radius:6px;">Facturadas</button>
+            </div>
+          </div>
           <button class="btn btn-primary btn-sm" onclick="newInvoice()">+ Nueva factura</button>
         </div>
         ${ingresosOrdenados.length === 0
@@ -290,15 +314,17 @@ function buildFinanzasHTML(el, d) {
             <div class="table-wrapper">
               <table>
                 <thead><tr>
-                  <th>Concepto</th><th>Cliente</th><th>Importe</th><th>Fecha</th><th></th>
+                  <th>Concepto</th><th>Cliente</th><th>Estado</th><th>Importe</th><th>Fecha</th><th></th>
                 </tr></thead>
                 <tbody>
                   ${ingresosOrdenados.map(i => {
-                    const blob = `${i.concepto||''} ${i.numero||''} ${i.clients?.nombre||''} ${i.notas||''}`.toLowerCase();
+                    const blob = `${i.concepto||''} ${i.numero||''} ${i.clients?.nombre||''} ${i.estado||''} ${i.notas||''}`.toLowerCase();
+                    const estCol = { cobrada:'#00C48C', enviada:'#2979FF', vencida:'#FF6B6B', borrador:'#888' }[i.estado] || '#888';
                     return `
                     <tr class="finIngresoRow" data-search="${escHtml(blob)}">
                       <td><strong>${escHtml(i.concepto || i.numero || '—')}</strong></td>
                       <td style="color:#aaa;">${escHtml(i.clients?.nombre || '—')}</td>
+                      <td><span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;text-transform:capitalize;background:${estCol}22;color:${estCol};border:1px solid ${estCol}44;">${escHtml(i.estado || '—')}</span></td>
                       <td><strong style="color:#00C48C;">${formatMoney(montoOf(i))}</strong></td>
                       <td style="color:#888;">${formatDate(i.fecha)}</td>
                       <td>
