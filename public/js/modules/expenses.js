@@ -311,8 +311,32 @@ function showExpenseForm(data) {
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Importe (€) *</label>
-        <input class="form-input" id="ef_importe" type="number" step="0.01" value="${data?.importe||''}" placeholder="0.00">
+        <label class="form-label">Importe base (€) * <span style="font-size:11px;color:#888;font-weight:400;">bruto, sin IVA</span></label>
+        <input class="form-input" id="ef_importe" type="number" step="0.01" value="${data?.importe||''}" placeholder="0.00" oninput="calcExpense()">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" id="ef_iva" ${(data?.iva||0) > 0 ? 'checked' : ''} style="width:16px;height:16px;" onchange="calcExpense()">
+        <label for="ef_iva" style="font-size:14px;cursor:pointer;">Lleva IVA (21%)</label>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" id="ef_irpf" ${(data?.irpf||0) > 0 ? 'checked' : ''} style="width:16px;height:16px;" onchange="calcExpense()">
+        <label for="ef_irpf" style="font-size:14px;cursor:pointer;">Lleva IRPF (-15%)</label>
+      </div>
+    </div>
+    <div style="background:var(--bg);border-radius:8px;padding:14px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;">
+        <span>Base imponible</span><span id="expCalcBase">${formatMoney(data?.importe||0)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;color:#888;">
+        <span>IVA</span><span id="expCalcIva">${formatMoney(data?.iva||0)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;color:#888;">
+        <span>IRPF</span><span id="expCalcIrpf">-${formatMoney(data?.irpf||0)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;border-top:1px solid var(--border);padding-top:8px;">
+        <span>Total a pagar</span><span id="expCalcTotal">${formatMoney(data?.total != null ? data.total : (data?.importe||0))}</span>
       </div>
     </div>
     <div class="form-row">
@@ -338,12 +362,34 @@ function showExpenseForm(data) {
   `);
 }
 
+function calcExpense() {
+  const base = parseFloat(document.getElementById('ef_importe')?.value) || 0;
+  const llevaIva  = document.getElementById('ef_iva')?.checked;
+  const llevaIrpf = document.getElementById('ef_irpf')?.checked;
+  const iva  = llevaIva  ? base * 0.21 : 0;
+  const irpf = llevaIrpf ? base * 0.15 : 0;
+  const total = base + iva - irpf;
+  document.getElementById('expCalcBase').textContent  = formatMoney(base);
+  document.getElementById('expCalcIva').textContent   = formatMoney(iva);
+  document.getElementById('expCalcIrpf').textContent  = '-' + formatMoney(irpf);
+  document.getElementById('expCalcTotal').textContent = formatMoney(total);
+}
+
 async function saveExpense(id) {
   const tipo = document.getElementById('ef_tipo').value;
+  const base = parseFloat(document.getElementById('ef_importe').value) || 0;
+  const llevaIva  = document.getElementById('ef_iva').checked;
+  const llevaIrpf = document.getElementById('ef_irpf').checked;
+  const iva  = llevaIva  ? +(base * 0.21).toFixed(2) : 0;
+  const irpf = llevaIrpf ? +(base * 0.15).toFixed(2) : 0;
+  const total = +(base + iva - irpf).toFixed(2);
   const body = {
     nombre: document.getElementById('ef_nombre').value.trim(),
     categoria: document.getElementById('ef_cat').value,
-    importe: parseFloat(document.getElementById('ef_importe').value) || 0,
+    importe: base,
+    iva,
+    irpf,
+    total,
     fecha: document.getElementById('ef_fecha').value,
     responsable: document.getElementById('ef_responsable').value,
     recurrente: tipo === 'recurrente',
@@ -367,6 +413,9 @@ async function moverTipoExp(id, nuevoTipo) {
     nombre: e.nombre,
     categoria: e.categoria,
     importe: e.importe,
+    iva: e.iva || 0,
+    irpf: e.irpf || 0,
+    total: e.total != null ? e.total : e.importe,
     fecha: e.fecha,
     responsable: e.responsable,
     recurrente: nuevoTipo === 'recurrente',

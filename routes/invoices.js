@@ -22,11 +22,12 @@ router.get('/:id', auth, async (req, res) => {
 
 router.post('/', auth, async (req, res) => {
   const body = req.body;
-  // Auto-calculate IVA and IRPF
+  // IVA / IRPF llegan del front (0 si la factura no los lleva).
+  // Si vienen vacíos, se asume 0 (factura bruta).
   const base = parseFloat(body.importe) || 0;
-  body.iva = parseFloat((base * 0.21).toFixed(2));
-  body.irpf = parseFloat((base * 0.15).toFixed(2));
-  body.total = parseFloat((base + body.iva - body.irpf).toFixed(2));
+  body.iva  = body.iva  != null ? parseFloat(body.iva)  : 0;
+  body.irpf = body.irpf != null ? parseFloat(body.irpf) : 0;
+  body.total = body.total != null ? parseFloat(body.total) : parseFloat((base + body.iva - body.irpf).toFixed(2));
   body.numero = await getNextInvoiceNumber();
 
   const { data, error } = await supabase.from('invoices').insert([body]).select().single();
@@ -37,11 +38,11 @@ router.post('/', auth, async (req, res) => {
 
 router.put('/:id', auth, async (req, res) => {
   const body = req.body;
-  if (body.importe) {
-    const base = parseFloat(body.importe);
-    body.iva = parseFloat((base * 0.21).toFixed(2));
-    body.irpf = parseFloat((base * 0.15).toFixed(2));
-    body.total = parseFloat((base + body.iva - body.irpf).toFixed(2));
+  if (body.importe != null) {
+    const base = parseFloat(body.importe) || 0;
+    body.iva  = body.iva  != null ? parseFloat(body.iva)  : 0;
+    body.irpf = body.irpf != null ? parseFloat(body.irpf) : 0;
+    body.total = body.total != null ? parseFloat(body.total) : parseFloat((base + body.iva - body.irpf).toFixed(2));
   }
   const { data, error } = await supabase.from('invoices').update(body).eq('id', req.params.id).select().single();
   if (error) return res.status(400).json({ error: error.message });

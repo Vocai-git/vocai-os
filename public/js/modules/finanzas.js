@@ -28,10 +28,12 @@ async function cargarFinanzasMes(el) {
       const d = new Date(i.fecha);
       return d.getFullYear() === y && d.getMonth() + 1 === m;
     });
-  const totalIngresos = ingresosMes.reduce((s,i) => s + (i.importe || 0), 0);
-  const totalGastos = (expRecurrentes || []).reduce((s,e) => s + (e.importe || 0), 0);
+  // Para los totales usamos `total` (importe + iva − irpf) si está calculado, si no caemos al importe.
+  const montoOf = x => (x.total != null ? x.total : (x.importe || 0));
+  const totalIngresos = ingresosMes.reduce((s,i) => s + montoOf(i), 0);
+  const totalGastos = (expRecurrentes || []).reduce((s,e) => s + montoOf(e), 0);
   const resultado = totalIngresos - totalGastos;
-  const totalInversion = (expInversion || []).reduce((s,e) => s + (e.importe || 0), 0);
+  const totalInversion = (expInversion || []).reduce((s,e) => s + montoOf(e), 0);
 
   // Evolución últimos 6 meses
   const evol = buildEvolucion(invoices, window._finYear, window._finMonth);
@@ -87,21 +89,23 @@ function buildEvolucion(invoices, year, month) {
       gastos: 0
     });
   }
+  const montoOf = x => (x.total != null ? x.total : (x.importe || 0));
   (invoices || []).filter(i => i.estado === 'cobrada' && i.fecha).forEach(i => {
     const d = new Date(i.fecha);
     const m = months.find(x => x.year === d.getFullYear() && x.month === d.getMonth() + 1);
-    if (m) m.ingresos += i.importe || 0;
+    if (m) m.ingresos += montoOf(i);
   });
   return months;
 }
 
 function fillEvolucionGastos(months, expenses) {
+  const montoOf = x => (x.total != null ? x.total : (x.importe || 0));
   (expenses || []).forEach(e => {
     const tipo = e.tipo || (e.recurrente ? 'recurrente' : 'inversion');
     if (tipo !== 'recurrente' || !e.fecha) return;
     const d = new Date(e.fecha);
     const m = months.find(x => x.year === d.getFullYear() && x.month === d.getMonth() + 1);
-    if (m) m.gastos += e.importe || 0;
+    if (m) m.gastos += montoOf(e);
   });
 }
 
@@ -113,9 +117,10 @@ function buildFinanzasHTML(el, d) {
   const resSign = resultado >= 0 ? '+' : '−';
   const resAbs = Math.abs(resultado);
 
-  // Listas completas del mes (orden por importe desc)
-  const gastosOrdenados = [...(expRecurrentes || [])].sort((a,b) => (b.importe||0) - (a.importe||0));
-  const ingresosOrdenados = [...ingresosMes].sort((a,b) => (b.importe||0) - (a.importe||0));
+  // Listas completas del mes (orden por total desc, fallback a importe si no hay desglose)
+  const montoOf = x => (x.total != null ? x.total : (x.importe || 0));
+  const gastosOrdenados = [...(expRecurrentes || [])].sort((a,b) => montoOf(b) - montoOf(a));
+  const ingresosOrdenados = [...ingresosMes].sort((a,b) => montoOf(b) - montoOf(a));
 
   // Cacheo para que los botones de editar/mover encuentren el dato sin volver a pedir
   window._expensesAll = expRecurrentes;
@@ -201,7 +206,7 @@ function buildFinanzasHTML(el, d) {
                     <tr>
                       <td><strong>${escHtml(i.concepto || i.numero || '—')}</strong></td>
                       <td style="color:#aaa;">${escHtml(i.clients?.nombre || '—')}</td>
-                      <td><strong style="color:#00C48C;">${formatMoney(i.importe)}</strong></td>
+                      <td><strong style="color:#00C48C;">${formatMoney(montoOf(i))}</strong></td>
                       <td style="color:#888;">${formatDate(i.fecha)}</td>
                       <td>
                         <div style="display:flex;gap:4px;">
@@ -234,7 +239,7 @@ function buildFinanzasHTML(el, d) {
                     <tr>
                       <td><strong>${escHtml(e.nombre || '—')}</strong></td>
                       <td style="color:#aaa;text-transform:capitalize;">${escHtml(e.categoria || 'otros')}</td>
-                      <td><strong style="color:#FF6B6B;">${formatMoney(e.importe)}</strong></td>
+                      <td><strong style="color:#FF6B6B;">${formatMoney(montoOf(e))}</strong></td>
                       <td style="color:#888;">${formatDate(e.fecha)}</td>
                       <td>
                         <div style="display:flex;gap:4px;">

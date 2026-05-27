@@ -106,12 +106,22 @@ async function showInvoiceForm(data) {
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Importe base (€) *</label>
+        <label class="form-label">Importe base (€) * <span style="font-size:11px;color:#888;font-weight:400;">bruto, sin IVA</span></label>
         <input class="form-input" id="if_importe" type="number" step="0.01" value="${data?.importe||''}" placeholder="0.00" oninput="calcInvoice()">
       </div>
       <div class="form-group">
         <label class="form-label">Fecha</label>
         <input class="form-input" id="if_fecha" type="date" value="${data?.fecha||new Date().toISOString().split('T')[0]}">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" id="if_lleva_iva" ${(data?.iva||0) > 0 ? 'checked' : ''} style="width:16px;height:16px;" onchange="calcInvoice()">
+        <label for="if_lleva_iva" style="font-size:14px;cursor:pointer;">Lleva IVA (21%)</label>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" id="if_lleva_irpf" ${(data?.irpf||0) > 0 ? 'checked' : ''} style="width:16px;height:16px;" onchange="calcInvoice()">
+        <label for="if_lleva_irpf" style="font-size:14px;cursor:pointer;">Lleva IRPF (-15%)</label>
       </div>
     </div>
     <div style="background:var(--bg);border-radius:8px;padding:16px;margin-top:8px;">
@@ -125,7 +135,7 @@ async function showInvoiceForm(data) {
         <span>IRPF -15%</span><span id="calc_irpf">-${formatMoney(data?.irpf||0)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:17px;font-weight:700;border-top:1px solid var(--border);padding-top:10px;">
-        <span>Total</span><span id="calc_total">${formatMoney(data?.total||0)}</span>
+        <span>Total</span><span id="calc_total">${formatMoney(data?.total != null ? data.total : (data?.importe||0))}</span>
       </div>
     </div>
     <div class="form-group" style="margin-top:16px;">
@@ -140,8 +150,10 @@ async function showInvoiceForm(data) {
 
 function calcInvoice() {
   const base = parseFloat(document.getElementById('if_importe')?.value) || 0;
-  const iva = base * 0.21;
-  const irpf = base * 0.15;
+  const llevaIva  = document.getElementById('if_lleva_iva')?.checked;
+  const llevaIrpf = document.getElementById('if_lleva_irpf')?.checked;
+  const iva  = llevaIva  ? base * 0.21 : 0;
+  const irpf = llevaIrpf ? base * 0.15 : 0;
   const total = base + iva - irpf;
   document.getElementById('calc_base').textContent = formatMoney(base);
   document.getElementById('calc_iva').textContent = formatMoney(iva);
@@ -150,10 +162,19 @@ function calcInvoice() {
 }
 
 async function saveInvoice(id) {
+  const base = parseFloat(document.getElementById('if_importe').value) || 0;
+  const llevaIva  = document.getElementById('if_lleva_iva').checked;
+  const llevaIrpf = document.getElementById('if_lleva_irpf').checked;
+  const iva  = llevaIva  ? +(base * 0.21).toFixed(2) : 0;
+  const irpf = llevaIrpf ? +(base * 0.15).toFixed(2) : 0;
+  const total = +(base + iva - irpf).toFixed(2);
   const body = {
     cliente_id: document.getElementById('if_cliente').value || null,
     concepto: document.getElementById('if_concepto').value.trim(),
-    importe: parseFloat(document.getElementById('if_importe').value) || 0,
+    importe: base,
+    iva,
+    irpf,
+    total,
     estado: document.getElementById('if_estado').value,
     fecha: document.getElementById('if_fecha').value,
     notas: document.getElementById('if_notas').value

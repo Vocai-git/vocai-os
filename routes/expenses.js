@@ -24,10 +24,16 @@ router.get('/', auth, async (req, res) => {
 });
 
 router.post('/', auth, async (req, res) => {
+  const importe = req.body.importe || 0;
+  const iva = req.body.iva || 0;
+  const irpf = req.body.irpf || 0;
   const body = {
     nombre: req.body.nombre,
     categoria: req.body.categoria,
-    importe: req.body.importe,
+    importe,
+    iva,
+    irpf,
+    total: req.body.total != null ? req.body.total : (importe + iva - irpf),
     fecha: req.body.fecha,
     responsable: req.body.responsable || 'Agus',
     recurrente: req.body.recurrente || false,
@@ -42,10 +48,16 @@ router.post('/', auth, async (req, res) => {
 });
 
 router.put('/:id', auth, async (req, res) => {
+  const importe = req.body.importe || 0;
+  const iva = req.body.iva || 0;
+  const irpf = req.body.irpf || 0;
   const body = {
     nombre: req.body.nombre,
     categoria: req.body.categoria,
-    importe: req.body.importe,
+    importe,
+    iva,
+    irpf,
+    total: req.body.total != null ? req.body.total : (importe + iva - irpf),
     fecha: req.body.fecha,
     responsable: req.body.responsable || 'Agus',
     recurrente: req.body.recurrente || false,
