@@ -2,6 +2,19 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const { supabase } = require('../config/supabase');
+const { copyRecurringExpenses } = require('../automations/copy-recurring-expenses');
+
+// Copia manual: para forzar la copia o hacer catch-up de un mes que no se generó.
+// Si no se especifican from/to, usa mes anterior → mes actual.
+router.post('/copy-recurring', auth, async (req, res) => {
+  try {
+    const { from, to } = req.body || {};
+    const result = await copyRecurringExpenses({ from, to });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 router.get('/', auth, async (req, res) => {
   const { mes, year, categoria, responsable, tipo } = req.query;

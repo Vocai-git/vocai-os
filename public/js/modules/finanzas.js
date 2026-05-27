@@ -60,6 +60,27 @@ function finNewGastoRecurrente() {
   newExpense();
 }
 
+// Copia los gastos recurrentes del mes anterior al mes que se está viendo.
+// Útil para catch-up manual (el cron del día 1 ya lo hace solo cada mes).
+async function finCopiarRecurrentes() {
+  const mesTo = `${window._finYear}-${String(window._finMonth).padStart(2,'0')}`;
+  // mes anterior del mes mostrado:
+  const [y, m] = mesTo.split('-').map(Number);
+  const mesFrom = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2,'0')}`;
+  if (!confirm(`Copiar los gastos recurrentes de ${mesFrom} a ${mesTo}?\n\nNo se duplican los que ya existen.`)) return;
+  try {
+    const r = await API.post('/expenses/copy-recurring', { from: mesFrom, to: mesTo });
+    if (r.copiados === 0 && r.omitidos === 0) {
+      toast(`Sin gastos recurrentes en ${mesFrom}`, 'info');
+    } else if (r.copiados === 0) {
+      toast(`Nada que copiar: los ${r.omitidos} gastos del mes anterior ya están cargados`, 'info');
+    } else {
+      toast(`${r.copiados} copiados${r.omitidos ? `, ${r.omitidos} omitidos (ya existían)` : ''}`, 'success');
+    }
+    cargarFinanzasMes();
+  } catch (err) { toast(err.message, 'error'); }
+}
+
 function finMesLabel() {
   return `${FIN_MESES[window._finMonth - 1]} ${window._finYear}`;
 }
@@ -223,9 +244,12 @@ function buildFinanzasHTML(el, d) {
 
       <!-- Gastos recurrentes del mes -->
       <div class="card">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
           <h3 class="card-title" style="color:#FF6B6B;">Gastos recurrentes del mes</h3>
-          <button class="btn btn-primary btn-sm" onclick="finNewGastoRecurrente()">+ Nuevo gasto</button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="finCopiarRecurrentes()" title="Copia los gastos recurrentes del mes anterior a este mes. No duplica los que ya existen.">📋 Copiar del mes anterior</button>
+            <button class="btn btn-primary btn-sm" onclick="finNewGastoRecurrente()">+ Nuevo gasto</button>
+          </div>
         </div>
         ${gastosOrdenados.length === 0
           ? '<div class="empty-state" style="padding:20px;"><div class="empty-sub">Sin gastos recurrentes este mes</div></div>'
