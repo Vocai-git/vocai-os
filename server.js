@@ -35,7 +35,9 @@ app.use('/api/marketing-intelligence', require('./routes/marketing-intelligence'
 app.use('/api/marketing-generator', require('./routes/marketing-generator'));
 app.use('/api/marketing-carousel', require('./routes/marketing-carousel'));
 app.use('/api/marketing-biblioteca', require('./routes/marketing-biblioteca'));
+app.use('/api/marketing-web', require('./routes/marketing-web'));
 app.use('/api/radar', require('./routes/radar'));
+app.use('/api/asistente', require('./routes/asistente'));
 const googleAuthRouter = require('./routes/google-auth');
 app.use('/api/google', googleAuthRouter);
 app.use('/auth/google', googleAuthRouter);

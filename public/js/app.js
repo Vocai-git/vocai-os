@@ -252,6 +252,8 @@ const MODULES = {
   'marketing-planning': { title: 'Planificación', render: renderMarketingPlanning },
   'marketing-intelligence': { title: 'Inteligencia', render: renderMarketingIntelligence },
   'marketing-generator': { title: 'Generador', render: renderMarketingGenerator },
+  'marketing-web': { title: 'Web · Blog', render: renderMarketingWeb },
+  asistente: { title: 'Asistente', render: renderAsistente },
 };
 
 // ── Router ───────────────────────────────────────────────────

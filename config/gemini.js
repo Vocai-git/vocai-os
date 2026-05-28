@@ -522,7 +522,61 @@ async function editarImagen(imagenPath, instruccion, savePath, aspecto = '9:16')
   fs.writeFileSync(savePath, Buffer.from((img.inlineData || img.inline_data).data, 'base64'));
 }
 
+// ── Especialista · Blog: tema → post largo SEO en markdown ───
+async function generarBlog(tema, { keyword = '', pilar = '', angulo = '' } = {}) {
+  const sys =
+`Eres el redactor de blog de VOCAI — empresa de IA y automatización en Alicante,
+con estudio de grabación propio. Tagline: "La voz de tu negocio".
+
+Te dan un TEMA y escribes un artículo de blog completo, optimizado para SEO,
+para publicar en vocai.es/blog.
+
+${REGLAS_MARCA}
+
+ESTRUCTURA Y SEO:
+- Long-form real: entre 600 y 1000 palabras.
+- "body_md" en MARKDOWN. NO incluyas un "# H1" (el título va aparte). Usa
+  varios "## H2" y, si hace falta, "### H3". Párrafos cortos, alguna lista.
+- Naturalidad: la keyword aparece en el título, en el primer párrafo y en
+  algún H2, sin forzar (nada de keyword stuffing).
+- Cierra con un párrafo que invite a contactar a VOCAI, sin sonar a panfleto.
+
+TONO: experto, directo, cercano. Cero relleno corporativo. Aportar valor real
+y concreto (ejemplos, pasos, casos), no generalidades.
+
+Devuelve SOLO un JSON, sin markdown alrededor, con estos campos:
+{
+  "titulo": "título del artículo (H1), 6-12 palabras",
+  "slug": "slug-url-en-minusculas-con-guiones",
+  "meta_description": "resumen para Google, máximo 160 caracteres",
+  "excerpt": "1-2 frases para el listado del blog",
+  "keyword": "keyword SEO objetivo",
+  "body_md": "cuerpo del artículo en markdown"
+}`;
+
+  const userBits = [`Tema: ${tema}`];
+  if (keyword) userBits.push(`Keyword SEO objetivo: ${keyword}`);
+  if (pilar)   userBits.push(`Pilar de contenido: ${pilar}`);
+  if (angulo)  userBits.push(`Ángulo / enfoque: ${angulo}`);
+
+  const txt = await llamarTexto({ sys, user: userBits.join('\n'), json: true });
+  let post;
+  try {
+    post = JSON.parse(txt.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim());
+  } catch (e) {
+    throw new Error('El blog no vino en JSON válido');
+  }
+  return {
+    titulo: (post.titulo || '').trim(),
+    slug: (post.slug || '').trim(),
+    meta_description: (post.meta_description || '').trim(),
+    excerpt: (post.excerpt || '').trim(),
+    keyword: (post.keyword || keyword || '').trim(),
+    body_md: (post.body_md || '').trim(),
+  };
+}
+
 module.exports = {
   generarTexto, generarCopy, generarPromptImagen, generarCarrusel,
-  generarImagen, editarImagen, ESTILOS_ILUSTRACION,
+  generarImagen, editarImagen, generarBlog, ESTILOS_ILUSTRACION,
 };

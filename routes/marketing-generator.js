@@ -5,9 +5,39 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const multer = require('multer');
-const { generarTexto, generarCopy, generarPromptImagen, generarImagen, editarImagen } = require('../config/gemini');
+const { generarTexto, generarCopy, generarPromptImagen, generarImagen, editarImagen, generarBlog } = require('../config/gemini');
 const { componerPlacaHistoria, componerPlacaFeed, CATEGORIAS } = require('../config/placa');
 const storage = require('../config/storage');
+const { supabase } = require('../config/supabase');
+
+function slugify(s) {
+  return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+}
+
+// POST /api/marketing-generator/blog → genera un borrador y lo guarda en blog_posts
+router.post('/blog', auth, async (req, res) => {
+  try {
+    const { tema, keyword, pilar, angulo } = req.body || {};
+    if (!tema || !tema.trim()) return res.status(400).json({ error: 'Falta el tema' });
+    const post = await generarBlog(tema.trim(), { keyword, pilar, angulo });
+    const row = {
+      slug: slugify(post.slug || post.titulo) || ('post-' + Date.now()),
+      titulo: post.titulo || tema.trim(),
+      meta_description: post.meta_description || null,
+      keyword: post.keyword || keyword || null,
+      excerpt: post.excerpt || null,
+      body_md: post.body_md || null,
+      pilar: pilar || null,
+      estado: 'borrador',
+    };
+    const { data, error } = await supabase.from('blog_posts').insert([row]).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.status(201).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Dos formatos de placa suelta. Cada uno con su carpeta y composición.
 //  · historia → 1080x1920 (9:16)
