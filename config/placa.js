@@ -249,9 +249,29 @@ function numHtml(indice, total) {
   return `<div class="num"><b>${indice}</b> / ${total}</div>`;
 }
 
+// Formatea el cuerpo: si detecta una lista con flechas ("→ A → B → C"),
+// la renderiza como ítems verticales con la flecha como marcador visual.
+// Si no, devuelve el texto plano. Recibe el texto YA escapado por esc().
+function formatCuerpo(c) {
+  if (!c) return '';
+  const txt = c.trim();
+  if (/^→\s/.test(txt)) {
+    const partes = txt.split(/\s*→\s+/).map(s => s.trim()).filter(Boolean);
+    if (partes.length >= 2) {
+      const items = partes.map(p =>
+        `<li style="display:flex;gap:20px;margin-bottom:22px;align-items:flex-start;text-align:left;">` +
+        `<span style="color:var(--acento);font-weight:800;flex-shrink:0;font-size:1.15em;line-height:1;">→</span>` +
+        `<span style="flex:1;">${p}</span></li>`
+      ).join('');
+      return `<ul style="list-style:none;padding:0;margin:0;">${items}</ul>`;
+    }
+  }
+  return c;
+}
+
 // ── Layout de cada slide → devuelve el interior del .slide ──
 function layoutSlide({ layout, img, titulo, cuerpo, dato, etiqueta, indice, total }) {
-  const t = esc(titulo), c = esc(cuerpo), d = esc(dato);
+  const t = esc(titulo), c = formatCuerpo(esc(cuerpo)), d = esc(dato);
   const num = numHtml(indice, total);
 
   switch (layout) {
@@ -365,6 +385,7 @@ function htmlSlideCarrusel({ ilustracionDataUri, titulo, cuerpo, dato, categoria
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;}
+:root{--acento:${acento};}
 html,body{width:1080px;height:1350px;}
 .slide{position:relative;width:1080px;height:1350px;overflow:hidden;
   font-family:'Inter','Segoe UI',sans-serif;

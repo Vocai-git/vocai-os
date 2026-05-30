@@ -19,24 +19,36 @@ function key() {
   return k;
 }
 
+// Estados transitorios: la API de Anthropic devuelve 500/502/503/529 de forma
+// intermitente bajo carga (su "Internal server error" va y viene). Reintentamos
+// con backoff antes de rendirnos — el mismo request suele salir bien al 2º intento.
+const TRANSITORIOS = [429, 500, 502, 503, 529];
+const ESPERAS = [0, 1500, 4000, 8000]; // ms antes de cada intento
+
 async function llamar(body) {
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': key(),
-      'anthropic-version': VERSION,
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    if (res.status === 429 || res.status === 529) {
-      throw new Error('Claude está sobrecargado en este momento. Esperá un minuto y volvé a intentar.');
+  let res, ultimoTxt = '';
+  for (let i = 0; i < ESPERAS.length; i++) {
+    if (ESPERAS[i]) await new Promise(r => setTimeout(r, ESPERAS[i]));
+    res = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key(),
+        'anthropic-version': VERSION,
+      },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) return res.json();
+    ultimoTxt = await res.text();
+    if (!TRANSITORIOS.includes(res.status)) break;       // error real: no reintentar
+    if (i < ESPERAS.length - 1) {
+      console.log(`[Claude] HTTP ${res.status} — transitorio, reintento ${i + 1}/${ESPERAS.length - 1}…`);
     }
-    throw new Error(`Claude ${res.status}: ${txt}`);
   }
-  return res.json();
+  if (TRANSITORIOS.includes(res.status)) {
+    throw new Error('Claude está sobrecargado en este momento. Esperá un momento y volvé a intentar.');
+  }
+  throw new Error(`Claude ${res.status}: ${ultimoTxt}`);
 }
 
 /* ── Chat con tool-use ────────────────────────────────────────

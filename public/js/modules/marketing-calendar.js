@@ -5,6 +5,7 @@
 
 let mktCalDate = new Date();   // mes actualmente mostrado
 let mktCalDragId = null;       // pieza que se está arrastrando
+let mktCalDragEl = null;       // nodo DOM de la pieza arrastrada
 let mktCalPiezas = [];         // piezas del mes en memoria
 let mktCalCanal = 'feed';      // 'feed' | 'historias'
 let mktCalPlan = null;         // objetivos del mes (content_months)
@@ -289,11 +290,12 @@ function mktCalToday() {
 // ── Drag & drop ─────────────────────────────────────────────
 function mktCalDragStart(ev, id) {
   mktCalDragId = id;
+  mktCalDragEl = ev.currentTarget;
   ev.dataTransfer.effectAllowed = 'move';
-  ev.target.classList.add('dragging');
+  ev.currentTarget.classList.add('dragging');
 }
 function mktCalDragEnd(ev) {
-  ev.target.classList.remove('dragging');
+  ev.currentTarget.classList.remove('dragging');
 }
 function mktCalDragOver(ev) {
   ev.preventDefault();
@@ -304,17 +306,32 @@ function mktCalDragLeave(ev) {
 }
 async function mktCalDrop(ev, fecha) {
   ev.preventDefault();
-  ev.currentTarget.classList.remove('dragover');
-  if (!mktCalDragId) return;
+  const celdaDestino = ev.currentTarget;
+  celdaDestino.classList.remove('dragover');
   const id = mktCalDragId;
+  const el = mktCalDragEl;
   mktCalDragId = null;
+  mktCalDragEl = null;
+  if (!id || !el) return;
   const pieza = mktCalPiezas.find(x => x.id === id);
-  if (pieza && pieza.fecha === fecha) return;
+  if (!pieza || pieza.fecha === fecha) return;
+
+  // UI optimista: movemos la pieza en el acto (DOM + memoria) y guardamos
+  // en segundo plano. Sin re-render → el resto del calendario queda intacto.
+  const celdaOrigen = el.parentNode;
+  const fechaPrevia = pieza.fecha;
+  el.classList.remove('dragging');
+  celdaDestino.appendChild(el);
+  pieza.fecha = fecha;
+
   try {
     await API.put(`/marketing-calendar/${id}`, { fecha });
-    toast('Pieza movida', 'success');
-    mktCalRecargar();
-  } catch (err) { toast(err.message, 'error'); }
+  } catch (err) {
+    // Falló el guardado: devolvemos la pieza a su día original.
+    if (celdaOrigen) celdaOrigen.appendChild(el);
+    pieza.fecha = fechaPrevia;
+    toast(err.message || 'No se pudo mover la pieza', 'error');
+  }
 }
 
 // Convierte una fecha ISO (UTC) a valor para input type="datetime-local"

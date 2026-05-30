@@ -373,6 +373,23 @@ que se leen en secuencia. REGLA NÚMERO UNO: que NO sea monótono. Cada slide ti
 que sorprender — varía el layout, el ritmo y la cantidad de texto. Está prohibido
 que todos los slides se vean igual.${bloqueRef}
 
+MODO DE TRABAJO — DETECTÁ qué te pasaron y comportate distinto:
+
+· GUION LITERAL — la IDEA contiene marcadores estructurados como [PORTADA],
+  [SLIDE 2], [SLIDE 3 — ...], [CIERRE], "Título:", "Cuerpo:", "Texto:",
+  "Subtexto:", "CTA:". Entonces es un guion CERRADO del usuario:
+  - Usá los textos PALABRA POR PALABRA en "titulo" y "cuerpo" de cada slide.
+  - NO resumas, NO reescribas, NO acortes, NO parafrasees, NO cambies el sujeto.
+  - Devolvé EXACTAMENTE la cantidad de slides marcados, en el MISMO orden.
+  - Lo único que decidís vos es el "layout" de cada slide (de la lista de abajo)
+    y el "prompt_imagen". Nada de tocar el copy.
+  - Las reglas de marca (lista negra, tuteo) NO se aplican para reescribir el
+    texto del usuario: él ya decidió. Solo aplican si vos generás texto extra.
+
+· IDEA SUELTA — la IDEA es un disparador o tema, sin esos marcadores. Entonces
+  desarrollá vos el carrusel completo (4 a 8 slides) siguiendo la estructura y
+  las reglas de marca de abajo.
+
 Estructura:
 - Slide 1: PORTADA. El gancho que frena el scroll.
 - Slides del medio: CONTENIDO. Una idea por slide.
@@ -408,9 +425,31 @@ Campos:
 - "prompt_imagen": SOLO para layouts con imagen (portada, imagen-fondo, split,
   cierre). En texto-pleno, dato y cita va "". Cuando lleva imagen es un prompt en
   inglés para Nano Banana Pro:
+  * REGLA NÚMERO UNO — LA IMAGEN ACOMPAÑA AL TEXTO DE ESE SLIDE. Antes de escribir
+    el prompt, releé el "titulo" y el "cuerpo" del MISMO slide y preguntate:
+    ¿qué tiene que mostrar la imagen para que el lector entienda lo que dice el
+    texto? La imagen REFUERZA el mensaje, NO se va a otra metáfora.
+  * COHERENCIA DE DOMINIO (lo más importante):
+    - Si el texto habla de SOFTWARE / PROCESOS DIGITALES (formularios, emails,
+      mensajes, agendas, datos, planillas, apps, IA), la escena debe ser digital:
+      pantallas, interfaces, dispositivos, una persona usando una computadora,
+      una oficina moderna. PROHIBIDO mostrar una fábrica, una línea de producción
+      o un taller cuando el texto habla de software.
+    - Si el texto habla de PERSONAS o trato humano → mostrá personas.
+    - Si el texto habla del ESTUDIO / grabación → mostrá micrófonos, cámaras, el estudio.
+    - Si el texto habla de un PROCESO FÍSICO concreto → mostrá ese proceso.
+  * CANAL O APP MENCIONADA EN EL TEXTO — sé concreto:
+    Si el cuerpo nombra explícitamente una plataforma (WhatsApp, Instagram, Gmail,
+    Slack, Telegram, Excel/Sheets, un CRM, etc.), la imagen DEBE mostrar esa app
+    real en pantalla: el chat de WhatsApp con burbujas, el feed de Instagram, el
+    inbox de Gmail, una planilla de cálculo abierta — lo que corresponda. Nada de
+    "chat genérico" o "pantalla abstracta" cuando el texto te nombra un canal.
+  * "No literal" significa NO escribir el texto dentro de la imagen ni copiar el
+    ejemplo del cuerpo punto por punto. NO significa cambiar de tema: el dominio
+    (digital, humano, estudio, físico) DEBE coincidir con el texto.
   * Empieza con este estilo, tal cual: ${estiloDesc}
-  * Una escena visual concreta y específica, conceptual, nunca literal.
-  * Coherencia visual entre TODAS las slides con imagen.
+  * Coherencia visual entre TODAS las slides con imagen (mismo mundo, misma paleta,
+    mismos personajes si aparecen).
   * Paleta: deep navy blue (#141d35) dominant background, electric blue (#2979FF)
     and coral red (#FF6B6B) accents.
   * Vertical 4:5 composition. Keep one area calm and darker for text.
@@ -578,5 +617,5 @@ Devuelve SOLO un JSON, sin markdown alrededor, con estos campos:
 
 module.exports = {
   generarTexto, generarCopy, generarPromptImagen, generarCarrusel,
-  generarImagen, editarImagen, generarBlog, ESTILOS_ILUSTRACION,
+  generarImagen, editarImagen, generarBlog, ESTILOS_ILUSTRACION, REGLAS_MARCA,
 };

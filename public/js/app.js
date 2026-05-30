@@ -253,7 +253,6 @@ const MODULES = {
   'marketing-intelligence': { title: 'Inteligencia', render: renderMarketingIntelligence },
   'marketing-generator': { title: 'Generador', render: renderMarketingGenerator },
   'marketing-web': { title: 'Web · Blog', render: renderMarketingWeb },
-  asistente: { title: 'Asistente', render: renderAsistente },
 };
 
 // ── Router ───────────────────────────────────────────────────
@@ -262,6 +261,7 @@ let currentModule = null;
 async function navigate(module) {
   if (!MODULES[module]) return;
   currentModule = module;
+  window.vocaiSeccionActual = module;
 
   // Update sidebar active
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -330,6 +330,9 @@ function init() {
   // Initial route
   const hash = window.location.hash.slice(1);
   navigate(hash && MODULES[hash] ? hash : 'dashboard');
+
+  // Asistente flotante — vive sobre todo el dashboard.
+  if (typeof initAsistenteWidget === 'function') initAsistenteWidget();
 }
 
 document.addEventListener('DOMContentLoaded', init);

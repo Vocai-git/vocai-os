@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const { supabase } = require('../config/supabase');
 const { chat } = require('../config/claude');
+const { REGLAS_MARCA } = require('../config/gemini');
 
 /* ============================================================
    Asistente conversacional del dashboard — la cara del
@@ -46,7 +47,28 @@ EJECUCIÓN:
 - Cuando el usuario te pide un cambio concreto ("movéme esto", "creá una pieza"),
   ejecutá la herramienta correspondiente y después confirmá en una línea qué hiciste.
 - Cuando el usuario te pide opinión o recomendación, NO toques nada: respondé.
-- Si un pedido es ambiguo o destructivo (borrar varias piezas), preguntá antes.`;
+- Si un pedido es ambiguo o destructivo (borrar varias piezas), preguntá antes.
+
+GUIONES Y CONTENIDO:
+- Además de la estrategia, SÍ escribís los guiones de las piezas cuando te los piden.
+- Adaptá el guion al formato de la pieza:
+  · reel / story → guion hablado a cámara. Gancho fuerte en los primeros 3 segundos,
+    desarrollo en 2-4 bloques cortos, y un cierre con CTA. Sumá indicaciones visuales
+    breves entre [corchetes] (plano, acción, texto en pantalla) si ayudan a grabarlo.
+  · carrusel → el texto slide por slide (portada con gancho, contenido, cierre con CTA).
+  · post → el copy del posteo (gancho, desarrollo, CTA, hashtags sobrios).
+- Mantené los guiones realistas para el estudio de Alicante: pensados para grabarse,
+  no genéricos.
+- Si el usuario te pide el guion de una pieza que ya existe en el calendario, podés
+  guardarlo en el campo "notas" de esa pieza con editar_pieza. Si te pide crear piezas
+  con guion, creálas y dejá el guion en sus notas. Si solo quiere verlo, mostralo en el chat.
+
+IDIOMA — DOS REGISTROS DISTINTOS, NO LOS MEZCLES:
+- CUANDO HABLÁS CON EL USUARIO (análisis, recomendaciones, confirmaciones): español
+  rioplatense, vos. Es interno.
+- CUANDO ESCRIBÍS CONTENIDO PÚBLICO (guiones, copys, títulos): español de España con
+  TUTEO ("tú", "tienes", "puedes"). NUNCA voseo. Es lo que ve la audiencia. Seguí al
+  pie las reglas de marca que están más abajo para todo el contenido que produzcas.`;
 
 // ── Tools (formato Anthropic) ───────────────────────────────
 const TOOLS = [
@@ -193,12 +215,14 @@ async function contextoEnVivo(mes) {
 // body: { messages: [{role, content}], mes: 'YYYY-MM' }
 router.post('/chat', auth, async (req, res) => {
   try {
-    const { messages, mes } = req.body;
+    const { messages, mes, seccion } = req.body;
     if (!Array.isArray(messages) || !messages.length) {
       return res.status(400).json({ error: 'Faltan mensajes.' });
     }
     const mesFoco = mes || new Date().toISOString().slice(0, 7);
-    const system = CONTEXTO_MARCA + await contextoEnVivo(mesFoco);
+    const ubicacion = seccion ? `\n\nUBICACIÓN ACTUAL: el usuario está viendo la sección "${seccion}" del dashboard. Tenelo en cuenta si su pedido es ambiguo (ej. "esto", "acá").` : '';
+    const reglasContenido = `\n\n── REGLAS DE MARCA PARA TODO EL CONTENIDO PÚBLICO QUE ESCRIBAS (guiones, copys, títulos) ──\n${REGLAS_MARCA}`;
+    const system = CONTEXTO_MARCA + ubicacion + await contextoEnVivo(mesFoco) + reglasContenido;
 
     const { texto, acciones } = await chat({
       system,
