@@ -15,11 +15,12 @@ const MKT_CAR_CATEGORIAS = {
   educativo: 'Educativo',
   caso:      'Caso real',
   interno:   'VOCAI por dentro',
+  personal:  'Marca personal',
 };
 
 // Mapeo categoría → pilar del calendario editorial.
 const MKT_CAR_CAT_PILAR = {
-  novedad: 'ia', educativo: 'ia', caso: 'casos', interno: 'estudio',
+  novedad: 'ia', educativo: 'ia', caso: 'casos', interno: 'estudio', personal: 'personas',
 };
 
 // Nombres legibles de los layouts de slide.

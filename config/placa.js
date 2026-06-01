@@ -60,6 +60,7 @@ const CATEGORIAS = {
   educativo: { etiqueta: 'APRENDÉ',         acento: '#2979FF' },
   caso:      { etiqueta: 'CASO REAL',       acento: '#00C48C' },
   interno:   { etiqueta: 'PUERTAS ADENTRO', acento: '#FF8C42' },
+  personal:  { etiqueta: 'MARCA PERSONAL',  acento: '#9D7FE8' },
 };
 
 // Plantilla de placa de historia (1080x1920).

@@ -16,11 +16,12 @@ const MKT_GEN_CATEGORIAS = {
   educativo: 'Educativo',
   caso:      'Caso real',
   interno:   'VOCAI por dentro',
+  personal:  'Marca personal',
 };
 
 // Mapeo categoría → pilar del calendario editorial.
 const MKT_GEN_CAT_PILAR = {
-  novedad: 'ia', educativo: 'ia', caso: 'casos', interno: 'estudio',
+  novedad: 'ia', educativo: 'ia', caso: 'casos', interno: 'estudio', personal: 'personas',
 };
 
 let mktGenModo      = 'ilustracion';
