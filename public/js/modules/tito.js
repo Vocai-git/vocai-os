@@ -75,10 +75,11 @@ function titoShell() {
 }
 .tito-stat-value {
   font-family: 'Syne', sans-serif;
-  font-size: 26px;
-  font-weight: 800;
+  font-size: 28px;
+  font-weight: 700;
   color: var(--text);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .tito-stat-value.accent { color: var(--coral); }
 
@@ -86,13 +87,41 @@ function titoShell() {
 .tito-filters {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
 }
-.tito-sep { width: 1px; height: 18px; background: var(--border); margin: 0 2px; }
-.tito-pill {
-  padding: 4px 12px;
-  border-radius: 99px;
+.tito-tabs {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  gap: 2px;
+}
+.tito-tab {
+  padding: 5px 14px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: 'Outfit', sans-serif;
+  white-space: nowrap;
+}
+.tito-tab:hover { color: var(--text); }
+.tito-tab.active { background: var(--surface-hover); color: var(--text); font-weight: 600; }
+
+/* Canal dropdown */
+.tito-canal-wrap { position: relative; }
+.tito-canal-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-muted);
@@ -101,9 +130,48 @@ function titoShell() {
   cursor: pointer;
   transition: all var(--transition);
   font-family: 'Outfit', sans-serif;
+  white-space: nowrap;
 }
-.tito-pill:hover { border-color: var(--border-light); color: var(--text); }
-.tito-pill.active { border-color: var(--coral); color: var(--coral); background: var(--coral-dim); }
+.tito-canal-btn:hover { border-color: var(--border-light); color: var(--text); }
+.tito-canal-btn.active { border-color: var(--coral); color: var(--coral); }
+.tito-canal-btn svg { width: 12px; height: 12px; opacity: 0.6; transition: transform var(--transition); }
+.tito-canal-btn.open svg { transform: rotate(180deg); }
+.tito-canal-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  min-width: 140px;
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  display: none;
+}
+.tito-canal-menu.open { display: block; }
+.tito-canal-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: all var(--transition);
+}
+.tito-canal-opt:hover { background: var(--surface-hover); color: var(--text); }
+.tito-canal-opt.selected { color: var(--text); }
+.tito-canal-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--border-light);
+}
+.tito-canal-dot.whatsapp { background: #25D366; }
+.tito-canal-dot.llamada  { background: var(--blue); }
+.tito-canal-dot.email    { background: #f59e0b; }
 
 /* Lista */
 .tito-list {
@@ -258,13 +326,31 @@ function titoShell() {
     </div>
 
     <div class="tito-filters" id="titoFiltros">
-      <button class="tito-pill active" data-f="estado" data-v="estado_no=cerrado">Activos</button>
-      <button class="tito-pill" data-f="estado" data-v="estado=resuelto">Resueltos</button>
-      <button class="tito-pill" data-f="estado" data-v="">Todos</button>
-      <div class="tito-sep"></div>
-      <button class="tito-pill active" data-f="canal" data-v="">Todos</button>
-      <button class="tito-pill" data-f="canal" data-v="whatsapp">WhatsApp</button>
-      <button class="tito-pill" data-f="canal" data-v="llamada">Llamadas</button>
+      <div class="tito-tabs">
+        <button class="tito-tab active" data-v="estado_no=cerrado">Activos</button>
+        <button class="tito-tab" data-v="estado=resuelto">Resueltos</button>
+        <button class="tito-tab" data-v="">Todos</button>
+      </div>
+      <div class="tito-canal-wrap">
+        <button class="tito-canal-btn" id="titoCanalBtn">
+          <span id="titoCanalLabel">Canal</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="tito-canal-menu" id="titoCanalMenu">
+          <div class="tito-canal-opt selected" data-canal="">
+            <span class="tito-canal-dot"></span>Todos
+          </div>
+          <div class="tito-canal-opt" data-canal="whatsapp">
+            <span class="tito-canal-dot whatsapp"></span>WhatsApp
+          </div>
+          <div class="tito-canal-opt" data-canal="llamada">
+            <span class="tito-canal-dot llamada"></span>Llamadas
+          </div>
+          <div class="tito-canal-opt" data-canal="email">
+            <span class="tito-canal-dot email"></span>Email
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="tito-list" id="titoCasos">
@@ -495,9 +581,10 @@ window.titoIrPagina = titoIrPagina;
 
 // ── Filtros ───────────────────────────────────────────────────
 function titoBindFiltros() {
-  document.querySelectorAll('[data-f="estado"]').forEach(btn => {
+  // Tabs de estado
+  document.querySelectorAll('.tito-tab').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('[data-f="estado"]').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tito-tab').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       titoFiltroEstado = btn.dataset.v;
       titoOffset = 0;
@@ -505,11 +592,33 @@ function titoBindFiltros() {
     });
   });
 
-  document.querySelectorAll('[data-f="canal"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('[data-f="canal"]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      titoFiltroCanal = btn.dataset.v;
+  // Dropdown de canal
+  const canalBtn  = document.getElementById('titoCanalBtn');
+  const canalMenu = document.getElementById('titoCanalMenu');
+  const canalLabel = document.getElementById('titoCanalLabel');
+
+  canalBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = canalMenu.classList.toggle('open');
+    canalBtn.classList.toggle('open', open);
+  });
+
+  document.addEventListener('click', () => {
+    canalMenu.classList.remove('open');
+    canalBtn.classList.remove('open');
+  });
+
+  canalMenu.querySelectorAll('.tito-canal-opt').forEach(opt => {
+    opt.addEventListener('click', (e) => {
+      e.stopPropagation();
+      canalMenu.querySelectorAll('.tito-canal-opt').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      titoFiltroCanal = opt.dataset.canal;
+      const label = opt.textContent.trim();
+      canalLabel.textContent = titoFiltroCanal ? label : 'Canal';
+      canalBtn.classList.toggle('active', !!titoFiltroCanal);
+      canalMenu.classList.remove('open');
+      canalBtn.classList.remove('open');
       titoOffset = 0;
       titoCargarCasos();
     });
