@@ -6,7 +6,7 @@
 
 const TITO_CANALES  = { whatsapp: 'WhatsApp', llamada: 'Llamada', email: 'Email', otro: 'Otro' };
 const TITO_TIPOS    = { presupuesto: 'Presupuesto', consulta_datos: 'Consulta', otra: 'Otra' };
-const TITO_ESTADOS  = { abierto: 'Abierto', en_gestion: 'En gestión', resuelto: 'Resuelto', cancelado: 'Cancelado' };
+const TITO_ESTADOS  = { pendiente: 'Pendiente', en_curso: 'En curso', resuelto: 'Resuelto', cerrado: 'Cerrado' };
 const TITO_URGENCIA = { urgente: 'Urgente', alta: 'Alta', normal: 'Normal', baja: 'Baja' };
 
 const TITO_CANAL_BADGE = {
@@ -22,14 +22,14 @@ const TITO_URGENCIA_BADGE = {
   baja:    'background:#64748b;color:#fff'
 };
 const TITO_ESTADO_BADGE = {
-  abierto:     'background:rgba(41,121,255,0.2);color:#2979FF',
-  en_gestion:  'background:rgba(249,115,22,0.2);color:#f97316',
-  resuelto:    'background:rgba(34,197,94,0.2);color:#22c55e',
-  cancelado:   'background:rgba(100,116,139,0.2);color:#94a3b8'
+  pendiente:  'background:rgba(41,121,255,0.2);color:#2979FF',
+  en_curso:   'background:rgba(249,115,22,0.2);color:#f97316',
+  resuelto:   'background:rgba(34,197,94,0.2);color:#22c55e',
+  cerrado:    'background:rgba(100,116,139,0.2);color:#94a3b8'
 };
 
 let titoFiltroCanal = '';
-let titoFiltroEstado = 'estado_no=resuelto';
+let titoFiltroEstado = 'estado_no=cerrado';
 let titoOffset = 0;
 const TITO_LIMIT = 30;
 let titoDetalleCasoId = null;
@@ -61,7 +61,7 @@ function titoShell() {
     <!-- Filtros -->
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <div id="titoTabsEstado" style="display:flex;gap:6px">
-        <button class="tito-tab active" data-estado="estado_no=resuelto">Abiertos</button>
+        <button class="tito-tab active" data-estado="estado_no=cerrado">Activos</button>
         <button class="tito-tab" data-estado="estado=resuelto">Resueltos</button>
         <button class="tito-tab" data-estado="">Todos</button>
       </div>
@@ -231,7 +231,7 @@ async function titoAbrirDetalle(id) {
         const nuevoEstado = btn.dataset.estadoBtn;
         btn.disabled = true;
         try {
-          await API.put(`/tito/casos/${id}`, { estado: nuevoEstado });
+          await API.req('PATCH', `/tito/casos/${id}`, { estado: nuevoEstado });
           toast(`Estado actualizado a "${TITO_ESTADOS[nuevoEstado]}"`, 'success');
           await Promise.all([titoCargarContadores(), titoCargarCasos()]);
           if (titoDetalleCasoId === id) await titoAbrirDetalle(id);
@@ -258,9 +258,9 @@ function titoDetalleHTML(caso) {
   const datos   = caso.datos || {};
   const mensajes = caso.conversacion || [];
 
-  const acciones = estado !== 'resuelto'
+  const acciones = estado !== 'resuelto' && estado !== 'cerrado'
     ? `<button class="btn btn-sm" style="background:#22c55e;color:#fff" data-estado-btn="resuelto">Marcar resuelto</button>`
-    : `<button class="btn btn-sm btn-secondary" data-estado-btn="abierto">Reabrir</button>`;
+    : `<button class="btn btn-sm btn-secondary" data-estado-btn="pendiente">Reabrir</button>`;
 
   const msgsHTML = mensajes.length === 0
     ? `<div style="text-align:center;color:var(--text-muted);padding:20px 0;font-size:13px">Sin mensajes registrados</div>`
@@ -351,6 +351,3 @@ function titoBindFiltros() {
   });
 }
 
-// API.put no existe en app.js core, agregamos wrapper local
-const _titoApiPut = (path, body) => API.req('PUT', path, body);
-Object.assign(API, { put: _titoApiPut });
