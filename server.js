@@ -38,6 +38,7 @@ app.use('/api/marketing-biblioteca', require('./routes/marketing-biblioteca'));
 app.use('/api/marketing-web', require('./routes/marketing-web'));
 app.use('/api/radar', require('./routes/radar'));
 app.use('/api/asistente', require('./routes/asistente'));
+app.use('/api/tito', require('./routes/tito'));
 const googleAuthRouter = require('./routes/google-auth');
 app.use('/api/google', googleAuthRouter);
 app.use('/auth/google', googleAuthRouter);
