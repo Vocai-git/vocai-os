@@ -64,4 +64,33 @@ router.get('/stats/resumen', auth, async (req, res) => {
   }
 });
 
+router.get('/stats/volumen-diario', auth, async (req, res) => {
+  try {
+    const qs = new URLSearchParams(req.query).toString();
+    const { status, data } = await proxy(`/api/stats/volumen-diario${qs ? '?' + qs : ''}`);
+    res.status(status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/stats/distribucion-motivos', auth, async (req, res) => {
+  try {
+    const qs = new URLSearchParams(req.query).toString();
+    const { status, data } = await proxy(`/api/stats/distribucion-motivos${qs ? '?' + qs : ''}`);
+    res.status(status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/stats/comparativa-mensual', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy('/api/stats/comparativa-mensual');
+    res.status(status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
