@@ -6,7 +6,7 @@ let chatConvActiva = null;
 let chatBotPausado = false;
 let chatMensajesVistos = 0;
 
-export async function renderChats(container) {
+async function renderChats(container) {
   container.innerHTML = `
 <style>
 :root { --azul: #2563eb; --verde: #059669; --amarillo: #d97706; }
@@ -295,7 +295,7 @@ export async function renderChats(container) {
   chatsInterval = setInterval(chatsRefrescar, 4000);
 }
 
-export function unmountChats() {
+function unmountChats() {
   if (chatsInterval) { clearInterval(chatsInterval); chatsInterval = null; }
   chatConvActiva = null;
 }
