@@ -994,7 +994,7 @@ async function titoCargarHumanos() {
         : '';
 
       return `
-<div class="tito-row" data-id="${c.id}" style="border-left:3px solid var(--coral);cursor:pointer" onclick="titoAbrirDetalle('${c.id}')">
+<div class="tito-row" data-id="${c.id}" style="border-left:3px solid var(--coral);cursor:pointer" onclick="${c.conversacion_id ? `titoIrAChats('${c.conversacion_id}')` : `titoAbrirDetalle('${c.id}')`}">
   <div class="tito-row-top">
     <div class="tito-row-name">${nombre}</div>
     <span class="tito-tag" style="background:rgba(239,68,68,0.12);color:var(--coral);font-weight:600">Necesita humano</span>
