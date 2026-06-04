@@ -340,6 +340,12 @@ async function renderChats(container) {
         <span id="chatsBotLabel">Tito activo</span>
       </button>
     </div>
+    <div style="padding:8px 12px;border-bottom:1px solid var(--border)">
+      <button onclick="chatsNuevoChat()" style="width:100%;padding:7px 12px;border-radius:8px;background:var(--accent);border:none;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+        Nuevo chat
+      </button>
+    </div>
     <div class="chats-search-wrap">
       <input class="chats-search-input" id="chatsBuscador" placeholder="Buscar conversación…" type="text" autocomplete="off">
     </div>
@@ -604,7 +610,40 @@ function chatConvItem(c, lastSeen = {}) {
 </div>`;
 }
 
+async function chatsNuevoChat() {
+  createModal('modalNuevoChat', 'Nuevo chat', `
+<div style="display:flex;flex-direction:column;gap:12px">
+  <div>
+    <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">Número de teléfono (con prefijo, ej: 34612345678)</label>
+    <input id="nuevoTel" type="tel" placeholder="34612345678" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;box-sizing:border-box" autocomplete="off">
+  </div>
+  <div>
+    <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">Primer mensaje</label>
+    <textarea id="nuevoMsg" rows="3" placeholder="Hola, te escribo desde VOCAI…" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;resize:none;box-sizing:border-box"></textarea>
+  </div>
+</div>`,
+  `<button class="btn btn-primary" onclick="chatsEnviarNuevo()">Enviar mensaje</button>
+   <button class="btn btn-secondary" onclick="closeModal('modalNuevoChat')">Cancelar</button>`);
+}
+
+async function chatsEnviarNuevo() {
+  const tel = document.getElementById('nuevoTel')?.value?.trim();
+  const msg = document.getElementById('nuevoMsg')?.value?.trim();
+  if (!tel || !msg) { toast('Completa teléfono y mensaje', 'error'); return; }
+  try {
+    const { conversacion_id } = await API.post('/tito/chats/iniciar', { telefono: tel, texto: msg });
+    closeModal('modalNuevoChat');
+    toast('Mensaje enviado', 'success');
+    await chatsCargarLista();
+    if (conversacion_id) await chatsAbrirConv(conversacion_id);
+  } catch (err) {
+    toast('Error: ' + err.message, 'error');
+  }
+}
+
 // Exponer funciones globalmente para onclick inline
 window.chatsToogleManual  = chatsToogleManual;
 window.chatsEnviar        = chatsEnviar;
 window.chatsToggleBot     = chatsToggleBot;
+window.chatsNuevoChat     = chatsNuevoChat;
+window.chatsEnviarNuevo   = chatsEnviarNuevo;

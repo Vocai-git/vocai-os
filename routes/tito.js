@@ -153,6 +153,13 @@ router.get('/stats/comparativa-mensual', auth, async (req, res) => {
 
 // ── CHATS EN VIVO ─────────────────────────────────────────────
 
+router.post('/chats/iniciar', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy('/api/chats/iniciar', { method: 'POST', body: JSON.stringify(req.body) });
+    res.status(status).json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/chats', auth, async (req, res) => {
   try {
     const { status, data } = await proxy('/api/chats/');
