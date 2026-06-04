@@ -293,6 +293,13 @@ async function renderChats(container) {
 
   await Promise.all([chatsCargarLista(), chatsCargarBotStatus()]);
   chatsInterval = setInterval(chatsRefrescar, 4000);
+
+  // Si viene desde "Tomar control" en Tito, abrir esa conversación directamente
+  if (window.chatsConvPendiente) {
+    const pendiente = window.chatsConvPendiente;
+    window.chatsConvPendiente = null;
+    await chatsAbrirConv(pendiente);
+  }
 }
 
 function unmountChats() {

@@ -625,12 +625,15 @@ function titoDetalleHTML(caso) {
   const ref    = escHtml(caso.referencia || caso.datos?.resumen || '');
   const fecha  = caso.creado_en ? new Date(caso.creado_en).toLocaleString('es-ES') : '';
   const datos  = caso.datos || {};
-  const msgs   = caso.conversacion || [];
+  const msgs   = caso.conversacion?.mensajes || [];
 
   const esActivo = estado !== 'resuelto' && estado !== 'cerrado';
   const accionBtn = esActivo
     ? `<button class="btn btn-sm" style="background:var(--green);color:#fff;font-size:12px" data-estado-btn="resuelto">Marcar resuelto</button>`
     : `<button class="btn btn-sm btn-secondary" style="font-size:12px" data-estado-btn="pendiente">Reabrir</button>`;
+  const intervenirBtn = caso.conversacion?.id
+    ? `<button class="btn btn-sm" style="background:var(--coral);color:#fff;font-size:12px" onclick="titoIrAChats('${caso.conversacion.id}')">✋ Tomar control</button>`
+    : '';
 
   const msgsHTML = msgs.length === 0
     ? `<div style="padding:20px 0;text-align:center;font-size:12px;color:var(--text-muted)">Sin mensajes registrados</div>`
@@ -666,7 +669,7 @@ function titoDetalleHTML(caso) {
     <div style="font-size:11px;color:var(--text-muted)">${fecha}</div>
   </div>
   <div class="tito-detail-section">
-    <div style="display:flex;gap:8px">${accionBtn}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${accionBtn}${intervenirBtn}</div>
   </div>
   <div class="tito-detail-section" style="flex:1;overflow:hidden;display:flex;flex-direction:column">
     <div class="tito-section-label">Conversación</div>
@@ -1188,3 +1191,9 @@ async function titoActualizarBadgeAprendizaje() {
     else badge.style.display = 'none';
   } catch { /* silencioso */ }
 }
+
+function titoIrAChats(conversacionId) {
+  window.chatsConvPendiente = conversacionId;
+  navigate("chats");
+}
+window.titoIrAChats = titoIrAChats;
