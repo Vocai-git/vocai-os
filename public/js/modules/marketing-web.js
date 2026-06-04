@@ -92,6 +92,7 @@ function mktWebFila(p) {
       </td>
       <td style="padding:12px 16px;font-size:13px;color:var(--text-muted);">${fecha}</td>
       <td style="padding:12px 16px;text-align:right;white-space:nowrap;">
+        <button class="btn btn-sm btn-secondary" onclick="mktWebPreview('${p.id}')">👁 Vista previa</button>
         <button class="btn btn-sm btn-secondary" onclick="mktWebEditor('${p.id}')">Editar</button>
         ${pub
           ? `<button class="btn btn-sm btn-secondary" onclick="mktWebDespublicar('${p.id}')">Despublicar</button>`
@@ -102,6 +103,12 @@ function mktWebFila(p) {
 }
 
 function mktWebSetEstado(v) { mktWebFEstado = v; navigate('marketing-web'); }
+
+// Vista previa: abre la página REAL de vocai.es con el borrador, idéntica a
+// como saldría publicada. Lee el borrador vía service key (ruta /blog/preview).
+function mktWebPreview(id) {
+  window.open(`https://www.vocai.es/blog/preview/${id}`, '_blank', 'noopener');
+}
 
 // ── Editor (crear/editar) ───────────────────────────────────
 function mktWebEditor(id) {

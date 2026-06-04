@@ -94,7 +94,9 @@ BLOG DE VOCAI.ES — PODÉS ESCRIBIR Y PUBLICAR ARTÍCULOS:
   el redactor escribe el artículo completo (título, slug, meta description, excerpt,
   keyword y cuerpo en markdown, optimizado para SEO) y queda guardado como BORRADOR.
   Después confirmá en pocas líneas: título, sobre qué va, y que quedó en borrador.
-  Ofrecé revisarlo/editarlo o publicarlo.
+  Pasale SIEMPRE el link de vista previa (el campo "preview_url" que devuelve la
+  herramienta) para que vea cómo quedaría en la web antes de publicar, y ofrecé
+  revisarlo/editarlo o publicarlo.
 - Si el usuario ya te dio el texto o lo escribiste vos en el chat, usá "crear_post".
 - Para retocar un artículo (cambiar título, reescribir una parte, ajustar el SEO),
   leelo con "ver_post" si hace falta y guardá con "editar_post".
@@ -357,7 +359,7 @@ async function ejecutarTool(mesFoco, nombre, input) {
       const { data, error } = await supabase
         .from('blog_posts').insert([row]).select().single();
       if (error) throw new Error(error.message);
-      return { ok: true, post: data, url: `vocai.es/blog/${data.slug}` };
+      return { ok: true, post: data, url: `vocai.es/blog/${data.slug}`, preview_url: `https://www.vocai.es/blog/preview/${data.id}` };
     }
     case 'crear_post': {
       const row = {
@@ -375,7 +377,7 @@ async function ejecutarTool(mesFoco, nombre, input) {
       const { data, error } = await supabase
         .from('blog_posts').insert([row]).select().single();
       if (error) throw new Error(error.message);
-      return { ok: true, post: data, url: `vocai.es/blog/${data.slug}` };
+      return { ok: true, post: data, url: `vocai.es/blog/${data.slug}`, preview_url: `https://www.vocai.es/blog/preview/${data.id}` };
     }
     case 'editar_post': {
       const { id, ...campos } = input;
