@@ -297,6 +297,31 @@ async function renderChats(container) {
   text-align: center;
 }
 
+.chat-typing {
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  background: var(--accent);
+  border-radius: 16px;
+  border-bottom-right-radius: 4px;
+  max-width: 72px;
+  opacity: 0.7;
+}
+.chat-typing span {
+  width: 6px; height: 6px;
+  background: #fff;
+  border-radius: 50%;
+  animation: typing-dot 1.4s infinite;
+}
+.chat-typing span:nth-child(2) { animation-delay: .2s; }
+.chat-typing span:nth-child(3) { animation-delay: .4s; }
+@keyframes typing-dot {
+  0%, 60%, 100% { opacity: .2; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+
 @media (max-width: 640px) {
   .chats-sidebar { width: 100%; display: none; }
   .chats-sidebar.show-mobile { display: flex; }
@@ -487,6 +512,18 @@ function chatsRenderMensajes(mensajes) {
   <div class="chat-msg-meta">${hora}</div>
 </div>`;
   }).join('');
+
+  // Typing indicator: si el último mensaje es del cliente y tiene < 45s, Tito está procesando
+  const ultimo = mensajes[mensajes.length - 1];
+  if (ultimo?.rol === 'cliente' && ultimo?.creado_en) {
+    const segs = (Date.now() - new Date(ultimo.creado_en).getTime()) / 1000;
+    if (segs < 45) {
+      el.innerHTML += `
+<div class="chat-typing" title="Tito está escribiendo…">
+  <span></span><span></span><span></span>
+</div>`;
+    }
+  }
 
   el.scrollTop = el.scrollHeight;
 }
