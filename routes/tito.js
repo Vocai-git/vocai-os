@@ -54,6 +54,15 @@ router.patch('/casos/:id', auth, async (req, res) => {
   }
 });
 
+router.get('/atencion-humana', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy('/api/casos?requiere_humano=true&estado=pendiente&limit=50');
+    res.status(status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/stats/resumen', auth, async (req, res) => {
   try {
     const qs = new URLSearchParams(req.query).toString();

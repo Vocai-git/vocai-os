@@ -336,6 +336,10 @@ function titoShell() {
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
       Casos
     </button>
+    <button class="tito-nav-tab" data-vista="humanos">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+      Atención humana <span id="titoHumanosBadge" style="display:none;background:var(--coral);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;vertical-align:middle"></span>
+    </button>
     <button class="tito-nav-tab" data-vista="stats">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
       Estadísticas
@@ -367,8 +371,11 @@ async function titoMostrarVista(vista) {
     titoFiltroEstado = 'estado_no=cerrado';
     titoOffset       = 0;
     titoDetalleCasoId = null;
-    await Promise.all([titoCargarContadores(), titoCargarCasos()]);
+    await Promise.all([titoCargarContadores(), titoCargarCasos(), titoActualizarBadgeHumanos()]);
     titoBindFiltros();
+  } else if (vista === 'humanos') {
+    document.getElementById('titoVista').innerHTML = titoHumanosHTML();
+    await titoCargarHumanos();
   } else {
     document.getElementById('titoVista').innerHTML = titoStatsHTML();
     titoBindPeriodo();
@@ -932,4 +939,77 @@ function titoRenderComparativa(d) {
           </tr>`).join('')}
       </tbody>
     </table>`;
+}
+
+// ── VISTA ATENCIÓN HUMANA ─────────────────────────────────────
+
+function titoHumanosHTML() {
+  return `
+<div style="padding:16px">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+    <h3 style="margin:0;font-size:15px;font-weight:600;color:var(--text)">Requieren atención humana</h3>
+    <span id="titoHumanosCount" style="font-size:12px;color:var(--text-muted)"></span>
+  </div>
+  <div id="titoHumanosList"></div>
+</div>`;
+}
+
+async function titoCargarHumanos() {
+  const listEl = document.getElementById('titoHumanosList');
+  if (!listEl) return;
+  listEl.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+
+  try {
+    const { casos, total } = await API.get('/tito/atencion-humana');
+    const badge = document.getElementById('titoHumanosBadge');
+    const countEl = document.getElementById('titoHumanosCount');
+
+    if (badge) {
+      if (total > 0) { badge.style.display = ''; badge.textContent = total; }
+      else { badge.style.display = 'none'; }
+    }
+    if (countEl) countEl.textContent = total > 0 ? `${total} pendiente${total !== 1 ? 's' : ''}` : '';
+
+    if (!casos || casos.length === 0) {
+      listEl.innerHTML = `<div class="empty-state"><div class="empty-title">Todo bajo control</div><div class="empty-text">No hay conversaciones que requieran atención ahora mismo</div></div>`;
+      return;
+    }
+
+    listEl.innerHTML = casos.map(c => {
+      const nombre = escHtml(c.cliente_nombre || c.cliente_telefono || 'Desconocido');
+      const tel    = escHtml(c.cliente_telefono || '');
+      const datos  = c.datos || {};
+      const fecha  = c.creado_en
+        ? new Date(c.creado_en).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
+        : '';
+
+      return `
+<div class="tito-row" data-id="${c.id}" style="border-left:3px solid var(--coral);cursor:pointer" onclick="titoAbrirDetalle('${c.id}')">
+  <div class="tito-row-top">
+    <div class="tito-row-name">${nombre}</div>
+    <span class="tito-tag" style="background:rgba(239,68,68,0.12);color:var(--coral);font-weight:600">Necesita humano</span>
+  </div>
+  ${tel ? `<div class="tito-row-ref">📞 ${tel}</div>` : ''}
+  ${datos.que_necesita || datos.descripcion ? `<div class="tito-row-ref" style="color:var(--text-muted)">${escHtml(datos.que_necesita || datos.descripcion)}</div>` : ''}
+  <div class="tito-row-bottom">
+    <span class="tito-tag tito-tag-canal">${TITO_CANALES[c.canal || 'otro'] || c.canal}</span>
+    <span class="tito-time">${fecha}</span>
+  </div>
+</div>`;
+    }).join('');
+
+  } catch (err) {
+    listEl.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+// Actualizar badge sin cambiar de vista
+async function titoActualizarBadgeHumanos() {
+  try {
+    const { total } = await API.get('/tito/atencion-humana');
+    const badge = document.getElementById('titoHumanosBadge');
+    if (!badge) return;
+    if (total > 0) { badge.style.display = ''; badge.textContent = total; }
+    else { badge.style.display = 'none'; }
+  } catch { /* silencioso */ }
 }
