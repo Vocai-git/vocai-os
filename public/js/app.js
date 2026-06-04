@@ -239,6 +239,7 @@ const MODULES = {
   bookings:  { title: 'Reservas de Estudio', render: renderBookings },
   episodes:  { title: 'Episodios', render: renderEpisodes },
   tito:      { title: 'Tito — Atención al cliente', render: renderTito },
+  chats:     { title: 'Chats en vivo', render: renderChats, unmount: unmountChats },
   tasks:     { title: 'Tareas',    render: renderTasks },
   activity:  { title: 'Actividad', render: renderActivity },
   contacts:  { title: 'Contactos', render: renderContacts },
@@ -261,6 +262,10 @@ let currentModule = null;
 
 async function navigate(module) {
   if (!MODULES[module]) return;
+  // Llamar unmount del módulo anterior si existe
+  if (currentModule && MODULES[currentModule]?.unmount) {
+    try { MODULES[currentModule].unmount(); } catch { /* silencioso */ }
+  }
   currentModule = module;
   window.vocaiSeccionActual = module;
 

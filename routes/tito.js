@@ -151,4 +151,48 @@ router.get('/stats/comparativa-mensual', auth, async (req, res) => {
   }
 });
 
+// ── CHATS EN VIVO ─────────────────────────────────────────────
+
+router.get('/chats', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy('/api/chats/');
+    res.status(status).json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/chats/bot-status', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy('/api/chats/bot-status');
+    res.status(status).json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.patch('/chats/bot-status', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy('/api/chats/bot-status', { method: 'PATCH', body: JSON.stringify(req.body) });
+    res.status(status).json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/chats/:id/mensajes', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy(`/api/chats/${req.params.id}/mensajes`);
+    res.status(status).json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.patch('/chats/:id/modo-manual', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy(`/api/chats/${req.params.id}/modo-manual`, { method: 'PATCH', body: JSON.stringify(req.body) });
+    res.status(status).json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/chats/:id/enviar', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy(`/api/chats/${req.params.id}/enviar`, { method: 'POST', body: JSON.stringify(req.body) });
+    res.status(status).json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;
