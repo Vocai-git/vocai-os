@@ -340,6 +340,10 @@ function titoShell() {
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
       Atención humana <span id="titoHumanosBadge" style="display:none;background:var(--coral);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;vertical-align:middle"></span>
     </button>
+    <button class="tito-nav-tab" data-vista="aprendizaje">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+      Aprendizaje <span id="titoAprendizajeBadge" style="display:none;background:var(--purple,#7c3aed);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:4px;vertical-align:middle"></span>
+    </button>
     <button class="tito-nav-tab" data-vista="stats">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
       Estadísticas
@@ -371,11 +375,14 @@ async function titoMostrarVista(vista) {
     titoFiltroEstado = 'estado_no=cerrado';
     titoOffset       = 0;
     titoDetalleCasoId = null;
-    await Promise.all([titoCargarContadores(), titoCargarCasos(), titoActualizarBadgeHumanos()]);
+    await Promise.all([titoCargarContadores(), titoCargarCasos(), titoActualizarBadgeHumanos(), titoActualizarBadgeAprendizaje()]);
     titoBindFiltros();
   } else if (vista === 'humanos') {
     document.getElementById('titoVista').innerHTML = titoHumanosHTML();
     await titoCargarHumanos();
+  } else if (vista === 'aprendizaje') {
+    document.getElementById('titoVista').innerHTML = titoAprendizajeHTML();
+    await titoCargarAprendizaje();
   } else {
     document.getElementById('titoVista').innerHTML = titoStatsHTML();
     titoBindPeriodo();
@@ -1011,5 +1018,173 @@ async function titoActualizarBadgeHumanos() {
     if (!badge) return;
     if (total > 0) { badge.style.display = ''; badge.textContent = total; }
     else { badge.style.display = 'none'; }
+  } catch { /* silencioso */ }
+}
+
+// ── VISTA APRENDIZAJE ─────────────────────────────────────────
+
+const TIPO_LABELS = {
+  nueva_pregunta:    { label: 'Nueva pregunta',   color: '#2563eb', bg: 'rgba(37,99,235,0.1)' },
+  servicio_nuevo:    { label: 'Servicio nuevo',   color: '#059669', bg: 'rgba(5,150,105,0.1)' },
+  patron_comun:      { label: 'Patrón común',     color: '#d97706', bg: 'rgba(217,119,6,0.1)'  },
+  mejora_respuesta:  { label: 'Mejora respuesta', color: '#7c3aed', bg: 'rgba(124,58,237,0.1)' }
+};
+
+function titoAprendizajeHTML() {
+  return `
+<style>
+.apr-section { padding: 20px 16px 8px; }
+.apr-title { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 12px; }
+.apr-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px; }
+.apr-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.apr-kpi-num { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+.apr-kpi-lbl { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.apr-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin: 0 16px 10px; overflow: hidden; }
+.apr-card-head { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
+.apr-card-tipo { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: 6px; margin-bottom: 8px; }
+.apr-card-q { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4; }
+.apr-card-body { padding: 12px 16px; }
+.apr-card-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.apr-textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 13px; color: var(--text); font-family: inherit; resize: vertical; min-height: 72px; box-sizing: border-box; line-height: 1.5; }
+.apr-textarea:focus { outline: none; border-color: var(--accent); }
+.apr-actions { display: flex; gap: 8px; padding: 10px 16px 14px; }
+.apr-btn { flex: 1; padding: 9px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: opacity .15s; }
+.apr-btn:active { opacity: .75; }
+.apr-btn-ok { background: #059669; color: #fff; }
+.apr-btn-no { background: var(--surface-hover); color: var(--text-muted); }
+.apr-conocimiento-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.apr-conocimiento-item:last-child { border-bottom: none; }
+.apr-conocimiento-q { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.apr-conocimiento-r { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+.apr-conocimiento-del { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 0; flex-shrink: 0; margin-top: 1px; }
+.apr-conocimiento-del:hover { color: var(--coral); }
+.apr-empty { text-align: center; padding: 32px 16px; color: var(--text-muted); font-size: 13px; }
+</style>
+
+<div class="apr-kpis" id="aprKpis">
+  <div class="apr-kpi"><div class="apr-kpi-num" id="aprNumPend">—</div><div class="apr-kpi-lbl">Sugerencias pendientes</div></div>
+  <div class="apr-kpi"><div class="apr-kpi-num" id="aprNumActivo">—</div><div class="apr-kpi-lbl">Conocimiento activo</div></div>
+</div>
+
+<div class="apr-section">
+  <div class="apr-title">Para revisar</div>
+  <div id="aprSugerencias"></div>
+</div>
+
+<div class="apr-section" style="padding-top:8px">
+  <div class="apr-title">Lo que Tito ya sabe</div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px">
+    <div id="aprConocimiento"></div>
+  </div>
+</div>`;
+}
+
+async function titoCargarAprendizaje() {
+  try {
+    const [{ pendientes, activos }, { sugerencias }, { conocimiento }] = await Promise.all([
+      API.get('/tito/aprendizaje/contadores'),
+      API.get('/tito/aprendizaje/sugerencias?estado=pendiente'),
+      API.get('/tito/aprendizaje/conocimiento')
+    ]);
+
+    const pEl = document.getElementById('aprNumPend');
+    const aEl = document.getElementById('aprNumActivo');
+    if (pEl) pEl.textContent = pendientes ?? 0;
+    if (aEl) aEl.textContent = activos ?? 0;
+
+    const badge = document.getElementById('titoAprendizajeBadge');
+    if (badge) {
+      if (pendientes > 0) { badge.style.display = ''; badge.textContent = pendientes; }
+      else badge.style.display = 'none';
+    }
+
+    // Sugerencias
+    const sugEl = document.getElementById('aprSugerencias');
+    if (sugEl) {
+      if (!sugerencias?.length) {
+        sugEl.innerHTML = `<div class="apr-empty">Sin sugerencias pendientes — Tito está aprendiendo bien 👍</div>`;
+      } else {
+        sugEl.innerHTML = sugerencias.map(s => {
+          const t = TIPO_LABELS[s.tipo] || { label: s.tipo, color: '#6b7280', bg: 'rgba(107,114,128,0.1)' };
+          return `
+<div class="apr-card" data-sug-id="${s.id}">
+  <div class="apr-card-head">
+    <div class="apr-card-tipo" style="color:${t.color};background:${t.bg}">${t.label}</div>
+    <div class="apr-card-q">${escHtml(s.pregunta_detectada)}</div>
+  </div>
+  <div class="apr-card-body">
+    <div class="apr-card-label">Respuesta sugerida (editable)</div>
+    <textarea class="apr-textarea" id="resp-${s.id}">${escHtml(s.respuesta_sugerida)}</textarea>
+  </div>
+  <div class="apr-actions">
+    <button class="apr-btn apr-btn-ok" onclick="titoGestionarSugerencia('${s.id}','aprobar')">Aprobar y enseñar a Tito</button>
+    <button class="apr-btn apr-btn-no" onclick="titoGestionarSugerencia('${s.id}','descartar')">Descartar</button>
+  </div>
+</div>`;
+        }).join('');
+      }
+    }
+
+    // Conocimiento activo
+    const conEl = document.getElementById('aprConocimiento');
+    if (conEl) {
+      const activos_items = (conocimiento || []).filter(k => k.activo);
+      if (!activos_items.length) {
+        conEl.innerHTML = `<div class="apr-empty">Tito aún no tiene conocimiento aprobado</div>`;
+      } else {
+        conEl.innerHTML = activos_items.map(k => `
+<div class="apr-conocimiento-item">
+  <div style="flex:1">
+    <div class="apr-conocimiento-q">${escHtml(k.pregunta)}</div>
+    <div class="apr-conocimiento-r">${escHtml(k.respuesta)}</div>
+  </div>
+  <button class="apr-conocimiento-del" title="Desactivar" onclick="titoEliminarConocimiento('${k.id}')">×</button>
+</div>`).join('');
+      }
+    }
+  } catch (err) {
+    const sugEl = document.getElementById('aprSugerencias');
+    if (sugEl) sugEl.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function titoGestionarSugerencia(id, accion) {
+  const respuesta_editada = document.getElementById(`resp-${id}`)?.value;
+  try {
+    await API.patch(`/tito/aprendizaje/sugerencias/${id}`, { accion, respuesta_editada });
+    const card = document.querySelector(`[data-sug-id="${id}"]`);
+    if (card) {
+      card.style.opacity = '0';
+      card.style.transition = 'opacity .3s';
+      setTimeout(() => card.remove(), 300);
+    }
+    const pEl = document.getElementById('aprNumPend');
+    if (pEl) pEl.textContent = Math.max(0, (parseInt(pEl.textContent) || 0) - 1);
+    if (accion === 'aprobar') {
+      const aEl = document.getElementById('aprNumActivo');
+      if (aEl) aEl.textContent = (parseInt(aEl.textContent) || 0) + 1;
+      setTimeout(() => titoCargarAprendizaje(), 400);
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+async function titoEliminarConocimiento(id) {
+  try {
+    await API.del(`/tito/aprendizaje/conocimiento/${id}`);
+    titoCargarAprendizaje();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+async function titoActualizarBadgeAprendizaje() {
+  try {
+    const { pendientes } = await API.get('/tito/aprendizaje/contadores');
+    const badge = document.getElementById('titoAprendizajeBadge');
+    if (!badge) return;
+    if (pendientes > 0) { badge.style.display = ''; badge.textContent = pendientes; }
+    else badge.style.display = 'none';
   } catch { /* silencioso */ }
 }

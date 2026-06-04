@@ -54,6 +54,55 @@ router.patch('/casos/:id', auth, async (req, res) => {
   }
 });
 
+router.get('/aprendizaje/contadores', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy('/api/aprendizaje/contadores');
+    res.status(status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/aprendizaje/sugerencias', auth, async (req, res) => {
+  try {
+    const qs = new URLSearchParams(req.query).toString();
+    const { status, data } = await proxy(`/api/aprendizaje/sugerencias${qs ? '?' + qs : ''}`);
+    res.status(status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch('/aprendizaje/sugerencias/:id', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy(`/api/aprendizaje/sugerencias/${req.params.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(req.body)
+    });
+    res.status(status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/aprendizaje/conocimiento', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy('/api/aprendizaje/conocimiento');
+    res.status(status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/aprendizaje/conocimiento/:id', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy(`/api/aprendizaje/conocimiento/${req.params.id}`, { method: 'DELETE' });
+    res.status(status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/atencion-humana', auth, async (req, res) => {
   try {
     const { status, data } = await proxy('/api/casos?requiere_humano=true&estado=pendiente&limit=50');
