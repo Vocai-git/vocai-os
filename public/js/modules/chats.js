@@ -5,6 +5,16 @@ let chatsInterval = null;
 let chatConvActiva = null;
 let chatBotPausado = false;
 let chatMensajesVistos = 0;
+let chatBusqueda = '';
+
+function chatGetLastSeen() {
+  try { return JSON.parse(localStorage.getItem('chats_last_seen') || '{}'); } catch { return {}; }
+}
+function chatSetLastSeen(id) {
+  const ls = chatGetLastSeen();
+  ls[id] = new Date().toISOString();
+  localStorage.setItem('chats_last_seen', JSON.stringify(ls));
+}
 
 async function renderChats(container) {
   container.innerHTML = `
@@ -65,6 +75,37 @@ async function renderChats(container) {
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: .3; }
+}
+
+.chats-search-wrap {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.chats-search-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 7px 14px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .15s;
+}
+.chats-search-input::placeholder { color: var(--text-muted); }
+.chats-search-input:focus { border-color: var(--accent); }
+
+.chats-unread-badge {
+  min-width: 18px; height: 18px;
+  background: #25D366;
+  color: #fff;
+  font-size: 10px; font-weight: 700;
+  border-radius: 10px;
+  padding: 0 5px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
 }
 
 .chats-list { flex: 1; overflow-y: auto; }
@@ -274,6 +315,9 @@ async function renderChats(container) {
         <span id="chatsBotLabel">Tito activo</span>
       </button>
     </div>
+    <div class="chats-search-wrap">
+      <input class="chats-search-input" id="chatsBuscador" placeholder="Buscar conversación…" type="text" autocomplete="off">
+    </div>
     <div class="chats-list" id="chatsListEl">
       <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Cargando...</div>
     </div>
@@ -293,6 +337,11 @@ async function renderChats(container) {
 
   await Promise.all([chatsCargarLista(), chatsCargarBotStatus()]);
   chatsInterval = setInterval(chatsRefrescar, 4000);
+
+  document.getElementById('chatsBuscador')?.addEventListener('input', (e) => {
+    chatBusqueda = e.target.value.toLowerCase().trim();
+    chatsCargarLista();
+  });
 
   // Si viene desde "Tomar control" en Tito, abrir esa conversación directamente
   if (window.chatsConvPendiente) {
@@ -315,12 +364,20 @@ async function chatsCargarLista() {
     const el = document.getElementById('chatsListEl');
     if (!el) return;
 
-    if (!conversaciones?.length) {
-      el.innerHTML = `<div style="padding:32px 16px;text-align:center;color:var(--text-muted);font-size:13px">Sin conversaciones activas</div>`;
+    const todas = conversaciones || [];
+    const filtradas = chatBusqueda
+      ? todas.filter(c =>
+          (c.cliente_nombre || '').toLowerCase().includes(chatBusqueda) ||
+          (c.telefono || '').includes(chatBusqueda))
+      : todas;
+
+    if (!filtradas.length) {
+      el.innerHTML = `<div style="padding:32px 16px;text-align:center;color:var(--text-muted);font-size:13px">${chatBusqueda ? 'Sin resultados' : 'Sin conversaciones activas'}</div>`;
       return;
     }
 
-    el.innerHTML = conversaciones.map(c => chatConvItem(c)).join('');
+    const lastSeen = chatGetLastSeen();
+    el.innerHTML = filtradas.map(c => chatConvItem(c, lastSeen)).join('');
     el.querySelectorAll('.chats-conv').forEach(row => {
       row.addEventListener('click', () => chatsAbrirConv(row.dataset.id));
     });
@@ -362,6 +419,7 @@ async function chatsRefrescarMensajes() {
 async function chatsAbrirConv(id) {
   chatConvActiva = id;
   chatMensajesVistos = 0;
+  chatSetLastSeen(id);
 
   document.querySelectorAll('.chats-conv').forEach(r => r.classList.toggle('active', r.dataset.id === id));
 
@@ -483,24 +541,29 @@ function chatsActualizarBotBtn() {
   label.textContent = chatBotPausado ? 'Tito pausado' : 'Tito activo';
 }
 
-function chatConvItem(c) {
+function chatConvItem(c, lastSeen = {}) {
   const nombre  = escHtml(c.cliente_nombre || c.telefono || 'Desconocido');
   const preview = escHtml(c.ultimo_mensaje?.contenido?.slice(0, 55) || '');
   const hora    = c.ultima_actividad
     ? new Date(c.ultima_actividad).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
     : '';
 
+  const ls = lastSeen[c.id];
+  const tieneNoLeido = c.ultimo_mensaje?.rol === 'cliente' &&
+    c.ultimo_mensaje?.creado_en &&
+    (!ls || new Date(c.ultimo_mensaje.creado_en) > new Date(ls));
+
   return `
 <div class="chats-conv" data-id="${c.id}">
   <div class="chats-conv-top">
-    <span class="chats-conv-name">${nombre}</span>
+    <span class="chats-conv-name" style="${tieneNoLeido ? 'font-weight:700;color:var(--text)' : ''}">${nombre}</span>
     <span class="chats-mode-tag ${c.modo_manual ? 'manual' : 'bot'}">${c.modo_manual ? 'manual' : 'bot'}</span>
   </div>
-  ${preview ? `<div class="chats-conv-preview">${preview}</div>` : ''}
-  <div style="display:flex;justify-content:space-between;margin-top:4px">
-    <span style="font-size:11px;color:var(--text-muted)">${escHtml(c.telefono)}</span>
-    <span class="chats-conv-time">${hora}</span>
+  <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+    ${preview ? `<span class="chats-conv-preview" style="flex:1;${tieneNoLeido ? 'font-weight:600;color:var(--text)' : ''}">${preview}</span>` : '<span style="flex:1"></span>'}
+    ${tieneNoLeido ? `<span class="chats-unread-badge">1</span>` : `<span class="chats-conv-time">${hora}</span>`}
   </div>
+  ${tieneNoLeido ? `<div style="display:flex;justify-content:flex-end;margin-top:1px"><span class="chats-conv-time">${hora}</span></div>` : ''}
 </div>`;
 }
 
