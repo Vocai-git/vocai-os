@@ -8,7 +8,10 @@
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const VERSION = '2023-06-01';
 const MODELO = 'claude-sonnet-4-6';
-const MAX_TOKENS = 2048;
+// Tope alto: el asistente a veces emite/edita artículos de blog completos
+// (body markdown largo) dentro de un tool_use. 2048 los cortaba. Es solo un
+// techo — las respuestas cortas de chat no consumen más por subirlo.
+const MAX_TOKENS = 8192;
 // Tope de vueltas del loop de tools: evita que un bucle de tool-use
 // se dispare sin control. 6 alcanza para varias acciones encadenadas.
 const MAX_TURNS = 6;

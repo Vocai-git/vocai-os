@@ -136,6 +136,10 @@ function asistLabelAccion(a) {
   const map = {
     ver_calendario: 'leyó el calendario', ver_planificacion: 'leyó la planificación',
     crear_pieza: 'creó una pieza', editar_pieza: 'editó una pieza', borrar_pieza: 'borró una pieza',
+    ver_blog: 'revisó el blog', ver_post: 'leyó un artículo',
+    redactar_post: 'redactó un artículo', crear_post: 'creó un artículo',
+    editar_post: 'editó un artículo', publicar_post: 'publicó un artículo',
+    despublicar_post: 'despublicó un artículo', borrar_post: 'borró un artículo',
   };
   const base = map[a.tool] || a.tool;
   return a.ok ? base : `falló: ${base}`;

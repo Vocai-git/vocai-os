@@ -3,7 +3,18 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const { supabase } = require('../config/supabase');
 const { chat } = require('../config/claude');
-const { REGLAS_MARCA } = require('../config/gemini');
+const { REGLAS_MARCA, generarBlog } = require('../config/gemini');
+
+// Slug a partir del título: minúsculas, sin acentos, guiones. (Mismo criterio
+// que routes/marketing-web.js — duplicado a propósito para no acoplar.)
+function slugify(s) {
+  return (s || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
 
 /* ============================================================
    Asistente conversacional del dashboard — la cara del
@@ -15,6 +26,7 @@ const { REGLAS_MARCA } = require('../config/gemini');
 const PILARES = ['ia', 'estudio', 'casos', 'personas'];
 const FORMATOS = ['reel', 'carrusel', 'story', 'post', 'otro'];
 const ESTADOS = ['idea', 'produccion', 'lista', 'publicada'];
+const ESTADOS_BLOG = ['borrador', 'en_revision', 'publicado'];
 
 // ── Contexto de marca (estático) ────────────────────────────
 const CONTEXTO_MARCA =
@@ -74,6 +86,24 @@ GUIONES Y CONTENIDO:
 - Si el usuario te pide el guion de una pieza que ya existe en el calendario, podés
   guardarlo en el campo "notas" de esa pieza con editar_pieza. Si te pide crear piezas
   con guion, creálas y dejá el guion en sus notas. Si solo quiere verlo, mostralo en el chat.
+
+BLOG DE VOCAI.ES — PODÉS ESCRIBIR Y PUBLICAR ARTÍCULOS:
+- Tenés control total del blog de vocai.es. Manejás el flujo completo: escribir,
+  armar, revisar, editar y publicar.
+- Cuando el usuario te diga "hacé/escribime un blog sobre X", usá "redactar_post":
+  el redactor escribe el artículo completo (título, slug, meta description, excerpt,
+  keyword y cuerpo en markdown, optimizado para SEO) y queda guardado como BORRADOR.
+  Después confirmá en pocas líneas: título, sobre qué va, y que quedó en borrador.
+  Ofrecé revisarlo/editarlo o publicarlo.
+- Si el usuario ya te dio el texto o lo escribiste vos en el chat, usá "crear_post".
+- Para retocar un artículo (cambiar título, reescribir una parte, ajustar el SEO),
+  leelo con "ver_post" si hace falta y guardá con "editar_post".
+- PUBLICAR es un paso aparte y EXPLÍCITO: solo publicás con "publicar_post" cuando el
+  usuario lo pide ("publicalo", "subilo", "que salga"). Al publicar, el artículo queda
+  visible en vivo en vocai.es/blog — avisá eso y pasale la URL.
+- Nunca publiques sin que te lo pidan. Nunca borres un post sin confirmar (es destructivo).
+- Por defecto los artículos nacen en BORRADOR: el usuario revisa y recién después publica.
+- El contenido del blog es PÚBLICO → español de España con tuteo, reglas de marca al pie.
 
 IDIOMA — DOS REGISTROS DISTINTOS, NO LOS MEZCLES:
 - CUANDO HABLÁS CON EL USUARIO (análisis, recomendaciones, confirmaciones): español
@@ -144,6 +174,103 @@ const TOOLS = [
       required: ['id'],
     },
   },
+  // ── Blog de vocai.es (tabla blog_posts) ──────────────────────
+  {
+    name: 'ver_blog',
+    description: 'Lista los artículos del blog. Devuelve id, título, slug, pilar, estado y fecha. Filtrá por estado si te lo piden (borrador, en_revision, publicado).',
+    input_schema: {
+      type: 'object',
+      properties: { estado: { type: 'string', enum: ESTADOS_BLOG, description: 'Filtro opcional por estado.' } },
+    },
+  },
+  {
+    name: 'ver_post',
+    description: 'Lee un artículo completo del blog por su id (incluye el cuerpo en markdown). Útil antes de editarlo o para mostrárselo al usuario.',
+    input_schema: {
+      type: 'object',
+      properties: { id: { type: 'string' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'redactar_post',
+    description: 'Escribe un artículo de blog COMPLETO y optimizado para SEO a partir de un tema, y lo guarda como BORRADOR en el blog. El redactor genera título, slug, meta description, excerpt, keyword y el cuerpo en markdown (600-1000 palabras, tuteo de España, reglas de marca). Usá esto cuando el usuario te pida "hacé/escribí un blog sobre X". Devuelve el post creado con su id. NO lo publica: queda en borrador para revisar.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        tema: { type: 'string', description: 'De qué trata el artículo (lo más concreto posible).' },
+        keyword: { type: 'string', description: 'Keyword SEO objetivo, si el usuario la indicó.' },
+        pilar: { type: 'string', enum: PILARES, description: 'Pilar de contenido al que pertenece.' },
+        angulo: { type: 'string', description: 'Enfoque o ángulo específico, opcional.' },
+      },
+      required: ['tema'],
+    },
+  },
+  {
+    name: 'crear_post',
+    description: 'Crea un artículo de blog con contenido que vos ya escribiste (cuando el usuario te pasó el texto o lo redactaste en el chat). Si solo te dieron un tema, usá redactar_post en su lugar. Queda en borrador salvo que indiques estado.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string' },
+        body_md: { type: 'string', description: 'Cuerpo del artículo en markdown (sin el H1).' },
+        meta_description: { type: 'string', description: 'Resumen para Google, máx 160 caracteres.' },
+        excerpt: { type: 'string', description: '1-2 frases para el listado del blog.' },
+        keyword: { type: 'string' },
+        pilar: { type: 'string', enum: PILARES },
+        cover_image: { type: 'string', description: 'URL de la imagen de portada, opcional.' },
+        slug: { type: 'string', description: 'Slug URL, opcional (se deriva del título si no se pasa).' },
+        estado: { type: 'string', enum: ESTADOS_BLOG },
+      },
+      required: ['titulo'],
+    },
+  },
+  {
+    name: 'editar_post',
+    description: 'Modifica un artículo existente por su id (título, cuerpo, meta, excerpt, keyword, pilar, portada, slug). Pasá solo los campos que cambian. Para reescribir el cuerpo, mandá el body_md completo nuevo.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        titulo: { type: 'string' },
+        body_md: { type: 'string' },
+        meta_description: { type: 'string' },
+        excerpt: { type: 'string' },
+        keyword: { type: 'string' },
+        pilar: { type: 'string', enum: PILARES },
+        cover_image: { type: 'string' },
+        slug: { type: 'string' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'publicar_post',
+    description: 'Publica un artículo: pasa a estado "publicado" y queda VISIBLE en vocai.es/blog. Hacelo solo cuando el usuario lo pide explícitamente.',
+    input_schema: {
+      type: 'object',
+      properties: { id: { type: 'string' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'despublicar_post',
+    description: 'Saca un artículo de vocai.es/blog: vuelve a estado "borrador". Deja de ser visible al público.',
+    input_schema: {
+      type: 'object',
+      properties: { id: { type: 'string' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'borrar_post',
+    description: 'Elimina un artículo del blog por su id de forma permanente. Destructivo: confirmá con el usuario antes de usarlo.',
+    input_schema: {
+      type: 'object',
+      properties: { id: { type: 'string' } },
+      required: ['id'],
+    },
+  },
 ];
 
 // ── Ejecutor de tools ───────────────────────────────────────
@@ -192,6 +319,98 @@ async function ejecutarTool(mesFoco, nombre, input) {
       if (error) throw new Error(error.message);
       return { ok: true };
     }
+
+    // ── Blog ──────────────────────────────────────────────────
+    case 'ver_blog': {
+      let q = supabase.from('blog_posts')
+        .select('id,titulo,slug,pilar,estado,updated_at,publicado_at')
+        .order('updated_at', { ascending: false });
+      if (input.estado) q = q.eq('estado', input.estado);
+      const { data, error } = await q;
+      if (error) throw new Error(error.message);
+      return { posts: data || [] };
+    }
+    case 'ver_post': {
+      const { data, error } = await supabase
+        .from('blog_posts').select('*').eq('id', input.id).single();
+      if (error) throw new Error(error.message);
+      return { post: data };
+    }
+    case 'redactar_post': {
+      // El redactor (Gemini) escribe el artículo largo; acá solo lo guardamos.
+      const art = await generarBlog(input.tema, {
+        keyword: input.keyword || '',
+        pilar: input.pilar || '',
+        angulo: input.angulo || '',
+      });
+      const row = {
+        slug: art.slug ? slugify(art.slug) : slugify(art.titulo),
+        titulo: art.titulo || 'Sin título',
+        meta_description: art.meta_description || null,
+        keyword: art.keyword || input.keyword || null,
+        excerpt: art.excerpt || null,
+        body_md: art.body_md || null,
+        pilar: input.pilar || null,
+        autor: 'VOCAI',
+        estado: 'borrador',
+      };
+      const { data, error } = await supabase
+        .from('blog_posts').insert([row]).select().single();
+      if (error) throw new Error(error.message);
+      return { ok: true, post: data, url: `vocai.es/blog/${data.slug}` };
+    }
+    case 'crear_post': {
+      const row = {
+        slug: input.slug ? slugify(input.slug) : slugify(input.titulo),
+        titulo: input.titulo || 'Sin título',
+        meta_description: input.meta_description || null,
+        keyword: input.keyword || null,
+        excerpt: input.excerpt || null,
+        body_md: input.body_md || null,
+        cover_image: input.cover_image || null,
+        pilar: input.pilar || null,
+        autor: 'VOCAI',
+        estado: input.estado || 'borrador',
+      };
+      const { data, error } = await supabase
+        .from('blog_posts').insert([row]).select().single();
+      if (error) throw new Error(error.message);
+      return { ok: true, post: data, url: `vocai.es/blog/${data.slug}` };
+    }
+    case 'editar_post': {
+      const { id, ...campos } = input;
+      if (campos.slug) campos.slug = slugify(campos.slug);
+      campos.updated_at = new Date().toISOString();
+      const { data, error } = await supabase
+        .from('blog_posts').update(campos).eq('id', id).select().single();
+      if (error) throw new Error(error.message);
+      return { ok: true, post: data };
+    }
+    case 'publicar_post': {
+      const upd = {
+        estado: 'publicado',
+        publicado_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      const { data, error } = await supabase
+        .from('blog_posts').update(upd).eq('id', input.id).select().single();
+      if (error) throw new Error(error.message);
+      return { ok: true, post: data, url: `vocai.es/blog/${data.slug}` };
+    }
+    case 'despublicar_post': {
+      const upd = { estado: 'borrador', updated_at: new Date().toISOString() };
+      const { data, error } = await supabase
+        .from('blog_posts').update(upd).eq('id', input.id).select().single();
+      if (error) throw new Error(error.message);
+      return { ok: true, post: data };
+    }
+    case 'borrar_post': {
+      const { error } = await supabase
+        .from('blog_posts').delete().eq('id', input.id);
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    }
+
     default:
       throw new Error(`Herramienta desconocida: ${nombre}`);
   }
@@ -200,14 +419,17 @@ async function ejecutarTool(mesFoco, nombre, input) {
 // ── Armado del contexto en vivo para el system prompt ───────
 async function contextoEnVivo(mes) {
   const { from, to } = rangoMes(mes);
-  const [plan, piezas] = await Promise.all([
+  const [plan, piezas, blog] = await Promise.all([
     supabase.from('content_months').select('*').eq('mes', mes).maybeSingle(),
     supabase.from('content_pieces').select('fecha,titulo,formato,pilar,estado')
       .gte('fecha', from).lte('fecha', to).order('fecha', { ascending: true }),
+    supabase.from('blog_posts').select('estado'),
   ]);
   const p = plan.data;
   const lista = piezas.data || [];
   const mix = PILARES.map(pil => `${pil}: ${lista.filter(x => x.pilar === pil).length}`).join(' · ');
+  const posts = blog.data || [];
+  const blogResumen = `${posts.length} (${posts.filter(x => x.estado === 'publicado').length} publicados · ${posts.filter(x => x.estado !== 'publicado').length} en borrador)`;
 
   let txt = `\n\n── ESTADO EN VIVO (mes en foco: ${mes}) ──\n`;
   if (p) {
@@ -219,6 +441,7 @@ async function contextoEnVivo(mes) {
   if (lista.length) {
     txt += lista.map(x => `  · ${x.fecha} [${x.pilar}/${x.formato}/${x.estado}] ${x.titulo}`).join('\n');
   }
+  txt += `\nBlog (vocai.es): ${blogResumen}.\n`;
   txt += `\n\nUsá las herramientas para ver el detalle completo (con ids) o para modificar.`;
   return txt;
 }
