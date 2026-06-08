@@ -10,6 +10,7 @@ let chatArchivoPendiente = null;
 let chatMediaRecorder = null;
 let chatRecChunks = [];
 let chatRecTimer = null;
+let chatRecCancelado = false;
 
 function chatGetLastSeen() {
   try { return JSON.parse(localStorage.getItem('chats_last_seen') || '{}'); } catch { return {}; }
@@ -780,6 +781,17 @@ function chatsRenderPreview() {
 
   const f = chatArchivoPendiente;
   const kb = (f.size / 1024).toFixed(0);
+
+  // Audio grabado: mostrar reproductor para escucharlo antes de enviar
+  if (f.type.startsWith('audio/')) {
+    wrap.innerHTML = `<div class="chats-file-preview">
+      <button class="fp-x" title="Borrar audio" onclick="chatsQuitarArchivo()" style="font-size:20px">🗑</button>
+      <audio controls src="${URL.createObjectURL(f)}" style="flex:1;height:36px"></audio>
+      <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">Pulsa enviar ▶</span>
+    </div>`;
+    return;
+  }
+
   const esImg = f.type.startsWith('image/');
   const thumb = esImg
     ? `<img src="${URL.createObjectURL(f)}" alt="preview">`
@@ -817,8 +829,9 @@ async function chatsEnviarMedia(id, file, caption = '') {
 // ── Grabar audio ──────────────────────────────────────────────
 
 async function chatsToggleGrabacion(id) {
-  // Si ya está grabando → detener y enviar
+  // Si ya está grabando → detener (NO envía: queda en preview para escuchar/borrar/enviar)
   if (chatMediaRecorder && chatMediaRecorder.state === 'recording') {
+    chatRecCancelado = false;
     chatMediaRecorder.stop();
     return;
   }
@@ -828,33 +841,47 @@ async function chatsToggleGrabacion(id) {
     return;
   }
 
+  // Si había un audio o archivo en preview, lo descartamos antes de grabar uno nuevo
+  chatArchivoPendiente = null;
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     chatRecChunks = [];
+    chatRecCancelado = false;
     const mime = MediaRecorder.isTypeSupported('audio/ogg') ? 'audio/ogg'
       : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
     chatMediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
 
     chatMediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chatRecChunks.push(e.data); };
-    chatMediaRecorder.onstop = async () => {
+    chatMediaRecorder.onstop = () => {
       stream.getTracks().forEach(t => t.stop());
       chatsRecUI(false);
-      const blob = new Blob(chatRecChunks, { type: chatMediaRecorder.mimeType || 'audio/ogg' });
-      const ext = (chatMediaRecorder.mimeType || 'ogg').includes('webm') ? 'webm' : 'ogg';
-      const file = new File([blob], `audio-${Date.now()}.${ext}`, { type: blob.type });
-      try {
-        await chatsEnviarMedia(id, file);
-        await chatsRefrescarMensajes();
-      } catch (err) {
-        toast('Error enviando audio: ' + err.message, 'error');
-      }
+      const rec = chatMediaRecorder;
       chatMediaRecorder = null;
+
+      if (chatRecCancelado) { chatRecChunks = []; return; }
+
+      const blob = new Blob(chatRecChunks, { type: rec.mimeType || 'audio/ogg' });
+      const ext = (rec.mimeType || 'ogg').includes('webm') ? 'webm' : 'ogg';
+      // Dejarlo en preview; se envía con el botón de enviar (como un adjunto más)
+      chatArchivoPendiente = new File([blob], `audio-${Date.now()}.${ext}`, { type: blob.type });
+      chatsRenderPreview();
     };
 
     chatMediaRecorder.start();
     chatsRecUI(true);
   } catch (err) {
     toast('No se pudo acceder al micrófono', 'error');
+  }
+}
+
+// Cancelar la grabación en curso sin guardarla
+function chatsCancelarGrabacion() {
+  if (chatMediaRecorder && chatMediaRecorder.state === 'recording') {
+    chatRecCancelado = true;
+    chatMediaRecorder.stop();
+  } else {
+    chatsRecUI(false);
   }
 }
 
@@ -866,7 +893,11 @@ function chatsRecUI(grabando) {
   if (grabando) {
     let segs = 0;
     const fmt = (s) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
-    wrap.innerHTML = `<div class="chats-file-preview"><span class="chats-rec-timer">● Grabando… <span id="chatsRecTime">00:00</span></span><span style="font-size:11px;color:var(--text-muted)">Toca el micro para enviar</span></div>`;
+    wrap.innerHTML = `<div class="chats-file-preview">
+      <button class="fp-x" title="Cancelar" onclick="chatsCancelarGrabacion()" style="font-size:20px">🗑</button>
+      <span class="chats-rec-timer">● Grabando… <span id="chatsRecTime">00:00</span></span>
+      <span style="font-size:11px;color:var(--text-muted);white-space:nowrap">Toca el micro para parar</span>
+    </div>`;
     chatRecTimer = setInterval(() => {
       segs++;
       const t = document.getElementById('chatsRecTime');
@@ -951,6 +982,7 @@ window.chatsEnviarNuevo   = chatsEnviarNuevo;
 window.chatsArchivoSeleccionado = chatsArchivoSeleccionado;
 window.chatsQuitarArchivo = chatsQuitarArchivo;
 window.chatsToggleGrabacion = chatsToggleGrabacion;
+window.chatsCancelarGrabacion = chatsCancelarGrabacion;
 window.chatsRenombrar     = chatsRenombrar;
 window.chatsModalContacto = chatsModalContacto;
 window.chatsGuardarContacto = chatsGuardarContacto;
