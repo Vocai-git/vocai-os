@@ -845,12 +845,18 @@ async function chatsToggleGrabacion(id) {
   chatArchivoPendiente = null;
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+    });
     chatRecChunks = [];
     chatRecCancelado = false;
-    const mime = MediaRecorder.isTypeSupported('audio/ogg') ? 'audio/ogg'
+    const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/ogg') ? 'audio/ogg'
       : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
-    chatMediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    chatMediaRecorder = new MediaRecorder(stream, {
+      ...(mime ? { mimeType: mime } : {}),
+      audioBitsPerSecond: 128000
+    });
 
     chatMediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chatRecChunks.push(e.data); };
     chatMediaRecorder.onstop = () => {
