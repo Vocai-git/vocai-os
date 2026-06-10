@@ -62,7 +62,9 @@ function captionDePieza(pieza) {
   return txt;
 }
 
-// Publica una pieza. Devuelve { ok, error }.
+// Publica una pieza. Devuelve { ok, igId, fbId, error }.
+// Los IDs que devuelve la Graph API se guardan en la pieza — son la
+// llave para pedirle métricas (insights) después.
 async function publicarPieza(pieza) {
   if (!meta.metaConfigurado()) {
     return { ok: false, error: 'Faltan las credenciales de Meta en el .env' };
@@ -75,27 +77,45 @@ async function publicarPieza(pieza) {
   const caption = captionDePieza(pieza);
 
   try {
+    let igId = null, fbId = null;
     if (pieza.formato === 'story') {
       // historia → Instagram Story (una imagen)
-      await meta.publicarHistoriaInstagram(media.urls[0], token, igUser);
+      const r = await meta.publicarHistoriaInstagram(media.urls[0], token, igUser);
+      igId = r && r.id || null;
     } else if (media.tipo === 'carrusel') {
-      await meta.publicarCarruselInstagram(media.urls, caption, token, igUser);
-      await meta.publicarFacebook(media.urls, caption, token, fbPage);
+      const r = await meta.publicarCarruselInstagram(media.urls, caption, token, igUser);
+      igId = r && r.id || null;
+      const f = await meta.publicarFacebook(media.urls, caption, token, fbPage);
+      fbId = f && (f.post_id || f.id) || null;
     } else {
-      await meta.publicarImagenInstagram(media.urls[0], caption, token, igUser);
-      await meta.publicarFacebook(media.urls, caption, token, fbPage);
+      const r = await meta.publicarImagenInstagram(media.urls[0], caption, token, igUser);
+      igId = r && r.id || null;
+      const f = await meta.publicarFacebook(media.urls, caption, token, fbPage);
+      fbId = f && (f.post_id || f.id) || null;
     }
-    return { ok: true };
+    return { ok: true, igId, fbId };
   } catch (err) {
     return { ok: false, error: err.message };
   }
 }
 
-// Marca el estado de una pieza en Supabase.
-async function marcarEstado(id, estado) {
-  await supabase.from('content_pieces')
-    .update({ estado, updated_at: new Date().toISOString() })
-    .eq('id', id);
+// Marca el estado de una pieza en Supabase (+ campos extra, ej. ig_media_id).
+async function marcarEstado(id, estado, extra) {
+  const base = { estado, updated_at: new Date().toISOString() };
+  const { error } = await supabase.from('content_pieces')
+    .update({ ...base, ...(extra || {}) }).eq('id', id);
+  if (error && extra) {
+    // si las columnas nuevas todavía no están migradas, no perder el estado
+    await supabase.from('content_pieces').update(base).eq('id', id);
+  }
+}
+
+// Campos extra a guardar según el resultado de la publicación.
+function idsDeResultado(r) {
+  const extra = {};
+  if (r.igId) extra.ig_media_id = r.igId;
+  if (r.fbId) extra.fb_post_id = r.fbId;
+  return Object.keys(extra).length ? extra : null;
 }
 
 // Publica una pieza por id (uso manual desde el dashboard).
@@ -104,7 +124,7 @@ async function publicarPiezaPorId(id) {
     .from('content_pieces').select('*').eq('id', id).single();
   if (error || !pieza) throw new Error('No se encontró la pieza');
   const r = await publicarPieza(pieza);
-  await marcarEstado(id, r.ok ? 'publicada' : 'error');
+  await marcarEstado(id, r.ok ? 'publicada' : 'error', r.ok ? idsDeResultado(r) : null);
   if (!r.ok) throw new Error(r.error);
   return { ok: true };
 }
@@ -131,11 +151,11 @@ async function correrPublicaciones() {
   for (const pieza of piezas || []) {
     if (!mediaDePieza(pieza.notas)) continue;   // sin imagen → se ignora
     const r = await publicarPieza(pieza);
-    await marcarEstado(pieza.id, r.ok ? 'publicada' : 'error');
+    await marcarEstado(pieza.id, r.ok ? 'publicada' : 'error', r.ok ? idsDeResultado(r) : null);
     if (r.ok) { pub++; console.log(`[Publisher] Publicada: ${pieza.titulo}`); }
     else { err++; console.error(`[Publisher] Error en "${pieza.titulo}": ${r.error}`); }
   }
   return { publicadas: pub, errores: err };
 }
 
-module.exports = { publicarPieza, publicarPiezaPorId, correrPublicaciones };
+module.exports = { publicarPieza, publicarPiezaPorId, correrPublicaciones, captionDePieza };

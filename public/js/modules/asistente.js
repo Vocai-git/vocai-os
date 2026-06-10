@@ -23,7 +23,7 @@ const ASIST_SECCIONES = {
   agenda: 'Agenda', settings: 'Configuración',
   'marketing-calendar': 'Calendario editorial', 'marketing-planning': 'Planificación',
   'marketing-intelligence': 'Inteligencia', 'marketing-generator': 'Generador',
-  'marketing-web': 'Web · Blog',
+  'marketing-web': 'Web · Blog', 'marketing-analytics': 'Analítica',
 };
 
 function asistInjectStyles() {

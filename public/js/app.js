@@ -254,6 +254,7 @@ const MODULES = {
   'marketing-calendar': { title: 'Calendario', render: renderMarketingCalendar },
   'marketing-planning': { title: 'Planificación', render: renderMarketingPlanning },
   'marketing-intelligence': { title: 'Inteligencia', render: renderMarketingIntelligence },
+  'marketing-analytics': { title: 'Analítica', render: renderMarketingAnalytics },
   'marketing-generator': { title: 'Generador', render: renderMarketingGenerator },
   'marketing-web': { title: 'Web · Blog', render: renderMarketingWeb },
 };

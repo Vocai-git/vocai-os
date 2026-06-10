@@ -9,6 +9,7 @@ const { runRadarIA, avisarErrorTelegram } = require('./radar-ia');
 const { correrPublicaciones } = require('./publisher');
 const { metaConfigurado } = require('../config/meta');
 const { copyRecurringExpenses } = require('./copy-recurring-expenses');
+const { runMetricas } = require('./metricas');
 
 function iniciarScheduler() {
   // ── Radar IA — todos los días a las 09:00 ─────────────────
@@ -44,6 +45,25 @@ function iniciarScheduler() {
     console.log('[Scheduler] Publicación automática agendada — cada 15 min (chequea publish_at).');
   } else {
     console.log('[Scheduler] Sin credenciales Meta — publicación automática no agendada.');
+  }
+
+  // ── Métricas de marketing — todos los días a las 08:30 ──────
+  // Lee Meta Insights de cada pieza publicada + snapshot de la
+  // cuenta de IG. Corre antes del Radar (09:00) para que el día
+  // arranque con los datos frescos en el módulo Analítica.
+  if (metaConfigurado()) {
+    cron.schedule('30 8 * * *', async () => {
+      console.log('[Scheduler] Actualizando métricas de marketing...');
+      try {
+        const r = await runMetricas();
+        console.log(`[Scheduler] Métricas OK — ${r.actualizadas} piezas, ${r.vinculadas} vinculadas, ${r.errores} errores.`);
+      } catch (err) {
+        console.error('[Scheduler] Métricas ERROR:', err.message);
+      }
+    }, { timezone: 'Europe/Madrid' });
+    console.log('[Scheduler] Métricas de marketing agendadas — todos los días, 08:30 Europe/Madrid.');
+  } else {
+    console.log('[Scheduler] Sin credenciales Meta — métricas de marketing no agendadas.');
   }
 
   // ── Copia de gastos recurrentes — día 1 de cada mes, 00:05 ───

@@ -122,7 +122,7 @@ async function publicarFacebook(imageUrls, message, token, pageId) {
 }
 
 module.exports = {
-  metaConfigurado, cfg,
+  metaConfigurado, cfg, graphGet,
   publicarHistoriaInstagram, publicarImagenInstagram,
   publicarCarruselInstagram, publicarFacebook,
 };
