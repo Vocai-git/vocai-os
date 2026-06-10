@@ -37,6 +37,7 @@ app.use('/api/marketing-carousel', require('./routes/marketing-carousel'));
 app.use('/api/marketing-biblioteca', require('./routes/marketing-biblioteca'));
 app.use('/api/marketing-web', require('./routes/marketing-web'));
 app.use('/api/marketing-analytics', require('./routes/marketing-analytics'));
+app.use('/api/track', require('./routes/track'));
 app.use('/api/radar', require('./routes/radar'));
 app.use('/api/asistente', require('./routes/asistente'));
 app.use('/api/tito', require('./routes/tito'));

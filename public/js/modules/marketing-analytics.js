@@ -53,13 +53,15 @@ async function renderMarketingAnalytics(el) {
   mktCalInjectStyles();
   if (!mktAnaMes) mktAnaMes = mktAnaMesActual();
 
-  let data;
+  let data, web = null;
   try {
     data = await API.get(`/marketing-analytics?mes=${mktAnaMes}`);
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">Error al cargar: ${escHtml(err.message)}</div>`;
     return;
   }
+  try { web = await API.get(`/track/resumen?mes=${mktAnaMes}`); }
+  catch { /* sin migración web todavía — la sección no se muestra */ }
 
   const { piezas, cuenta, totales, mesAnterior } = data;
   const publicadas = piezas.filter(p => p.estado === 'publicada');
@@ -110,6 +112,8 @@ async function renderMarketingAnalytics(el) {
         <div style="position:relative;height:200px;"><canvas id="mktAnaCanvas"></canvas></div>
       </div>` : ''}
 
+    ${web ? mktAnaWeb(web) : ''}
+
     ${conDatos.length ? mktAnaPilares(conDatos) : ''}
 
     <div style="font-weight:700;font-size:14px;margin:20px 0 10px;">
@@ -142,6 +146,39 @@ function mktAnaCard(label, valor, sub) {
         letter-spacing:.4px;">${label}</div>
       <div style="font-size:26px;font-weight:800;margin:4px 0 2px;">${valor}</div>
       ${sub || ''}
+    </div>`;
+}
+
+// ── Web (vocai.es) — tracker propio, /api/track ─────────────
+function mktAnaWeb(w) {
+  const ev = w.eventos || {};
+  const fuentes = Object.entries(w.fuentes || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const conversiones = [
+    { k: 'contacto-enviado', label: 'Formularios enviados', emoji: '📨' },
+    { k: 'click-whatsapp',   label: 'Clicks a WhatsApp',    emoji: '💬' },
+    { k: 'reserva-estudio',  label: 'Intentos de reserva',  emoji: '🎙' },
+    { k: 'click-instagram',  label: 'Clicks a Instagram',   emoji: '📷' },
+  ];
+  return `
+    <div class="card" style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="font-weight:700;font-size:14px;">Web · vocai.es</span>
+        <span style="font-size:12px;color:var(--text-muted);">tracker propio, sin cookies</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
+        ${mktAnaCard('Visitas', mktAnaNum(w.visitas || 0), '')}
+        ${mktAnaCard('Visitantes', mktAnaNum(w.visitantes || 0), '')}
+        ${conversiones.map(c => mktAnaCard(c.label, mktAnaNum(ev[c.k] || 0),
+          `<span style="font-size:14px;">${c.emoji}</span>`)).join('')}
+      </div>
+      ${fuentes.length ? `
+        <div style="margin-top:12px;font-size:13px;color:var(--text-muted);">
+          <strong style="color:var(--text);">De dónde vienen:</strong>
+          ${fuentes.map(([f, n]) => `${escHtml(f)} (${n})`).join(' · ')}
+        </div>` : `
+        <div style="margin-top:12px;font-size:13px;color:var(--text-muted);">
+          Sin visitas registradas este mes todavía.
+        </div>`}
     </div>`;
 }
 
