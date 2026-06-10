@@ -16,6 +16,25 @@ const { supabase } = require('../config/supabase');
 const BOT_RE = /bot|crawl|spider|slurp|preview|lighthouse|pingdom|monitor|headless/i;
 const EVENTOS_VALIDOS = ['click-whatsapp', 'reserva-estudio', 'contacto-enviado', 'click-instagram'];
 
+// Si la visita no trae UTM, la fuente se deduce del referrer. Así la bio
+// de Instagram puede ser una URL limpia (www.vocai.es) sin parámetros y
+// la visita igual queda etiquetada como "instagram".
+const REF_FUENTES = [
+  [/instagram\.com/i, 'instagram'],
+  [/facebook\.com|fb\.com|fb\.me/i, 'facebook'],
+  [/whatsapp\.|wa\.me/i, 'whatsapp'],
+  [/youtube\.com|youtu\.be/i, 'youtube'],
+  [/google\./i, 'google'],
+  [/bing\.com/i, 'bing'],
+  [/linkedin\.com|lnkd\.in/i, 'linkedin'],
+  [/twitter\.com|x\.com|t\.co/i, 'x'],
+  [/tiktok\.com/i, 'tiktok'],
+];
+function fuenteDeReferrer(ref) {
+  for (const [re, f] of REF_FUENTES) if (re.test(ref || '')) return f;
+  return null;
+}
+
 const clean = (v, max) => (typeof v === 'string' ? v.slice(0, max) : null);
 
 // Hash anónimo del visitante: misma persona = mismo hash durante el día,
@@ -52,6 +71,10 @@ router.post('/', async (req, res) => {
       dispositivo: /mobile|android|iphone|ipad/i.test(ua) ? 'movil' : 'desktop',
       visitante: hashVisitante(req),
     };
+    if (!fila.utm_source && fila.referrer) {
+      const f = fuenteDeReferrer(fila.referrer);
+      if (f) { fila.utm_source = f; fila.utm_medium = fila.utm_medium || 'referrer'; }
+    }
     await supabase.from('web_hits').insert([fila]);
     res.json({ ok: true });
   } catch {
