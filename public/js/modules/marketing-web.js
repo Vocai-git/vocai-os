@@ -155,7 +155,15 @@ function mktWebEditor(id) {
     </div>
     <div class="form-group">
       <label>Imagen de portada (URL)</label>
-      <input class="form-input" id="mw-cover" value="${escHtml(v.cover_image || '')}" placeholder="https://…">
+      <div style="display:flex;gap:8px;">
+        <input class="form-input" id="mw-cover" style="flex:1;" value="${escHtml(v.cover_image || '')}" placeholder="https://… o generala con IA →">
+        ${id ? `<button type="button" class="btn btn-secondary" id="mw-cover-btn"
+          onclick="mktWebGenerarPortada('${id}')"
+          title="Genera la portada con IA según el título y extracto del post (tarda ~30 seg)">✨ Generar</button>` : ''}
+      </div>
+      <div id="mw-cover-preview" style="margin-top:8px;">
+        ${v.cover_image ? `<img src="${escHtml(v.cover_image)}" style="max-width:100%;border-radius:8px;" alt="Portada">` : ''}
+      </div>
     </div>
     <div class="form-group">
       <label>Cuerpo (Markdown)</label>
@@ -167,6 +175,25 @@ function mktWebEditor(id) {
     <button class="btn btn-primary" onclick="mktWebGuardar()">Guardar</button>`;
   createModal('mw-modal', id ? 'Editar post' : 'Nuevo post', body, footer, 'modal-lg');
   mktWebMetaCount();
+}
+
+// Genera la portada con IA (Nano Banana, 16:9, estilo de marca, sin texto).
+// Guarda primero los cambios del form para que el prompt use el título/extracto actual.
+async function mktWebGenerarPortada(id) {
+  const btn = document.getElementById('mw-cover-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando…'; }
+  try {
+    await API.put(`/marketing-web/posts/${id}`, mktWebFormData());
+    const post = await API.post(`/marketing-web/posts/${id}/portada`);
+    document.getElementById('mw-cover').value = post.cover_image || '';
+    document.getElementById('mw-cover-preview').innerHTML = post.cover_image
+      ? `<img src="${escHtml(post.cover_image)}" style="max-width:100%;border-radius:8px;" alt="Portada">` : '';
+    toast('Portada generada', 'success');
+  } catch (err) {
+    toast('No se pudo generar: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✨ Generar'; }
+  }
 }
 
 function mktWebMetaCount() {
