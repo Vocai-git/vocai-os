@@ -23,7 +23,8 @@ Clean 16:9 horizontal composition with clear focal point.`;
 
 (async () => {
   const { data: posts, error } = await supabase
-    .from('blog_posts').select('*').is('cover_image', null);
+    .from('blog_posts').select('*')
+    .or('cover_image.is.null,cover_image.eq."",cover_image.eq.');
   if (error) { console.error(error.message); process.exit(1); }
   console.log(`${posts.length} posts sin portada.`);
 
