@@ -765,7 +765,7 @@ async function chatsOfrecerPlantilla(id) {
       }
       cerrar();
       try {
-        await API.post(`/tito/chats/${id}/enviar-plantilla`, { plantilla: p.name, parametro, texto: textoVisible });
+        await API.post(`/tito/chats/${id}/enviar-plantilla`, { plantilla: p.name, parametro, texto: textoVisible, idioma: p.idioma });
         toast('Plantilla enviada ✓', 'success');
         await chatsRefrescarMensajes();
       } catch (err) {
