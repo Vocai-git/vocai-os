@@ -204,6 +204,21 @@ router.post('/chats/:id/enviar', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Plantillas aprobadas (para escribir fuera de la ventana de 24h)
+router.get('/chats/plantillas', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy('/api/chats/plantillas');
+    res.status(status).json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/chats/:id/enviar-plantilla', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy(`/api/chats/${req.params.id}/enviar-plantilla`, { method: 'POST', body: JSON.stringify(req.body) });
+    res.status(status).json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Enviar archivo/imagen/audio: reenvía el multipart al assistant
 router.post('/chats/:id/enviar-media', auth, upload.single('archivo'), async (req, res) => {
   try {

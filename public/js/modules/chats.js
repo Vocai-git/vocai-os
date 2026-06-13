@@ -249,6 +249,36 @@ async function renderChats(container) {
 .chat-check.leido { color: #53bdeb; opacity: 1; }   /* ✓✓ azul = leído */
 .chat-check.fallido { color: #ef4444; opacity: 1; cursor: help; letter-spacing: 0; }
 
+/* Selector de plantillas (fuera de ventana de 24h) */
+.chats-tpl-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,.5);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.chats-tpl-modal {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 14px;
+  width: 100%; max-width: 440px; padding: 20px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.3);
+}
+.chats-tpl-title { margin: 0 0 6px; font-size: 1.05rem; }
+.chats-tpl-sub { margin: 0 0 16px; font-size: .85rem; color: var(--text-muted); line-height: 1.45; }
+.chats-tpl-list { display: flex; flex-direction: column; gap: 8px; }
+.chats-tpl-opt {
+  text-align: left; width: 100%;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; font-size: .9rem; color: var(--text); cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.chats-tpl-opt:hover { border-color: var(--azul); background: var(--bg); }
+.chats-tpl-cancel {
+  margin-top: 14px; width: 100%;
+  background: transparent; border: none; color: var(--text-muted);
+  padding: 8px; font-size: .85rem; cursor: pointer;
+}
+.chats-tpl-cancel:hover { color: var(--text); }
+
 .chat-rol-label {
   font-size: 10px;
   font-weight: 600;
@@ -675,9 +705,74 @@ async function chatsEnviar(id) {
     await API.post(`/tito/chats/${id}/enviar`, { texto });
     await chatsRefrescarMensajes();
   } catch (err) {
-    toast('Error enviando: ' + err.message, 'error');
     txt.value = texto;
+    if (err.codigo === 'fuera_de_ventana') {
+      chatsOfrecerPlantilla(id);   // el contacto no escribió en 24h → ofrecer plantilla
+    } else {
+      toast('Error enviando: ' + err.message, 'error');
+    }
   }
+}
+
+// Selector de plantillas: aparece cuando intentás escribir a un contacto fuera de la
+// ventana de 24h. WhatsApp solo permite plantillas aprobadas para ese primer toque;
+// apenas el contacto responde, ya se puede escribir libre.
+async function chatsOfrecerPlantilla(id) {
+  let plantillas = [];
+  try {
+    const r = await API.get('/tito/chats/plantillas');
+    plantillas = r.plantillas || [];
+  } catch (err) {
+    toast('No pude cargar las plantillas: ' + err.message, 'error');
+    return;
+  }
+  if (!plantillas.length) {
+    toast('Este contacto no te ha escrito en 24h. Las plantillas de saludo aún están en revisión de Meta; cuando se aprueben podrás enviarle el primer mensaje.', 'error');
+    return;
+  }
+
+  // Nombre conocido del contacto (si el encabezado no es un teléfono)
+  const head = document.getElementById('chatsHeadName')?.textContent?.trim() || '';
+  const nombreConocido = /^[+\d\s()-]+$/.test(head) ? '' : head;
+
+  const ov = document.createElement('div');
+  ov.className = 'chats-tpl-overlay';
+  ov.innerHTML = `
+<div class="chats-tpl-modal">
+  <h3 class="chats-tpl-title">Fuera de la ventana de 24h</h3>
+  <p class="chats-tpl-sub">Este contacto no te ha escrito en las últimas 24h, así que WhatsApp solo deja enviar una plantilla aprobada. Elegí cuál mandar — cuando responda, ya podrás escribirle libre.</p>
+  <div class="chats-tpl-list">
+    ${plantillas.map((p, i) => `
+    <button class="chats-tpl-opt" data-i="${i}">${escHtml(p.texto)}</button>`).join('')}
+  </div>
+  <button class="chats-tpl-cancel">Cancelar</button>
+</div>`;
+  document.body.appendChild(ov);
+  const cerrar = () => ov.remove();
+  ov.querySelector('.chats-tpl-cancel').onclick = cerrar;
+  ov.onclick = (e) => { if (e.target === ov) cerrar(); };
+
+  ov.querySelectorAll('.chats-tpl-opt').forEach(btn => {
+    btn.onclick = async () => {
+      const p = plantillas[+btn.dataset.i];
+      let parametro = null;
+      let textoVisible = p.texto;
+      if (p.tieneParametro) {
+        const val = prompt('Nombre para personalizar el saludo:', nombreConocido);
+        if (val === null) return;            // canceló el prompt
+        parametro = val.trim();
+        textoVisible = p.texto.replace(/\{\{\s*1\s*\}\}/, parametro || '');
+      }
+      cerrar();
+      try {
+        await API.post(`/tito/chats/${id}/enviar-plantilla`, { plantilla: p.name, parametro, texto: textoVisible });
+        toast('Plantilla enviada ✓', 'success');
+        await chatsRefrescarMensajes();
+      } catch (err) {
+        toast('Error enviando plantilla: ' + err.message, 'error');
+      }
+    };
+  });
 }
 
 async function chatsToggleBot() {

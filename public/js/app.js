@@ -45,7 +45,12 @@ const API = {
       return;
     }
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error del servidor');
+    if (!res.ok) {
+      const e = new Error(data.error || 'Error del servidor');
+      e.status = res.status;
+      e.codigo = data.codigo;   // p.ej. 'fuera_de_ventana'
+      throw e;
+    }
     return data;
   },
   get: (path) => API.req('GET', path),
