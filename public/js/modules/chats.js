@@ -244,6 +244,10 @@ async function renderChats(container) {
 .chat-msg.tito .chat-msg-meta, .chat-msg.sistema .chat-msg-meta, .chat-msg.humano .chat-msg-meta {
   text-align: right;
 }
+/* Doble-check de estado de entrega (estilo WhatsApp), solo en mensajes salientes */
+.chat-check { margin-left: 4px; font-weight: 700; letter-spacing: -1px; opacity: .75; }
+.chat-check.leido { color: #53bdeb; opacity: 1; }   /* ✓✓ azul = leído */
+.chat-check.fallido { color: #ef4444; opacity: 1; cursor: help; letter-spacing: 0; }
 
 .chat-rol-label {
   font-size: 10px;
@@ -574,6 +578,23 @@ async function chatsAbrirConv(id) {
 
 // ── Render mensajes ───────────────────────────────────────────
 
+// Icono de estado de entrega para mensajes SALIENTES (no para los del cliente).
+//   enviado   → ✓     (aceptado por WhatsApp)
+//   entregado → ✓✓    (llegó al teléfono)
+//   leido     → ✓✓    azul (el contacto lo abrió)
+//   fallido   → ⚠ rojo (no se entregó; el motivo va en el tooltip)
+function chatEstadoIcono(m) {
+  if (!m.rol || m.rol === 'cliente') return '';
+  if (m.estado === 'fallido') {
+    const motivo = escHtml(m.error_motivo || 'No se pudo entregar');
+    return `<span class="chat-check fallido" title="No entregado: ${motivo}">⚠</span>`;
+  }
+  if (m.estado === 'leido')     return `<span class="chat-check leido" title="Leído">✓✓</span>`;
+  if (m.estado === 'entregado') return `<span class="chat-check" title="Entregado">✓✓</span>`;
+  // 'enviado' o sin dato (mensajes anteriores a esta función) → un check
+  return `<span class="chat-check" title="Enviado">✓</span>`;
+}
+
 function chatsRenderMensajes(mensajes) {
   const el = document.getElementById('chatsMsgs');
   if (!el) return;
@@ -593,7 +614,7 @@ function chatsRenderMensajes(mensajes) {
 <div class="chat-msg ${m.rol}">
   ${showLabel ? `<div class="chat-rol-label">${rolLabel}</div>` : ''}
   ${cuerpo}
-  <div class="chat-msg-meta">${hora}</div>
+  <div class="chat-msg-meta">${hora}${chatEstadoIcono(m)}</div>
 </div>`;
   }).join('');
 
