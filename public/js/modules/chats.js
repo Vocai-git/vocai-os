@@ -616,8 +616,9 @@ async function chatsAbrirConv(id) {
 function chatEstadoIcono(m) {
   if (!m.rol || m.rol === 'cliente') return '';
   if (m.estado === 'fallido') {
-    const motivo = escHtml(m.error_motivo || 'No se pudo entregar');
-    return `<span class="chat-check fallido" title="No entregado: ${motivo}">⚠</span>`;
+    const motivo = m.error_motivo || 'No se pudo entregar';
+    const motivoJs = motivo.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/[\r\n]+/g, ' ');
+    return `<span class="chat-check fallido" title="${escHtml('No entregado: ' + motivo)}" style="cursor:pointer" onclick="alert('⚠ Mensaje no entregado:\\n\\n' + '${motivoJs}')">⚠</span>`;
   }
   if (m.estado === 'leido')     return `<span class="chat-check leido" title="Leído">✓✓</span>`;
   if (m.estado === 'entregado') return `<span class="chat-check" title="Entregado">✓✓</span>`;
