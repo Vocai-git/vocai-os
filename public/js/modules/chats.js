@@ -217,6 +217,7 @@ async function renderChats(container) {
   font-size: 13px;
   line-height: 1.5;
   word-break: break-word;
+  white-space: pre-wrap;   /* respeta saltos de línea y espacios al mostrar el mensaje */
 }
 .chat-msg.cliente .chat-bubble {
   background: var(--surface);
