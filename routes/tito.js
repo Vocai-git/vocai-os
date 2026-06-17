@@ -212,6 +212,13 @@ router.get('/chats/plantillas', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.delete('/chats/:id', auth, async (req, res) => {
+  try {
+    const { status, data } = await proxy(`/api/chats/${req.params.id}`, { method: 'DELETE' });
+    res.status(status).json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.post('/chats/:id/enviar-plantilla', auth, async (req, res) => {
   try {
     const { status, data } = await proxy(`/api/chats/${req.params.id}/enviar-plantilla`, { method: 'POST', body: JSON.stringify(req.body) });
