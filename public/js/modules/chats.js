@@ -609,6 +609,18 @@ async function chatsAbrirConv(id) {
 
 // ── Render mensajes ───────────────────────────────────────────
 
+// Convierte el formato de texto de WhatsApp a HTML para mostrarlo en la burbuja:
+//   *negrita*  _cursiva_  ~tachado~  ```mono```
+// Escapa primero el HTML (seguridad); los saltos de línea los respeta el CSS pre-wrap.
+function formatoWhatsApp(texto) {
+  let t = escHtml(texto || '');
+  t = t.replace(/```([^`]+)```/g, '<code>$1</code>');                              // ```mono```
+  t = t.replace(/(^|[\s(>])\*([^*\n]+)\*(?=[\s).,!?;:<]|$)/g, '$1<strong>$2</strong>'); // *negrita*
+  t = t.replace(/(^|[\s(>])~([^~\n]+)~(?=[\s).,!?;:<]|$)/g, '$1<del>$2</del>');         // ~tachado~
+  t = t.replace(/(^|[\s(>])_([^_\n]+)_(?=[\s).,!?;:<]|$)/g, '$1<em>$2</em>');           // _cursiva_
+  return t;
+}
+
 // Icono de estado de entrega para mensajes SALIENTES (no para los del cliente).
 //   enviado   → ✓     (aceptado por WhatsApp)
 //   entregado → ✓✓    (llegó al teléfono)
@@ -640,7 +652,7 @@ function chatsRenderMensajes(mensajes) {
 
     const cuerpo = (m.tipo && m.tipo !== 'texto' && m.media_url)
       ? chatMediaBubble(m)
-      : `<div class="chat-bubble">${escHtml(m.contenido || '')}</div>`;
+      : `<div class="chat-bubble">${formatoWhatsApp(m.contenido || '')}</div>`;
 
     return `
 <div class="chat-msg ${m.rol}">
@@ -864,7 +876,7 @@ async function chatsEnviarNuevo() {
 
 function chatMediaBubble(m) {
   const url = m.media_url;
-  const cap = m.contenido ? `<div class="chat-bubble-caption">${escHtml(m.contenido)}</div>` : '';
+  const cap = m.contenido ? `<div class="chat-bubble-caption">${formatoWhatsApp(m.contenido)}</div>` : '';
 
   if (m.tipo === 'imagen') {
     return `<div class="chat-bubble chat-bubble-media"><img src="${url}" alt="imagen" onclick="window.open('${url}','_blank')">${cap}</div>`;
