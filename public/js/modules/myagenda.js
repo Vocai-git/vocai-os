@@ -16,7 +16,7 @@ async function renderMyagenda(el) {
       <button class="btn" id="meTabProx" onclick="switchMyEventTab('prox')" style="background:#FF6B6B;color:white;font-weight:600;">
         Próximos (${upcoming.length})
       </button>
-      <button class="btn" id="meTabPast" onclick="switchMyEventTab('past')" style="background:#2a2a2a;color:#888;">
+      <button class="btn" id="meTabPast" onclick="switchMyEventTab('past')" style="background:var(--border);color:var(--text-muted);">
         Pasados (${past.length})
       </button>
     </div>
@@ -41,11 +41,11 @@ function renderMyEventCard(e, isPast = false) {
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
       <div style="flex:1;">
         <div style="font-weight:600;font-size:15px;">${escHtml(e.titulo)}</div>
-        <div style="display:flex;gap:12px;margin-top:6px;font-size:13px;color:#888;">
+        <div style="display:flex;gap:12px;margin-top:6px;font-size:13px;color:var(--text-muted);">
           <span>📅 ${dateStr}</span>
           ${timeStr ? `<span>🕐 ${timeStr}</span>` : ''}
         </div>
-        ${e.descripcion ? `<div style="margin-top:8px;font-size:13px;color:#aaa;">${escHtml(e.descripcion)}</div>` : ''}
+        ${e.descripcion ? `<div style="margin-top:8px;font-size:13px;color:var(--text-muted);">${escHtml(e.descripcion)}</div>` : ''}
       </div>
       <div style="display:flex;gap:4px;">
         <button class="btn btn-ghost btn-icon btn-sm" onclick="editMyEvent('${e.id}')">✏️</button>
@@ -63,11 +63,11 @@ function switchMyEventTab(tab) {
   if (tab === 'prox') {
     prox.style.display = ''; past.style.display = 'none';
     btnP.style.background = '#FF6B6B'; btnP.style.color = 'white';
-    btnA.style.background = '#2a2a2a'; btnA.style.color = '#888';
+    btnA.style.background = 'var(--border)'; btnA.style.color = 'var(--text-muted)';
   } else {
     prox.style.display = 'none'; past.style.display = '';
     btnA.style.background = '#FF6B6B'; btnA.style.color = 'white';
-    btnP.style.background = '#2a2a2a'; btnP.style.color = '#888';
+    btnP.style.background = 'var(--border)'; btnP.style.color = 'var(--text-muted)';
   }
 }
 

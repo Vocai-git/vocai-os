@@ -56,7 +56,7 @@ async function renderDashboard(el) {
             <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;">Ingresos últimos 6 meses</div>
             <div style="font-size:13px;color:var(--text-muted);">Facturas cobradas</div>
           </div>
-          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;">
+          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--text);">
             ${formatMoney(kpis.monthlyRevenue)}
           </div>
         </div>
@@ -109,7 +109,7 @@ async function renderDashboard(el) {
 
       <div class="card" style="display:flex;flex-direction:column;justify-content:center;">
         <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Facturado este mes</div>
-        <div style="font-family:'Syne',sans-serif;font-size:52px;font-weight:800;color:#fff;line-height:1;margin-bottom:8px;">
+        <div style="font-family:'Syne',sans-serif;font-size:52px;font-weight:800;color:var(--text);line-height:1;margin-bottom:8px;">
           ${formatMoney(kpis.monthlyRevenue)}
         </div>
         <div style="font-size:13px;color:var(--text-muted);">cobrado y confirmado</div>
@@ -325,7 +325,7 @@ function initRevenueChart(months) {
 }
 
 function formatMoneyShort(n) {
-  const sym = '<span style="font-size:14px;color:#888888;font-family:Outfit,sans-serif;font-weight:400;">€</span>';
+  const sym = '<span style="font-size:14px;color:var(--text-muted);font-family:Outfit,sans-serif;font-weight:400;">€</span>';
   if (!n) return sym + '0';
   if (n >= 1000) return sym + (n/1000).toFixed(1).replace('.0','') + 'k';
   return sym + n;

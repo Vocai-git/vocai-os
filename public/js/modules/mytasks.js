@@ -18,7 +18,7 @@ async function renderMytasks(el) {
       <button class="btn" id="mtTabActivas" onclick="switchMyTaskTab('activas')" style="background:#FF6B6B;color:white;font-weight:600;">
         Activas (${activas.length})
       </button>
-      <button class="btn" id="mtTabCompletadas" onclick="switchMyTaskTab('completadas')" style="background:#2a2a2a;color:#888;">
+      <button class="btn" id="mtTabCompletadas" onclick="switchMyTaskTab('completadas')" style="background:var(--border);color:var(--text-muted);">
         Completadas (${completadas.length})
       </button>
     </div>
@@ -41,7 +41,7 @@ async function renderMytasks(el) {
             : completadas.map(t => `<tr style="opacity:0.7;">
                 <td style="text-decoration:line-through;">${escHtml(t.titulo)}</td>
                 <td>${badge(t.prioridad||'normal')}</td>
-                <td style="font-size:13px;color:#888;">${t.updated_at ? formatDate(t.updated_at) : '—'}</td>
+                <td style="font-size:13px;color:var(--text-muted);">${t.updated_at ? formatDate(t.updated_at) : '—'}</td>
                 <td><button class="btn btn-ghost btn-icon btn-sm" onclick="deleteMyTask('${t.id}')">🗑️</button></td>
               </tr>`).join('')}
           </tbody>
@@ -78,11 +78,11 @@ function switchMyTaskTab(tab) {
   if (tab === 'activas') {
     a.style.display = ''; c.style.display = 'none';
     btnA.style.background = '#FF6B6B'; btnA.style.color = 'white';
-    btnC.style.background = '#2a2a2a'; btnC.style.color = '#888';
+    btnC.style.background = 'var(--border)'; btnC.style.color = 'var(--text-muted)';
   } else {
     a.style.display = 'none'; c.style.display = '';
     btnC.style.background = '#FF6B6B'; btnC.style.color = 'white';
-    btnA.style.background = '#2a2a2a'; btnA.style.color = '#888';
+    btnA.style.background = 'var(--border)'; btnA.style.color = 'var(--text-muted)';
   }
 }
 

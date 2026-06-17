@@ -106,7 +106,7 @@ async function showInvoiceForm(data) {
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Importe base (€) * <span style="font-size:11px;color:#888;font-weight:400;">bruto, sin IVA</span></label>
+        <label class="form-label">Importe base (€) * <span style="font-size:11px;color:var(--text-muted);font-weight:400;">bruto, sin IVA</span></label>
         <input class="form-input" id="if_importe" type="number" step="0.01" value="${data?.importe||''}" placeholder="0.00" oninput="calcInvoice()">
       </div>
       <div class="form-group">

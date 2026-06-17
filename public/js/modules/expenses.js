@@ -95,10 +95,10 @@ function buildExpensesHTML(el, expenses, acumulado) {
     <div class="section-header">
       <h2 class="section-title">Inversión</h2>
       <div style="display:flex;gap:10px;align-items:center;">
-        <div style="display:flex;align-items:center;gap:8px;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:6px 12px;">
-          <button type="button" id="btnMesAnt" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;padding:4px 8px;">&#8249;</button>
-          <span id="expMesLabel" style="font-size:14px;font-weight:600;color:#fff;min-width:140px;text-align:center;">${mesLabel()}</span>
-          <button type="button" id="btnMesSig" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;padding:4px 8px;">&#8250;</button>
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;">
+          <button type="button" id="btnMesAnt" style="background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:4px 8px;">&#8249;</button>
+          <span id="expMesLabel" style="font-size:14px;font-weight:600;color:var(--text);min-width:140px;text-align:center;">${mesLabel()}</span>
+          <button type="button" id="btnMesSig" style="background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:4px 8px;">&#8250;</button>
         </div>
         <button class="btn btn-primary" onclick="newExpense()">+ Nueva inversión</button>
       </div>
@@ -107,43 +107,43 @@ function buildExpensesHTML(el, expenses, acumulado) {
     <!-- KPIs -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">
       <div class="card" style="padding:20px;text-align:center;cursor:pointer;" onclick="filtrarGastos('todos')" id="kpiTotal">
-        <div style="font-size:13px;color:#888;margin-bottom:8px;">Total del mes</div>
-        <div id="kpiTotalVal" style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff;">
-          <span style="font-size:14px;color:#888;font-family:Outfit,sans-serif;font-weight:400;">€</span>${totalMes.toLocaleString('es-ES',{minimumFractionDigits:2})}
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Total del mes</div>
+        <div id="kpiTotalVal" style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--text);">
+          <span style="font-size:14px;color:var(--text-muted);font-family:Outfit,sans-serif;font-weight:400;">€</span>${totalMes.toLocaleString('es-ES',{minimumFractionDigits:2})}
         </div>
       </div>
       <div class="card" style="padding:20px;text-align:center;cursor:pointer;" onclick="filtrarGastos('Agus')" id="kpiAgus">
-        <div style="font-size:13px;color:#888;margin-bottom:8px;">Agus</div>
-        <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff;">
-          <span style="font-size:14px;color:#888;font-family:Outfit,sans-serif;font-weight:400;">€</span>${totalAgus.toLocaleString('es-ES',{minimumFractionDigits:2})}
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Agus</div>
+        <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--text);">
+          <span style="font-size:14px;color:var(--text-muted);font-family:Outfit,sans-serif;font-weight:400;">€</span>${totalAgus.toLocaleString('es-ES',{minimumFractionDigits:2})}
         </div>
       </div>
       <div class="card" style="padding:20px;text-align:center;cursor:pointer;" onclick="filtrarGastos('Santi')" id="kpiSanti">
-        <div style="font-size:13px;color:#888;margin-bottom:8px;">Santi</div>
-        <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#fff;">
-          <span style="font-size:14px;color:#888;font-family:Outfit,sans-serif;font-weight:400;">€</span>${totalSanti.toLocaleString('es-ES',{minimumFractionDigits:2})}
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">Santi</div>
+        <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--text);">
+          <span style="font-size:14px;color:var(--text-muted);font-family:Outfit,sans-serif;font-weight:400;">€</span>${totalSanti.toLocaleString('es-ES',{minimumFractionDigits:2})}
         </div>
       </div>
     </div>
 
     <!-- KPIs Acumulado Año -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;padding-top:16px;border-top:1px solid #2a2a2a;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;padding-top:16px;border-top:1px solid var(--border);">
       <div class="card" style="padding:14px;text-align:center;">
-        <div style="font-size:11px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Acumulado ${window._expYear}</div>
-        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;">
-          <span style="font-size:12px;color:#666;font-family:Outfit,sans-serif;font-weight:400;">€</span>${(acumulado?.total||0).toLocaleString('es-ES',{minimumFractionDigits:2})}
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Acumulado ${window._expYear}</div>
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--text);">
+          <span style="font-size:12px;color:var(--text-dim);font-family:Outfit,sans-serif;font-weight:400;">€</span>${(acumulado?.total||0).toLocaleString('es-ES',{minimumFractionDigits:2})}
         </div>
       </div>
       <div class="card" style="padding:14px;text-align:center;">
-        <div style="font-size:11px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Agus ${window._expYear}</div>
-        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;">
-          <span style="font-size:12px;color:#666;font-family:Outfit,sans-serif;font-weight:400;">€</span>${(acumulado?.agus||0).toLocaleString('es-ES',{minimumFractionDigits:2})}
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Agus ${window._expYear}</div>
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--text);">
+          <span style="font-size:12px;color:var(--text-dim);font-family:Outfit,sans-serif;font-weight:400;">€</span>${(acumulado?.agus||0).toLocaleString('es-ES',{minimumFractionDigits:2})}
         </div>
       </div>
       <div class="card" style="padding:14px;text-align:center;">
-        <div style="font-size:11px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Santi ${window._expYear}</div>
-        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;">
-          <span style="font-size:12px;color:#666;font-family:Outfit,sans-serif;font-weight:400;">€</span>${(acumulado?.santi||0).toLocaleString('es-ES',{minimumFractionDigits:2})}
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Santi ${window._expYear}</div>
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--text);">
+          <span style="font-size:12px;color:var(--text-dim);font-family:Outfit,sans-serif;font-weight:400;">€</span>${(acumulado?.santi||0).toLocaleString('es-ES',{minimumFractionDigits:2})}
         </div>
       </div>
     </div>
@@ -157,7 +157,7 @@ function buildExpensesHTML(el, expenses, acumulado) {
       </div>
       <input id="expSearch" type="search" placeholder="Buscar por concepto, categoría o responsable…"
         oninput="filtrarBusquedaGastos(this.value)"
-        style="flex:1;min-width:220px;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;">
+        style="flex:1;min-width:220px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;">
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;">
@@ -187,17 +187,17 @@ function buildExpensesHTML(el, expenses, acumulado) {
 
 function renderCatSummary(byCat, totalRef, catColors) {
   const entries = Object.entries(byCat).sort((a,b) => b[1]-a[1]);
-  if (entries.length === 0) return '<div style="font-size:13px;color:#888;">Sin gastos</div>';
+  if (entries.length === 0) return '<div style="font-size:13px;color:var(--text-muted);">Sin gastos</div>';
   return entries.map(([cat, amt]) => {
     const color = catColors[cat] || '#888';
     const pct = totalRef > 0 ? (amt / totalRef * 100) : 0;
     return `
       <div style="margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
-          <span style="text-transform:capitalize;color:#ccc;">${cat}</span>
-          <strong style="color:#fff;">${formatMoney(amt)}</strong>
+          <span style="text-transform:capitalize;color:var(--text-muted);">${cat}</span>
+          <strong style="color:var(--text);">${formatMoney(amt)}</strong>
         </div>
-        <div style="height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden;">
+        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
           <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;"></div>
         </div>
       </div>`;
@@ -223,7 +223,7 @@ function renderExpRows(expenses) {
       <td><span style="display:inline-block;padding:3px 10px;border-radius:6px;font-size:12px;text-transform:capitalize;background:${color}22;color:${color};border:1px solid ${color}44;">${escHtml(e.categoria||'otros')}</span></td>
       <td>${responsablePill(resp||'—')}</td>
       <td><strong style="color:#FF6B6B;">${formatMoney(e.importe)}</strong></td>
-      <td style="color:#888;">${formatDate(e.fecha)}</td>
+      <td style="color:var(--text-muted);">${formatDate(e.fecha)}</td>
       <td>
         <div style="display:flex;gap:4px;">
           <button class="btn btn-ghost btn-icon btn-sm" onclick="moverTipoExp('${e.id}','${tipoDestino}')" title="Mover a ${tipoDestinoLabel}" style="font-size:14px;">↔️</button>
@@ -275,7 +275,7 @@ function aplicarFiltrosExp() {
 
   const kpiTotal = document.getElementById('kpiTotalVal');
   if (kpiTotal) {
-    kpiTotal.innerHTML = `<span style="font-size:14px;color:#888;font-family:Outfit,sans-serif;font-weight:400;">€</span>${totalVisible.toLocaleString('es-ES',{minimumFractionDigits:2})}`;
+    kpiTotal.innerHTML = `<span style="font-size:14px;color:var(--text-muted);font-family:Outfit,sans-serif;font-weight:400;">€</span>${totalVisible.toLocaleString('es-ES',{minimumFractionDigits:2})}`;
   }
 
   document.querySelectorAll('#expFiltros button').forEach(btn => {
@@ -332,7 +332,7 @@ function showExpenseForm(data) {
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Importe base (€) * <span style="font-size:11px;color:#888;font-weight:400;">bruto, sin IVA</span></label>
+        <label class="form-label">Importe base (€) * <span style="font-size:11px;color:var(--text-muted);font-weight:400;">bruto, sin IVA</span></label>
         <input class="form-input" id="ef_importe" type="number" step="0.01" value="${data?.importe||''}" placeholder="0.00" oninput="calcExpense()">
       </div>
     </div>
@@ -350,10 +350,10 @@ function showExpenseForm(data) {
       <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;">
         <span>Base imponible</span><span id="expCalcBase">${formatMoney(data?.importe||0)}</span>
       </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;color:#888;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;color:var(--text-muted);">
         <span>IVA</span><span id="expCalcIva">${formatMoney(data?.iva||0)}</span>
       </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;color:#888;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;color:var(--text-muted);">
         <span>IRPF</span><span id="expCalcIrpf">-${formatMoney(data?.irpf||0)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;border-top:1px solid var(--border);padding-top:8px;">

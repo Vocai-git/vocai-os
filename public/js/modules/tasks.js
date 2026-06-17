@@ -19,7 +19,7 @@ async function renderTasks(el) {
         Activas (${activas.length})
       </button>
       <button class="btn" id="tabCompletadas" onclick="switchTaskTab('completadas')"
-        style="background:#2a2a2a;color:#888;">
+        style="background:var(--border);color:var(--text-muted);">
         Completadas (${completadas.length})
       </button>
     </div>
@@ -63,7 +63,7 @@ async function renderTasks(el) {
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
           <div>
             <div style="font-weight:600;">Historial de tareas completadas</div>
-            <div style="font-size:13px;color:#888;">${completadas.length} tarea${completadas.length !== 1 ? 's' : ''} en el historial</div>
+            <div style="font-size:13px;color:var(--text-muted);">${completadas.length} tarea${completadas.length !== 1 ? 's' : ''} en el historial</div>
           </div>
           <button class="btn" style="background:#FF6B6B;color:white;" onclick="showCleanupDialog()" ${completadas.length === 0 ? 'disabled' : ''}>
             Limpiar historial
@@ -88,7 +88,7 @@ function renderTaskRows(tasks) {
     return `<tr>
       <td><input type="checkbox" ${t.estado==='completada'?'checked':''} onchange="quickToggleTask('${t.id}',this.checked)" style="width:16px;height:16px;cursor:pointer;"></td>
       <td><div style="${t.estado==='completada'?'text-decoration:line-through;opacity:0.5;':''};font-weight:500;">${escHtml(t.titulo)}</div></td>
-      <td style="color:#888;font-size:13px;">${escHtml(t.projects?.nombre||'—')}</td>
+      <td style="color:var(--text-muted);font-size:13px;">${escHtml(t.projects?.nombre||'—')}</td>
       <td>${badge(t.prioridad||'normal')}</td>
       <td>${badge(t.estado||'pendiente')}</td>
       <td>${responsablePill(t.responsable)}</td>
@@ -107,10 +107,10 @@ function renderCompletedRows(tasks) {
   if (!tasks.length) return `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">No hay tareas completadas</div></div></td></tr>`;
   return tasks.map(t => `<tr style="opacity:0.7;">
     <td><div style="text-decoration:line-through;">${escHtml(t.titulo)}</div></td>
-    <td style="color:#888;font-size:13px;">${escHtml(t.projects?.nombre||'—')}</td>
+    <td style="color:var(--text-muted);font-size:13px;">${escHtml(t.projects?.nombre||'—')}</td>
     <td>${badge(t.prioridad||'normal')}</td>
     <td>${responsablePill(t.responsable)}</td>
-    <td style="font-size:13px;color:#888;">${t.updated_at ? formatDate(t.updated_at) : '—'}</td>
+    <td style="font-size:13px;color:var(--text-muted);">${t.updated_at ? formatDate(t.updated_at) : '—'}</td>
     <td>
       <div style="display:flex;gap:4px;">
         <button class="btn btn-ghost btn-icon btn-sm" onclick="quickToggleTask('${t.id}',false)" title="Reactivar">↩️</button>
@@ -131,15 +131,15 @@ function switchTaskTab(tab) {
     completadas.style.display = 'none';
     btnA.style.background = '#FF6B6B';
     btnA.style.color = 'white';
-    btnC.style.background = '#2a2a2a';
-    btnC.style.color = '#888';
+    btnC.style.background = 'var(--border)';
+    btnC.style.color = 'var(--text-muted)';
   } else {
     activas.style.display = 'none';
     completadas.style.display = '';
     btnC.style.background = '#FF6B6B';
     btnC.style.color = 'white';
-    btnA.style.background = '#2a2a2a';
-    btnA.style.color = '#888';
+    btnA.style.background = 'var(--border)';
+    btnA.style.color = 'var(--text-muted)';
   }
 }
 
@@ -284,19 +284,19 @@ function showCleanupDialog() {
   const count365 = completadas.filter(t => t.updated_at && (now - new Date(t.updated_at)) > 365 * 86400000).length;
 
   createModal('cleanupModal', 'Limpiar historial de tareas', `
-    <p style="color:#888;margin-bottom:20px;">Elegí qué tareas completadas querés eliminar:</p>
+    <p style="color:var(--text-muted);margin-bottom:20px;">Elegí qué tareas completadas querés eliminar:</p>
     <div style="display:flex;flex-direction:column;gap:10px;">
       <button class="btn btn-secondary" onclick="confirmCleanup('30')" style="text-align:left;padding:14px 16px;">
         <div style="font-weight:600;">Más de 30 días</div>
-        <div style="font-size:12px;color:#888;margin-top:2px;">${count30} tarea${count30 !== 1 ? 's' : ''} se eliminarán</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${count30} tarea${count30 !== 1 ? 's' : ''} se eliminarán</div>
       </button>
       <button class="btn btn-secondary" onclick="confirmCleanup('90')" style="text-align:left;padding:14px 16px;">
         <div style="font-weight:600;">Más de 90 días</div>
-        <div style="font-size:12px;color:#888;margin-top:2px;">${count90} tarea${count90 !== 1 ? 's' : ''} se eliminarán</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${count90} tarea${count90 !== 1 ? 's' : ''} se eliminarán</div>
       </button>
       <button class="btn btn-secondary" onclick="confirmCleanup('365')" style="text-align:left;padding:14px 16px;">
         <div style="font-weight:600;">Más de 1 año</div>
-        <div style="font-size:12px;color:#888;margin-top:2px;">${count365} tarea${count365 !== 1 ? 's' : ''} se eliminarán</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${count365} tarea${count365 !== 1 ? 's' : ''} se eliminarán</div>
       </button>
       <button class="btn" onclick="confirmCleanup('all')" style="background:#FF6B6B;color:white;text-align:left;padding:14px 16px;">
         <div style="font-weight:600;">Todo el historial</div>

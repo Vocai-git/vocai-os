@@ -16,7 +16,7 @@ async function renderAgenda(el) {
       <button class="btn" id="agTabProx" onclick="switchAgendaTab('prox')" style="background:#FF6B6B;color:white;font-weight:600;">
         Próximos (${upcoming.length})
       </button>
-      <button class="btn" id="agTabPast" onclick="switchAgendaTab('past')" style="background:#2a2a2a;color:#888;">
+      <button class="btn" id="agTabPast" onclick="switchAgendaTab('past')" style="background:var(--border);color:var(--text-muted);">
         Pasados (${past.length})
       </button>
     </div>
@@ -44,12 +44,12 @@ function renderAgendaCard(e, isPast = false) {
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
       <div style="flex:1;">
         <div style="font-weight:600;font-size:15px;">${escHtml(e.titulo)}${gcIcon}</div>
-        <div style="display:flex;gap:12px;margin-top:6px;font-size:13px;color:#888;flex-wrap:wrap;">
+        <div style="display:flex;gap:12px;margin-top:6px;font-size:13px;color:var(--text-muted);flex-wrap:wrap;">
           <span>📅 ${dateStr}</span>
           ${timeStr ? `<span>🕐 ${timeStr}</span>` : ''}
           <span>👤 ${asignadoLabel}</span>
         </div>
-        ${e.descripcion ? `<div style="margin-top:8px;font-size:13px;color:#aaa;">${escHtml(e.descripcion)}</div>` : ''}
+        ${e.descripcion ? `<div style="margin-top:8px;font-size:13px;color:var(--text-muted);">${escHtml(e.descripcion)}</div>` : ''}
       </div>
       <div style="display:flex;gap:4px;">
         <button class="btn btn-ghost btn-icon btn-sm" onclick="editAgendaEvent('${e.id}')">✏️</button>
@@ -67,11 +67,11 @@ function switchAgendaTab(tab) {
   if (tab === 'prox') {
     prox.style.display = ''; past.style.display = 'none';
     btnP.style.background = '#FF6B6B'; btnP.style.color = 'white';
-    btnA.style.background = '#2a2a2a'; btnA.style.color = '#888';
+    btnA.style.background = 'var(--border)'; btnA.style.color = 'var(--text-muted)';
   } else {
     prox.style.display = 'none'; past.style.display = '';
     btnA.style.background = '#FF6B6B'; btnA.style.color = 'white';
-    btnP.style.background = '#2a2a2a'; btnP.style.color = '#888';
+    btnP.style.background = 'var(--border)'; btnP.style.color = 'var(--text-muted)';
   }
 }
 
@@ -110,7 +110,7 @@ function showAgendaForm(data) {
       <label class="form-label">Descripción</label>
       <textarea class="form-textarea" id="ag_desc" style="min-height:60px;">${escHtml(data?.descripcion||'')}</textarea>
     </div>
-    <div style="padding:10px;background:rgba(41,121,255,0.08);border-radius:8px;font-size:12px;color:#888;margin-top:4px;">
+    <div style="padding:10px;background:rgba(41,121,255,0.08);border-radius:8px;font-size:12px;color:var(--text-muted);margin-top:4px;">
       📲 Si tenés Google Calendar conectado, el evento se agrega automáticamente al calendario del asignado.
     </div>
   `, `

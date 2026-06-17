@@ -120,14 +120,14 @@ async function finCopiarRecurrentes() {
         <input type="checkbox" class="finCopyChk" value="${e.id}" ${yaCopiado ? 'disabled' : 'checked'} style="width:16px;height:16px;">
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:500;">${escHtml(e.nombre || '—')}</div>
-          <div style="font-size:11px;color:#888;">${escHtml(e.categoria || 'otros')} · ${escHtml(e.responsable || '—')}${yaCopiado ? ' · <span style=\"color:#FF8C42;\">ya cargado este mes</span>' : ''}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${escHtml(e.categoria || 'otros')} · ${escHtml(e.responsable || '—')}${yaCopiado ? ' · <span style=\"color:#FF8C42;\">ya cargado este mes</span>' : ''}</div>
         </div>
         <strong style="color:#FF6B6B;font-size:13px;">${formatMoney(montoOf(e))}</strong>
       </label>`;
   }).join('');
 
   createModal('finCopyModal', `Copiar gastos recurrentes de ${mesFrom} a ${mesTo}`, `
-    <div style="font-size:13px;color:#888;margin-bottom:12px;">Destildá los que no quieras copiar. Los que ya están cargados en ${mesTo} aparecen deshabilitados.</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Destildá los que no quieras copiar. Los que ya están cargados en ${mesTo} aparecen deshabilitados.</div>
     <div style="display:flex;gap:8px;margin-bottom:12px;">
       <button type="button" class="btn btn-secondary btn-sm" onclick="finCopyTogglePicked(true)">Tildar todos</button>
       <button type="button" class="btn btn-secondary btn-sm" onclick="finCopyTogglePicked(false)">Destildar todos</button>
@@ -234,10 +234,10 @@ function buildFinanzasHTML(el, d) {
     <div class="section-header">
       <h2 class="section-title">Finanzas</h2>
       <div style="display:flex;gap:10px;align-items:center;">
-        <div style="display:flex;align-items:center;gap:8px;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:6px 12px;">
-          <button type="button" id="btnFinAnt" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;padding:4px 8px;">&#8249;</button>
-          <span style="font-size:14px;font-weight:600;color:#fff;min-width:140px;text-align:center;">${finMesLabel()}</span>
-          <button type="button" id="btnFinSig" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;padding:4px 8px;">&#8250;</button>
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;">
+          <button type="button" id="btnFinAnt" style="background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:4px 8px;">&#8249;</button>
+          <span style="font-size:14px;font-weight:600;color:var(--text);min-width:140px;text-align:center;">${finMesLabel()}</span>
+          <button type="button" id="btnFinSig" style="background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:4px 8px;">&#8250;</button>
         </div>
       </div>
     </div>
@@ -245,33 +245,33 @@ function buildFinanzasHTML(el, d) {
     <!-- Resumen del mes -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">
       <div class="card" style="padding:24px;text-align:center;border-left:3px solid #00C48C;">
-        <div style="font-size:13px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Ingresos ${(window._finIngresoVista||'cobradas')==='facturadas'?'(facturados)':'(cobrados)'}</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Ingresos ${(window._finIngresoVista||'cobradas')==='facturadas'?'(facturados)':'(cobrados)'}</div>
         <div style="font-family:'Syne',sans-serif;font-size:34px;font-weight:800;color:#00C48C;">
           <span style="font-size:16px;font-family:Outfit,sans-serif;font-weight:400;opacity:.7;">€</span>${totalIngresos.toLocaleString('es-ES',{minimumFractionDigits:2})}
         </div>
-        <div style="font-size:11px;color:#666;margin-top:6px;">${ingresosMes.length} factura${ingresosMes.length===1?'':'s'} ${(window._finIngresoVista||'cobradas')==='facturadas'?'emitida':'cobrada'}${ingresosMes.length===1?'':'s'}</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:6px;">${ingresosMes.length} factura${ingresosMes.length===1?'':'s'} ${(window._finIngresoVista||'cobradas')==='facturadas'?'emitida':'cobrada'}${ingresosMes.length===1?'':'s'}</div>
       </div>
       <div class="card" style="padding:24px;text-align:center;border-left:3px solid #FF6B6B;">
-        <div style="font-size:13px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Gastos recurrentes</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Gastos recurrentes</div>
         <div style="font-family:'Syne',sans-serif;font-size:34px;font-weight:800;color:#FF6B6B;">
           <span style="font-size:16px;font-family:Outfit,sans-serif;font-weight:400;opacity:.7;">€</span>${totalGastos.toLocaleString('es-ES',{minimumFractionDigits:2})}
         </div>
-        <div style="font-size:11px;color:#666;margin-top:6px;">${(expRecurrentes||[]).length} movimiento${(expRecurrentes||[]).length===1?'':'s'}</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:6px;">${(expRecurrentes||[]).length} movimiento${(expRecurrentes||[]).length===1?'':'s'}</div>
       </div>
       <div class="card" style="padding:24px;text-align:center;border-left:3px solid ${resColor};background:${resColor}11;">
-        <div style="font-size:13px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Resultado del mes</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Resultado del mes</div>
         <div style="font-family:'Syne',sans-serif;font-size:34px;font-weight:800;color:${resColor};">
           ${resSign}<span style="font-size:16px;font-family:Outfit,sans-serif;font-weight:400;opacity:.7;">€</span>${resAbs.toLocaleString('es-ES',{minimumFractionDigits:2})}
         </div>
-        <div style="font-size:11px;color:#666;margin-top:6px;">${resultado >= 0 ? 'Ganancia' : 'Pérdida'}</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:6px;">${resultado >= 0 ? 'Ganancia' : 'Pérdida'}</div>
       </div>
     </div>
 
     <!-- Inversión acumulada -->
-    <div class="card" style="padding:16px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;background:#1a1a1a;">
+    <div class="card" style="padding:16px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;background:var(--surface);">
       <div>
-        <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Inversión acumulada (capital inicial)</div>
-        <div style="font-size:12px;color:#666;">${(expInversion||[]).length} movimiento${(expInversion||[]).length===1?'':'s'} — no entra en el cálculo mensual</div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Inversión acumulada (capital inicial)</div>
+        <div style="font-size:12px;color:var(--text-dim);">${(expInversion||[]).length} movimiento${(expInversion||[]).length===1?'':'s'} — no entra en el cálculo mensual</div>
       </div>
       <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#9D7FE8;">
         <span style="font-size:14px;font-family:Outfit,sans-serif;font-weight:400;opacity:.7;">€</span>${totalInversion.toLocaleString('es-ES',{minimumFractionDigits:2})}
@@ -297,11 +297,11 @@ function buildFinanzasHTML(el, d) {
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:12px;">
             <h3 class="card-title" style="color:#00C48C;">Ingresos del mes</h3>
-            <div style="display:flex;gap:4px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:3px;">
+            <div style="display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:3px;">
               <button type="button" onclick="finCambiarVistaIngresos('cobradas')"
-                style="background:${(window._finIngresoVista||'cobradas')==='cobradas'?'#00C48C':'transparent'};color:${(window._finIngresoVista||'cobradas')==='cobradas'?'#fff':'#888'};border:none;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;border-radius:6px;">Cobradas</button>
+                style="background:${(window._finIngresoVista||'cobradas')==='cobradas'?'#00C48C':'transparent'};color:${(window._finIngresoVista||'cobradas')==='cobradas'?'#fff':'var(--text-muted)'};border:none;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;border-radius:6px;">Cobradas</button>
               <button type="button" onclick="finCambiarVistaIngresos('facturadas')"
-                style="background:${(window._finIngresoVista||'cobradas')==='facturadas'?'#2979FF':'transparent'};color:${(window._finIngresoVista||'cobradas')==='facturadas'?'#fff':'#888'};border:none;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;border-radius:6px;">Facturadas</button>
+                style="background:${(window._finIngresoVista||'cobradas')==='facturadas'?'#2979FF':'transparent'};color:${(window._finIngresoVista||'cobradas')==='facturadas'?'#fff':'var(--text-muted)'};border:none;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;border-radius:6px;">Facturadas</button>
             </div>
           </div>
           <button class="btn btn-primary btn-sm" onclick="newInvoice()">+ Nueva factura</button>
@@ -310,7 +310,7 @@ function buildFinanzasHTML(el, d) {
           ? '<div class="empty-state" style="padding:20px;"><div class="empty-sub">Sin facturas cobradas este mes</div></div>'
           : `<input type="search" placeholder="Buscar en ingresos…"
               oninput="finFiltrarFilas('finIngresoRow', this.value)"
-              style="width:100%;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;margin-bottom:12px;">
+              style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;margin-bottom:12px;">
             <div class="table-wrapper">
               <table>
                 <thead><tr>
@@ -323,10 +323,10 @@ function buildFinanzasHTML(el, d) {
                     return `
                     <tr class="finIngresoRow" data-search="${escHtml(blob)}">
                       <td><strong>${escHtml(i.concepto || i.numero || '—')}</strong></td>
-                      <td style="color:#aaa;">${escHtml(i.clients?.nombre || '—')}</td>
+                      <td style="color:var(--text-muted);">${escHtml(i.clients?.nombre || '—')}</td>
                       <td><span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;text-transform:capitalize;background:${estCol}22;color:${estCol};border:1px solid ${estCol}44;">${escHtml(i.estado || '—')}</span></td>
                       <td><strong style="color:#00C48C;">${formatMoney(montoOf(i))}</strong></td>
-                      <td style="color:#888;">${formatDate(i.fecha)}</td>
+                      <td style="color:var(--text-muted);">${formatDate(i.fecha)}</td>
                       <td>
                         <div style="display:flex;gap:4px;">
                           <button class="btn btn-ghost btn-icon btn-sm" onclick="editInvoice('${i.id}')" title="Editar">✏️</button>
@@ -354,7 +354,7 @@ function buildFinanzasHTML(el, d) {
           ? '<div class="empty-state" style="padding:20px;"><div class="empty-sub">Sin gastos recurrentes este mes</div></div>'
           : `<input type="search" placeholder="Buscar en gastos recurrentes…"
               oninput="finFiltrarFilas('finGastoRow', this.value)"
-              style="width:100%;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;margin-bottom:12px;">
+              style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;margin-bottom:12px;">
             <div class="table-wrapper">
               <table>
                 <thead><tr>
@@ -366,9 +366,9 @@ function buildFinanzasHTML(el, d) {
                     return `
                     <tr class="finGastoRow" data-search="${escHtml(blob)}">
                       <td><strong>${escHtml(e.nombre || '—')}</strong></td>
-                      <td style="color:#aaa;text-transform:capitalize;">${escHtml(e.categoria || 'otros')}</td>
+                      <td style="color:var(--text-muted);text-transform:capitalize;">${escHtml(e.categoria || 'otros')}</td>
                       <td><strong style="color:#FF6B6B;">${formatMoney(montoOf(e))}</strong></td>
-                      <td style="color:#888;">${formatDate(e.fecha)}</td>
+                      <td style="color:var(--text-muted);">${formatDate(e.fecha)}</td>
                       <td>
                         <div style="display:flex;gap:4px;">
                           <button class="btn btn-ghost btn-icon btn-sm" onclick="moverTipoExp('${e.id}','inversion')" title="Mover a Inversión" style="font-size:14px;">↔️</button>

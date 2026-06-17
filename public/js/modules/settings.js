@@ -97,7 +97,7 @@ async function renderSettings(el) {
               <div style="font-weight:500;">n8n</div>
               <div style="font-size:12px;color:var(--text-muted);">Automatizaciones</div>
             </div>
-            <span class="badge" style="background:rgba(255,255,255,0.06);color:#888;border:1px solid rgba(255,255,255,0.12);">Pendiente</span>
+            <span class="badge" style="background:var(--surface-hover);color:var(--text-muted);border:1px solid var(--border);">Pendiente</span>
           </div>
         </div>
       </div>

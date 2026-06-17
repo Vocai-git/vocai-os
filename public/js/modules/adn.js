@@ -215,7 +215,7 @@ function paletaStructured() {
 function paletaSlotEstructurado(key, label, hex) {
   const val = hex || '#000000';
   return `
-    <div style="background:#181818;border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px;">
       <input type="color" value="${val}" data-paleta-key="${key}"
              onchange="updatePaletaStructured('${key}', this.value)"
              style="width:44px;height:44px;border:none;border-radius:8px;cursor:pointer;background:transparent;padding:0;flex-shrink:0;">
@@ -239,7 +239,7 @@ function updatePaletaStructured(key, hex) {
 
 function refSlot(r) {
   return `
-    <div class="adn-ref" data-id="${r.id}" style="aspect-ratio:1;border-radius:8px;position:relative;background:#181818;border:1px solid var(--border);overflow:hidden;">
+    <div class="adn-ref" data-id="${r.id}" style="aspect-ratio:1;border-radius:8px;position:relative;background:var(--surface);border:1px solid var(--border);overflow:hidden;">
       <img src="${r.imagen_url}" style="width:100%;height:100%;object-fit:cover;">
       <button class="adn-ref-remove" onclick="removeReference('${r.id}')"
               style="position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.7);color:#fff;border:none;cursor:pointer;font-size:13px;">×</button>
@@ -249,7 +249,7 @@ function refSlot(r) {
 
 function pilarItem(p) {
   return `
-    <div class="adn-pilar" data-id="${p.id}" style="background:#181818;border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;gap:10px;align-items:flex-start;">
+    <div class="adn-pilar" data-id="${p.id}" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;gap:10px;align-items:flex-start;">
       <div style="flex:1;">
         <input class="adn-pilar-nombre" onblur="updatePilar('${p.id}')" value="${escHtml(p.nombre||'')}" placeholder="Nombre del pilar"
                style="width:100%;background:transparent;border:none;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;margin-bottom:4px;outline:none;">
@@ -269,7 +269,7 @@ function tipoDisenoCard(t) {
   ).join('');
 
   return `
-    <details class="adn-tipo" data-id="${t.id}" style="background:#181818;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+    <details class="adn-tipo" data-id="${t.id}" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
       <summary style="padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;list-style:none;">
         <span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--coral);">${escHtml(t.nombre||'Sin nombre')}</span>
         <span style="flex:1;font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(t.descripcion_corta||'')}</span>

@@ -154,7 +154,7 @@ async function renderGenerator(el) {
           <div id="refsUploader" style="display:none;margin-top:12px;">
             <input type="file" id="genFilesInput" accept="image/*" multiple style="display:none;">
             <div class="gen-uploader" onclick="document.getElementById('genFilesInput').click()"
-                 style="border:1.5px dashed var(--border-light);border-radius:8px;padding:24px 16px;text-align:center;color:var(--text-muted);cursor:pointer;background:#181818;">
+                 style="border:1.5px dashed var(--border-light);border-radius:8px;padding:24px 16px;text-align:center;color:var(--text-muted);cursor:pointer;background:var(--surface);">
               <div style="font-size:13px;font-weight:500;">Click para seleccionar imágenes</div>
               <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">JPG o PNG · máx 5MB c/u</div>
             </div>
@@ -295,7 +295,7 @@ function clientPreviewHtml(c) {
     ? `<img src="${c.logo_url}" style="width:100%;height:100%;object-fit:contain;background:#fff;padding:2px;">`
     : c.nombre.charAt(0).toUpperCase();
   return `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#181818;border-radius:8px;border:1px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border-radius:8px;border:1px solid var(--border);">
       <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#2979FF,#FF6B6B);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;overflow:hidden;">${logoHtml}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;">${escHtml(c.nombre)}</div>

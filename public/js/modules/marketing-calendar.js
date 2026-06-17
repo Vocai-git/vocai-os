@@ -17,7 +17,7 @@ const MKT_PILAR = {
   personas: { label: 'Las personas',        color: '#00C48C' },
 };
 const MKT_ESTADO = {
-  idea:       { label: 'Idea',          color: '#888888' },
+  idea:       { label: 'Idea',          color: 'var(--text-muted)' },
   produccion: { label: 'En producción', color: '#2979FF' },
   lista:      { label: 'Lista',         color: '#FF8C42' },
   publicada:  { label: 'Publicada',     color: '#00C48C' },
@@ -42,7 +42,7 @@ function mktCalInjectStyles() {
       text-transform:uppercase; color:var(--text-dim); padding-bottom:4px; }
     .mkt-day { background:var(--surface); border:1px solid var(--border); border-radius:8px;
       padding:6px; min-height:108px; transition:border-color .15s, background .15s; }
-    .mkt-day.weekend { background:#191919; }
+    .mkt-day.weekend { background:var(--surface); }
     .mkt-day.empty { background:transparent; border-color:transparent; }
     .mkt-day.dragover { border-color:var(--coral); background:rgba(255,107,107,0.06); }
     .mkt-day.today { border-color:var(--coral); background:rgba(255,107,107,0.08);
@@ -55,8 +55,8 @@ function mktCalInjectStyles() {
       padding:0 4px; border-radius:4px; }
     .mkt-dayadd:hover { color:var(--coral); background:rgba(255,107,107,0.1); }
     .mkt-piece { border-radius:6px; padding:5px 7px; margin-bottom:4px; cursor:grab;
-      background:#252525; border-left:3px solid var(--blue); transition:transform .1s; }
-    .mkt-piece:hover { transform:translateX(1px); border-color:rgba(255,255,255,0.1); }
+      background:var(--surface-hover); border-left:3px solid var(--blue); transition:transform .1s; }
+    .mkt-piece:hover { transform:translateX(1px); border-color:var(--border); }
     .mkt-piece.dragging { opacity:.35; }
     .mkt-piece.publicada { background:rgba(0,196,140,0.13); }
     .mkt-piece.publicada .mkt-piece-tit { text-decoration:line-through;

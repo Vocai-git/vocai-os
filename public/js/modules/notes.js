@@ -2,7 +2,7 @@ async function renderNotes(el) {
   const notes = await API.get('/notes');
   window._notesData = notes;
 
-  const COLORS = ['#1e1e1e','#1e1e1e','#1e1e1e','#1e1e1e','#1e1e1e'];
+  const COLORS = ['var(--surface)','var(--surface)','var(--surface)','var(--surface)','var(--surface)'];
 
   el.innerHTML = `
     <div class="section-header">
