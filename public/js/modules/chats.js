@@ -4,6 +4,7 @@
 let chatsInterval = null;
 let chatConvActiva = null;
 let chatBotPausado = false;
+let chatModoDemo = localStorage.getItem('chats_demo') === '1';   // privacidad para grabar: oculta números reales
 let chatMensajesVistos = 0;
 let chatBusqueda = '';
 let chatArchivoPendiente = null;
@@ -428,6 +429,7 @@ async function renderChats(container) {
   <div class="chats-sidebar">
     <div class="chats-sidebar-head">
       <span class="chats-sidebar-title">Chats en vivo</span>
+      <button id="chatsDemoBtn" onclick="chatsToggleDemo()" title="Modo demo: oculta los números de los clientes para grabar la pantalla" style="background:${chatModoDemo?'var(--accent)':'none'};color:${chatModoDemo?'#fff':'var(--text-muted)'};border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:14px;padding:2px 7px;line-height:1.4;margin-left:auto;margin-right:6px">🎬</button>
       <button class="chats-bot-btn activo" id="chatsBotBtn" onclick="chatsToggleBot()">
         <div class="chats-bot-dot"></div>
         <span id="chatsBotLabel">Tito activo</span>
@@ -561,12 +563,12 @@ async function chatsAbrirConv(id) {
 <div class="chats-conv-head">
   <div style="flex:1;min-width:0">
     <div class="chats-conv-head-name" style="display:flex;align-items:center;gap:6px">
-      <span id="chatsHeadName">${escHtml(conv.cliente_nombre || conv.telefono)}</span>
+      <span id="chatsHeadName">${escHtml(chatNombreMostrar(conv))}</span>
       <button class="chats-head-icon-btn" title="Renombrar" onclick="chatsRenombrar('${id}')">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>
       </button>
     </div>
-    <div class="chats-conv-head-tel">${escHtml(conv.telefono)}</div>
+    <div class="chats-conv-head-tel">${chatModoDemo ? 'En línea' : escHtml(conv.telefono)}</div>
   </div>
   <button class="chats-head-icon-btn" title="Guardar como contacto" onclick="chatsModalContacto('${id}')" style="margin-right:4px">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM3 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 019.374 21c-2.331 0-4.512-.645-6.374-1.766z"/></svg>
@@ -810,8 +812,26 @@ function chatsActualizarBotBtn() {
   label.textContent = chatBotPausado ? 'Tito pausado' : 'Tito activo';
 }
 
+// ── Modo demo / privacidad ───────────────────────────────────
+// Para grabar la pantalla en campañas sin exponer datos: reemplaza cada número
+// real por un nombre ficticio CONSISTENTE (el mismo número → siempre el mismo nombre).
+const CHAT_NOMBRES_DEMO = ['Lucía M.','Carlos R.','María G.','Javier S.','Ana P.','Diego L.','Sofía V.','Pablo T.','Elena C.','Marcos D.','Laura B.','Nico F.','Marta H.','Iván Q.'];
+function chatHash(s){ let h=0; for(let i=0;i<(s||'').length;i++) h=(h*31+s.charCodeAt(i))>>>0; return h; }
+function chatNombreMostrar(c){
+  if (chatModoDemo) return CHAT_NOMBRES_DEMO[ chatHash(c.telefono || c.id || '') % CHAT_NOMBRES_DEMO.length ];
+  return c.cliente_nombre || c.telefono || 'Desconocido';
+}
+function chatsToggleDemo(){
+  chatModoDemo = !chatModoDemo;
+  localStorage.setItem('chats_demo', chatModoDemo ? '1' : '0');
+  const b = document.getElementById('chatsDemoBtn');
+  if (b){ b.style.background = chatModoDemo ? 'var(--accent)' : 'none'; b.style.color = chatModoDemo ? '#fff' : 'var(--text-muted)'; }
+  chatsCargarLista();
+  if (chatConvActiva) chatsAbrirConv(chatConvActiva);
+}
+
 function chatConvItem(c, lastSeen = {}) {
-  const nombre  = escHtml(c.cliente_nombre || c.telefono || 'Desconocido');
+  const nombre  = escHtml(chatNombreMostrar(c));
   const um = c.ultimo_mensaje;
   let preview = escHtml(um?.contenido?.slice(0, 55) || '');
   if (!preview && um?.tipo && um.tipo !== 'texto') {
@@ -1113,6 +1133,7 @@ async function chatsGuardarContacto(id) {
 window.chatsToogleManual  = chatsToogleManual;
 window.chatsEnviar        = chatsEnviar;
 window.chatsToggleBot     = chatsToggleBot;
+window.chatsToggleDemo    = chatsToggleDemo;
 window.chatsNuevoChat     = chatsNuevoChat;
 window.chatsEnviarNuevo   = chatsEnviarNuevo;
 window.chatsArchivoSeleccionado = chatsArchivoSeleccionado;
