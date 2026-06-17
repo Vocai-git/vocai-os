@@ -245,7 +245,7 @@ const MODULES = {
   goals:     { title: 'Metas',     render: renderGoals },
   bookings:  { title: 'Reservas de Estudio', render: renderBookings },
   episodes:  { title: 'Episodios', render: renderEpisodes },
-  tito:      { title: 'Tito — Atención al cliente', render: renderTito },
+  tito:      { title: 'Tito — Atención al cliente', render: renderTito, unmount: unmountTito },
   chats:     { title: 'Chats en vivo', render: renderChats, unmount: unmountChats },
   tasks:     { title: 'Tareas',    render: renderTasks },
   activity:  { title: 'Actividad', render: renderActivity },

@@ -16,6 +16,27 @@ let titoVistaActual   = 'casos';
 let titoStatsPeriodo  = 'mes';
 let titoChartVolumen  = null;
 let titoChartMotivos  = null;
+let titoPollInterval  = null;
+
+// Refresco automático de la vista Casos: que un caso nuevo aparezca SOLO, sin recargar
+// (clave para la demo en vivo). Solo refresca si estamos en Casos y no hay un detalle
+// abierto (para no interrumpir al que esté leyendo un caso).
+function titoStartPolling() {
+  titoStopPolling();
+  titoPollInterval = setInterval(() => {
+    if (titoVistaActual !== 'casos' || titoDetalleCasoId) return;
+    if (document.hidden) return;
+    Promise.all([titoCargarContadores(), titoCargarCasos()]).catch(() => {});
+  }, 12000);
+}
+function titoStopPolling() {
+  if (titoPollInterval) { clearInterval(titoPollInterval); titoPollInterval = null; }
+}
+function unmountTito() {
+  titoStopPolling();
+  if (titoChartVolumen) { titoChartVolumen.destroy(); titoChartVolumen = null; }
+  if (titoChartMotivos) { titoChartMotivos.destroy(); titoChartMotivos = null; }
+}
 
 // ── Render principal ──────────────────────────────────────────
 async function renderTito(container) {
@@ -366,6 +387,7 @@ function titoBindNavVistas() {
 
 async function titoMostrarVista(vista) {
   titoVistaActual = vista;
+  titoStopPolling();
   if (titoChartVolumen) { titoChartVolumen.destroy(); titoChartVolumen = null; }
   if (titoChartMotivos) { titoChartMotivos.destroy(); titoChartMotivos = null; }
 
@@ -377,6 +399,7 @@ async function titoMostrarVista(vista) {
     titoDetalleCasoId = null;
     await Promise.all([titoCargarContadores(), titoCargarCasos(), titoActualizarBadgeHumanos(), titoActualizarBadgeAprendizaje()]);
     titoBindFiltros();
+    titoStartPolling();
   } else if (vista === 'humanos') {
     document.getElementById('titoVista').innerHTML = titoHumanosHTML();
     await titoCargarHumanos();
