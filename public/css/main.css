@@ -35,6 +35,29 @@ html, body, * { scrollbar-width: thin; scrollbar-color: #2a2a2a transparent; }
   --transition:    0.2s ease;
 }
 
+/* ── Modo claro ──────────────────────────────────────────────
+   Se activa con html[data-theme="light"] (toggle sol/luna en el topbar).
+   Solo redefine la paleta: todo lo que usa var(--*) flipa automáticamente.
+   Los acentos (coral/blue/green) se mantienen porque funcionan en ambos. */
+html[data-theme="light"] {
+  --bg:            #f4f5f7;
+  --surface:       #ffffff;
+  --surface-hover: #eceef1;
+  --sidebar-bg:    #ffffff;
+  --text:          #1a1d21;
+  --text-muted:    #6b7280;
+  --text-dim:      #aab0b8;
+  --border:        #e4e7eb;
+  --border-light:  #d6dae0;
+  --shadow:        0 2px 12px rgba(16,24,40,0.06);
+  --shadow-lg:     0 8px 32px rgba(16,24,40,0.12);
+}
+html[data-theme="light"] *::-webkit-scrollbar-thumb { background: #cfd4da; }
+html[data-theme="light"] { scrollbar-color: #cfd4da transparent; }
+/* Selects nativos: el fondo del desplegable no hereda la variable en todos los navegadores */
+html[data-theme="light"] .form-select option,
+html[data-theme="light"] .filter-select option { background: #ffffff; color: var(--text); }
+
 html, body {
   height: 100%;
   font-family: 'Outfit', sans-serif;
@@ -132,7 +155,7 @@ html, body {
 }
 
 .nav-item.active {
-  background: #2a2a2a;
+  background: var(--surface-hover);
   color: var(--text);
   font-weight: 500;
 }
@@ -386,7 +409,7 @@ html, body {
 }
 
 .btn-secondary {
-  background: #2a2a2a;
+  background: var(--surface-hover);
   color: var(--text-muted);
   border: 1px solid var(--border);
 }
@@ -737,7 +760,7 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 }
 
 .kanban-card {
-  background: #252525;
+  background: var(--surface-hover);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 12px;
@@ -896,7 +919,7 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 }
 
 .toast {
-  background: #252525;
+  background: var(--surface-hover);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 13px 18px;
@@ -1123,4 +1146,20 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 .text-xs { font-size: 12px; }
 .font-bold { font-weight: 700; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ============================================================
+   TOGGLE DE TEMA (claro / oscuro)
+   ============================================================ */
+.theme-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: var(--radius-sm);
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text-muted); cursor: pointer; transition: var(--transition);
+}
+.theme-toggle:hover { background: var(--surface-hover); color: var(--text); }
+/* En modo oscuro mostramos la luna; en claro, el sol. */
+.theme-icon-light { display: none; }
+.theme-icon-dark  { display: block; }
+html[data-theme="light"] .theme-icon-light { display: block; }
+html[data-theme="light"] .theme-icon-dark  { display: none; }
 

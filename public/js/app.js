@@ -321,6 +321,18 @@ function init() {
     item.addEventListener('click', () => navigate(item.dataset.module));
   });
 
+  // Toggle de tema claro/oscuro (persiste en localStorage; el tema ya se aplicó
+  // en el <head> antes de pintar para evitar parpadeo).
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      const actual = document.documentElement.getAttribute('data-theme') || 'dark';
+      const nuevo = actual === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', nuevo);
+      try { localStorage.setItem('vocai_theme', nuevo); } catch (e) {}
+    });
+  }
+
   // Hamburger
   document.getElementById('hamburger').addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('open');
