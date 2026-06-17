@@ -786,7 +786,8 @@ async function chatsOfrecerPlantilla(id) {
       try {
         await API.post(`/tito/chats/${id}/enviar-plantilla`, { plantilla: p.name, parametro, texto: textoVisible, idioma: p.idioma });
         toast('Plantilla enviada ✓', 'success');
-        await chatsRefrescarMensajes();
+        await chatsCargarLista();
+        await chatsAbrirConv(id);
       } catch (err) {
         toast('Error enviando plantilla: ' + err.message, 'error');
       }
@@ -906,7 +907,14 @@ async function chatsEnviarNuevo() {
     await chatsCargarLista();
     if (conversacion_id) await chatsAbrirConv(conversacion_id);
   } catch (err) {
-    toast('Error: ' + err.message, 'error');
+    // Número nuevo = siempre fuera de ventana → ofrecer el selector de plantillas
+    if (err.codigo === 'fuera_de_ventana' && err.data?.conversacion_id) {
+      closeModal('modalNuevoChat');
+      await chatsCargarLista();
+      chatsOfrecerPlantilla(err.data.conversacion_id);
+    } else {
+      toast('Error: ' + err.message, 'error');
+    }
   }
 }
 

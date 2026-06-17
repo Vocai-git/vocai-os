@@ -49,6 +49,7 @@ const API = {
       const e = new Error(data.error || 'Error del servidor');
       e.status = res.status;
       e.codigo = data.codigo;   // p.ej. 'fuera_de_ventana'
+      e.data = data;            // body completo (p.ej. conversacion_id)
       throw e;
     }
     return data;
