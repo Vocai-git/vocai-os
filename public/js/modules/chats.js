@@ -24,7 +24,7 @@ function chatSetLastSeen(id) {
 async function renderChats(container) {
   container.innerHTML = `
 <style>
-:root { --azul: #2563eb; --verde: #059669; --amarillo: #d97706; }
+:root { --azul: #2563eb; --verde: #059669; --amarillo: #d97706; --accent: #2563eb; }
 
 .chats-shell {
   display: flex;
