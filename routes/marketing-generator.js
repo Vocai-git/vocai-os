@@ -106,7 +106,7 @@ router.post('/generar', auth,
   const fmt = FORMATOS[formato];
   const fotoFile = req.files && req.files.foto ? req.files.foto[0] : null;
   const refFile  = req.files && req.files.referencia ? req.files.referencia[0] : null;
-  // Diseño de la placa (solo historias): clasico | typexxl | brutal | aurora.
+  // Diseño de la placa (solo historias): clasico, brutal o aurora.
   // Aurora no usa imagen de fondo — se saltea Nano Banana (no gasta crédito).
   const diseno = (formato === 'historia' && DISENOS_HISTORIA.includes(req.body.diseno))
     ? req.body.diseno : 'clasico';

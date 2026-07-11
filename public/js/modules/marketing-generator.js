@@ -15,7 +15,6 @@ const MKT_GEN_MODOS = {
 // (gradient mesh de marca) — no gasta crédito de imagen.
 const MKT_GEN_DISENOS = {
   clasico: 'Clásico',
-  typexxl: 'Type XXL',
   brutal:  'Brutal',
   aurora:  'Aurora (sin imagen)',
 };
