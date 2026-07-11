@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const multer = require('multer');
 const { generarTexto, generarCopy, generarPromptImagen, generarImagen, editarImagen, generarBlog } = require('../config/gemini');
-const { componerPlacaHistoria, componerPlacaFeed, CATEGORIAS } = require('../config/placa');
+const { componerPlacaHistoria, componerPlacaFeed, CATEGORIAS, DISENOS_HISTORIA } = require('../config/placa');
 const storage = require('../config/storage');
 const { supabase } = require('../config/supabase');
 
@@ -78,7 +78,7 @@ router.get('/muestras', auth, async (req, res) => {
         url: storage.urlPublica(`${prefijo}/${e.name}`) + '?t=' + stamp,
         mtime: stamp, formato,
         categoria: m.categoria || null, modo: m.modo || '',
-        idea: m.idea || '', titulo: m.titulo || '',
+        diseno: m.diseno || '', idea: m.idea || '', titulo: m.titulo || '',
         subtitulo: m.subtitulo || '', fuente: m.fuente || '',
         copy: m.copy || '',
       };
@@ -106,9 +106,14 @@ router.post('/generar', auth,
   const fmt = FORMATOS[formato];
   const fotoFile = req.files && req.files.foto ? req.files.foto[0] : null;
   const refFile  = req.files && req.files.referencia ? req.files.referencia[0] : null;
+  // Diseño de la placa (solo historias): clasico | typexxl | brutal | aurora.
+  // Aurora no usa imagen de fondo — se saltea Nano Banana (no gasta crédito).
+  const diseno = (formato === 'historia' && DISENOS_HISTORIA.includes(req.body.diseno))
+    ? req.body.diseno : 'clasico';
+  const sinImagen = diseno === 'aurora';
 
   if (!idea) return res.status(400).json({ error: 'Escribí tu idea primero' });
-  if (modo === 'foto' && !fotoFile) return res.status(400).json({ error: 'Subí una foto' });
+  if (modo === 'foto' && !fotoFile && !sinImagen) return res.status(400).json({ error: 'Subí una foto' });
 
   try {
     const DIR = dirDe(formato);
@@ -128,7 +133,9 @@ router.post('/generar', auth,
     const fondoPath = path.join(DIR, fondoNombre);
     const salidaPath = path.join(DIR, archivo);
 
-    if (modo === 'foto') {
+    if (sinImagen) {
+      // Aurora: el diseño ES el fondo (gradient mesh de marca) — no hay imagen.
+    } else if (modo === 'foto') {
       fs.copyFileSync(fotoFile.path, fondoPath);
       if (req.body.retocar === 'true') {
         const retoque = (req.body.retoque || '').trim() ||
@@ -145,26 +152,28 @@ router.post('/generar', auth,
 
     // 3 · Componer la placa final según el formato
     await fmt.componer({
-      ilustracionPath: fondoPath,
+      ilustracionPath: sinImagen ? null : fondoPath,
       titulo: texto.titulo, subtitulo: texto.subtitulo,
       fuente, categoria,
-      salidaPath,
+      salidaPath, diseno,
     });
 
     // 4 · Metadata
     const m = {
-      modo, categoria, idea, titulo: texto.titulo, subtitulo: texto.subtitulo,
-      fuente, copy, formato, stamp, fecha: new Date().toISOString(),
+      modo: sinImagen ? 'aurora' : modo, categoria, idea,
+      titulo: texto.titulo, subtitulo: texto.subtitulo,
+      fuente, copy, formato, diseno, stamp, fecha: new Date().toISOString(),
     };
     fs.writeFileSync(path.join(DIR, archivo.replace(/\.png$/, '.json')),
                      JSON.stringify(m, null, 2));
 
     // 5 · Persistir en Supabase Storage (el disco de Railway es efímero)
-    await Promise.all([
+    const subidas = [
       storage.subir(salidaPath, `${fmt.prefijo}/${archivo}`),
-      storage.subir(fondoPath, `${fmt.prefijo}/${fondoNombre}`),
       storage.subirJson(m, `${fmt.prefijo}/${archivo.replace(/\.png$/, '.json')}`),
-    ]);
+    ];
+    if (!sinImagen) subidas.push(storage.subir(fondoPath, `${fmt.prefijo}/${fondoNombre}`));
+    await Promise.all(subidas);
 
     res.json({
       archivo,
@@ -200,13 +209,17 @@ router.post('/ajustar', auth, async (req, res) => {
   try {
     if (!fs.existsSync(DIR)) fs.mkdirSync(DIR, { recursive: true });
 
+    const m = await storage.leerJson(`${fmt.prefijo}/${jsonNombre}`);
+    if (!m) return res.status(400).json({ error: 'No se encontró la metadata de esta placa' });
+    if (m.diseno === 'aurora') {
+      return res.status(400).json({ error: 'El diseño Aurora no usa imagen de fondo — no hay nada que ajustar' });
+    }
+
     // recuperar el fondo: del disco o, si se redeployó, de Storage
     if (!fs.existsSync(fondoPath)) {
       const ok = await storage.bajar(`${fmt.prefijo}/${fondoNombre}`, fondoPath);
       if (!ok) return res.status(400).json({ error: 'No se encontró la imagen base de esta placa' });
     }
-    const m = await storage.leerJson(`${fmt.prefijo}/${jsonNombre}`);
-    if (!m) return res.status(400).json({ error: 'No se encontró la metadata de esta placa' });
 
     // editar el fondo (sobreescribe) y recomponer la placa
     await editarImagen(fondoPath, instruccion, fondoPath, fmt.aspecto);
@@ -214,7 +227,7 @@ router.post('/ajustar', auth, async (req, res) => {
       ilustracionPath: fondoPath,
       titulo: m.titulo, subtitulo: m.subtitulo,
       fuente: m.fuente, categoria: m.categoria,
-      salidaPath,
+      salidaPath, diseno: m.diseno,
     });
 
     m.stamp = Date.now();

@@ -57,10 +57,56 @@ const LOGO_B64 = cargarImg('img/logo-wordmark.png');
 // Categorías de contenido: color de acento + etiqueta.
 const CATEGORIAS = {
   novedad:   { etiqueta: 'NOVEDAD',         acento: '#FF6B6B' },
-  educativo: { etiqueta: 'APRENDÉ',         acento: '#2979FF' },
+  educativo: { etiqueta: 'APRENDE',         acento: '#2979FF' },
   caso:      { etiqueta: 'CASO REAL',       acento: '#00C48C' },
   interno:   { etiqueta: 'PUERTAS ADENTRO', acento: '#FF8C42' },
 };
+
+// ── Diseños de historia ──────────────────────────────────────
+// 'clasico' (el original) + 3 diseños 2026: typexxl, brutal, aurora.
+const DISENOS_HISTORIA = ['clasico', 'typexxl', 'brutal', 'aurora'];
+
+// Auto-ajuste de texto a su caja (mismo mecanismo que la placa de feed).
+const FIT_SCRIPT = `<script>
+(function(){
+  function fit(){
+    var els=document.querySelectorAll('[data-fit-max]');
+    for(var i=0;i<els.length;i++){
+      var el=els[i],s=+el.getAttribute('data-fit-max'),
+          mn=+el.getAttribute('data-fit-min'),
+          lh=+el.getAttribute('data-fit-h')||999999;
+      el.style.fontSize=s+'px';
+      var g=0;
+      while(s>mn && (el.scrollHeight>lh || el.scrollWidth>el.clientWidth+2) && g<200){
+        s-=2;el.style.fontSize=s+'px';g++;
+      }
+    }
+  }
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(fit);}
+  fit(); setTimeout(fit,1400);
+})();
+<\/script>`;
+
+// Divide el título alrededor de la palabra "IA" (o "VOCAI") para poder
+// destacarla en gradiente. Devuelve { pre, bloque, resto } SIN escapar:
+// bloque = artículo + IA (lo que se pinta), resto = lo que sigue.
+function partirTituloIA(titulo) {
+  const limpio = String(titulo || '').replace(/[.!]+$/, '').trim();
+  const w = limpio.split(/\s+/);
+  const iaIdx = w.findIndex(t => /^(ia|vocai)[.,!?]*$/i.test(t));
+  if (iaIdx < 0) {
+    // sin IA: se pintan las últimas 2 palabras (si el título da)
+    const corte = w.length > 3 ? w.length - 2 : w.length;
+    return { pre: w.slice(0, corte).join(' '), bloque: w.slice(corte).join(' '), resto: '' };
+  }
+  let ini = iaIdx;
+  if (ini > 0 && /^(la|el|una|un|las|los|tu|e|y)$/i.test(w[ini - 1])) ini -= 1;
+  return {
+    pre: w.slice(0, ini).join(' '),
+    bloque: w.slice(ini, iaIdx + 1).join(' '),
+    resto: w.slice(iaIdx + 1).join(' '),
+  };
+}
 
 // Plantilla de placa de historia (1080x1920).
 function htmlPlacaHistoria({ ilustracionDataUri, titulo, subtitulo, fuente, categoria }) {
@@ -109,6 +155,189 @@ html,body{width:1080px;height:1920px;}
 </body></html>`;
 }
 
+// ── Diseño TYPE XXL — la tipografía ES el diseño ─────────────
+// Título gigante apilado: relleno / contorno / gradiente de marca.
+function htmlHistoriaTypexxl({ ilustracionDataUri, titulo, subtitulo, fuente, categoria }) {
+  const cat = CATEGORIAS[categoria];
+  const acento = cat ? cat.acento : '#FF6B6B';
+  const limpio = String(titulo || '').replace(/[.!]+$/, '').trim();
+  const w = limpio.split(/\s+/);
+  const { pre, bloque, resto } = partirTituloIA(limpio);
+  const preW = pre ? pre.split(/\s+/) : [];
+  // Armado de líneas: 1ª palabra rellena · 2ª en contorno · conector chico ·
+  // bloque IA en gradiente · resto relleno. Con títulos cortos, una por línea.
+  let lineas;
+  if (w.length >= 5 && bloque && preW.length >= 1) {
+    lineas = [
+      { t: preW[0], c: 'l1' },
+      preW[1] ? { t: preW[1], c: 'l2' } : null,
+      preW.length > 2 ? { t: preW.slice(2).join(' '), c: 'l3' } : null,
+      { t: bloque, c: 'l4' },
+      resto ? { t: resto, c: 'l5' } : null,
+    ].filter(Boolean);
+  } else {
+    const estilos = ['l1', 'l2', 'l4', 'l5', 'l1', 'l2'];
+    lineas = w.map((t, i) => ({ t, c: estilos[i % estilos.length] }));
+  }
+  const megaHtml = lineas.map(l => `<div class="${l.c}">${esc(l.t)}</div>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1080px;height:1920px;}
+.placa{position:relative;width:1080px;height:1920px;overflow:hidden;
+  background:#141d35;font-family:'Inter','Segoe UI',sans-serif;}
+.fondo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.dim{position:absolute;inset:0;background:
+  linear-gradient(180deg,rgba(13,19,38,.88) 0%,rgba(13,19,38,.46) 30%,
+    rgba(13,19,38,.42) 55%,rgba(13,19,38,.9) 82%,#0d1326 100%);}
+.vin{position:absolute;inset:0;background:radial-gradient(ellipse 120% 90% at 50% 46%,transparent 52%,rgba(13,19,38,.72) 100%);}
+.flujo{position:absolute;left:88px;right:88px;top:352px;}
+.tag{font-weight:700;font-size:30px;letter-spacing:.22em;color:${acento};margin-bottom:42px;}
+.tag::before{content:'';display:inline-block;width:46px;height:9px;background:${acento};
+  border-radius:5px;margin-right:20px;vertical-align:middle;}
+.mega{line-height:.94;font-weight:900;text-transform:uppercase;letter-spacing:-.025em;}
+.l1,.l2,.l5{font-size:1em;}
+.l1,.l5{color:#fff;}
+.l2{color:transparent;-webkit-text-stroke:7px #fff;
+  text-shadow:0 0 44px rgba(41,121,255,.55);}
+.l3{font-size:.4em;color:rgba(255,255,255,.66);font-weight:600;letter-spacing:.02em;
+  text-transform:none;margin:.18em 0 .12em;}
+.l4{font-size:1.16em;background:linear-gradient(135deg,#2979FF 10%,#FF6B6B 90%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;}
+.sub{margin-top:48px;font-size:38px;line-height:1.36;color:rgba(255,255,255,.8);
+  border-left:8px solid ${acento};padding-left:34px;max-width:820px;}
+.fuente{margin-top:22px;font-size:28px;color:#8AA2D4;padding-left:42px;}
+.pie{position:absolute;left:88px;right:88px;bottom:316px;display:flex;
+  align-items:center;justify-content:space-between;}
+.logo{height:58px;}
+.fl{width:92px;height:92px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:44px;font-weight:900;color:#fff;
+  background:linear-gradient(135deg,#2979FF,#FF6B6B);}
+</style></head><body>
+<div class="placa">
+  <img class="fondo" src="${ilustracionDataUri}">
+  <div class="dim"></div><div class="vin"></div>
+  <div class="flujo">
+    ${cat ? `<div class="tag">${esc(cat.etiqueta)}</div>` : ''}
+    <div class="mega" data-fit-max="148" data-fit-min="72" data-fit-h="880">${megaHtml}</div>
+    ${subtitulo ? `<div class="sub">${esc(subtitulo)}</div>` : ''}
+    ${fuente ? `<div class="fuente">Fuente · ${esc(fuente)}</div>` : ''}
+  </div>
+  <div class="pie">
+    ${LOGO_B64 ? `<img class="logo" src="data:image/png;base64,${LOGO_B64}">` : ''}
+    <div class="fl">→</div>
+  </div>
+</div>
+${FIT_SCRIPT}</body></html>`;
+}
+
+// ── Diseño BRUTAL — neo-brutalismo en dark ───────────────────
+// Tarjeta con borde grueso, sombra dura desplazada y sticker rotado.
+function htmlHistoriaBrutal({ ilustracionDataUri, titulo, subtitulo, fuente, categoria }) {
+  const cat = CATEGORIAS[categoria];
+  const acento = cat ? cat.acento : '#FF6B6B';
+  const { pre, bloque, resto } = partirTituloIA(titulo);
+  const tituloHtml = (pre ? esc(pre) + ' ' : '') +
+    (bloque ? `<span class="mk">${esc(bloque)}</span>` : '') +
+    (resto ? ' ' + esc(resto) : '');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1080px;height:1920px;}
+.placa{position:relative;width:1080px;height:1920px;overflow:hidden;
+  background:#141d35;font-family:'Inter','Segoe UI',sans-serif;}
+.fondo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.dim{position:absolute;inset:0;background:rgba(10,16,32,.5);}
+.card{position:absolute;left:84px;right:84px;bottom:420px;
+  background:#1b2544;border:7px solid #fff;border-radius:14px;
+  box-shadow:26px 26px 0 ${acento};padding:96px 72px 72px;}
+.sticker{position:absolute;top:-46px;left:44px;transform:rotate(-5deg);
+  background:${acento};color:#fff;font-weight:900;font-size:34px;
+  letter-spacing:.1em;padding:20px 38px;border:6px solid #141d35;
+  border-radius:10px;box-shadow:10px 10px 0 rgba(0,0,0,.35);}
+.tit{font-weight:900;line-height:1.04;color:#fff;
+  letter-spacing:-.02em;text-transform:uppercase;}
+.tit .mk{background:linear-gradient(135deg,#2979FF,#FF6B6B);
+  -webkit-background-clip:text;background-clip:text;color:transparent;}
+.sub{font-weight:500;font-size:39px;line-height:1.35;color:rgba(255,255,255,.82);
+  margin-top:34px;}
+.fuente{font-size:27px;color:#8AA2D4;margin-top:20px;}
+.pie{display:flex;align-items:center;justify-content:space-between;margin-top:56px;}
+.logo{height:54px;}
+.fl{width:96px;height:96px;border:6px solid #fff;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:48px;font-weight:900;color:#fff;background:${acento};}
+</style></head><body>
+<div class="placa">
+  <img class="fondo" src="${ilustracionDataUri}">
+  <div class="dim"></div>
+  <div class="card">
+    ${cat ? `<div class="sticker">${esc(cat.etiqueta)}</div>` : ''}
+    <div class="tit" data-fit-max="96" data-fit-min="50" data-fit-h="540">${tituloHtml}</div>
+    ${subtitulo ? `<div class="sub">${esc(subtitulo)}</div>` : ''}
+    ${fuente ? `<div class="fuente">Fuente · ${esc(fuente)}</div>` : ''}
+    <div class="pie">
+      ${LOGO_B64 ? `<img class="logo" src="data:image/png;base64,${LOGO_B64}">` : ''}
+      <div class="fl">→</div>
+    </div>
+  </div>
+</div>
+${FIT_SCRIPT}</body></html>`;
+}
+
+// ── Diseño AURORA — gradient mesh de marca, SIN imagen ───────
+// No usa fondo de Nano Banana: blobs aurora sobre navy. Gratis por pieza.
+function htmlHistoriaAurora({ titulo, subtitulo, fuente, categoria }) {
+  const cat = CATEGORIAS[categoria];
+  const acento = cat ? cat.acento : '#FF6B6B';
+  const { pre, bloque, resto } = partirTituloIA(titulo);
+  const pintado = [bloque, resto].filter(Boolean).join(' ');
+  const tituloHtml = (pre ? esc(pre) + ' ' : '') +
+    (pintado ? `<span class="mk">${esc(pintado)}</span>` : '');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1080px;height:1920px;}
+.placa{position:relative;width:1080px;height:1920px;overflow:hidden;
+  background:#141d35;font-family:'Inter','Segoe UI',sans-serif;}
+.b{position:absolute;border-radius:50%;filter:blur(90px);}
+.b1{width:900px;height:900px;left:-260px;top:-140px;background:rgba(41,121,255,.55);}
+.b2{width:820px;height:820px;right:-300px;top:420px;background:rgba(255,107,107,.42);}
+.b3{width:700px;height:700px;left:-160px;bottom:-180px;background:rgba(88,64,187,.5);}
+.halo{position:absolute;left:140px;right:140px;top:640px;height:640px;border-radius:50%;
+  background:rgba(20,29,53,.55);filter:blur(70px);}
+.pill{position:absolute;top:262px;left:50%;transform:translateX(-50%);
+  display:inline-flex;align-items:center;gap:14px;padding:16px 36px;
+  border-radius:999px;border:2px solid rgba(255,255,255,.35);
+  background:rgba(20,29,53,.4);font-weight:700;font-size:28px;
+  letter-spacing:.18em;color:#fff;}
+.pill i{width:12px;height:12px;border-radius:50%;background:${acento};}
+.centro{position:absolute;left:80px;right:80px;top:50%;transform:translateY(-54%);text-align:center;}
+.tit{font-weight:900;line-height:1.02;color:#fff;letter-spacing:-.03em;}
+.tit .mk{background:linear-gradient(135deg,#6ea8ff,#FF6B6B);
+  -webkit-background-clip:text;background-clip:text;color:transparent;}
+.sub{font-weight:400;font-size:41px;line-height:1.36;color:rgba(255,255,255,.8);
+  margin-top:44px;padding:0 40px;}
+.fuente{font-size:28px;color:#9DB4E4;margin-top:24px;}
+.hair{width:240px;height:6px;border-radius:3px;margin:52px auto 0;
+  background:linear-gradient(135deg,#2979FF,#FF6B6B);}
+.logo{position:absolute;bottom:330px;left:50%;transform:translateX(-50%);height:60px;}
+</style></head><body>
+<div class="placa">
+  <div class="b b1"></div><div class="b b2"></div><div class="b b3"></div>
+  <div class="halo"></div>
+  ${cat ? `<div class="pill"><i></i>${esc(cat.etiqueta)}</div>` : ''}
+  <div class="centro">
+    <div class="tit" data-fit-max="128" data-fit-min="62" data-fit-h="720">${tituloHtml}</div>
+    ${subtitulo ? `<div class="sub">${esc(subtitulo)}</div>` : ''}
+    ${fuente ? `<div class="fuente">Fuente · ${esc(fuente)}</div>` : ''}
+    <div class="hair"></div>
+  </div>
+  ${LOGO_B64 ? `<img class="logo" src="data:image/png;base64,${LOGO_B64}">` : ''}
+</div>
+${FIT_SCRIPT}</body></html>`;
+}
+
 // Renderiza un HTML a PNG con Chrome headless.
 function renderHtml(html, salidaPath, ancho = 1080, alto = 1920) {
   return new Promise((resolve, reject) => {
@@ -135,12 +364,20 @@ function renderHtml(html, salidaPath, ancho = 1080, alto = 1920) {
 }
 
 // Compone la placa de historia final y la guarda en salidaPath.
-async function componerPlacaHistoria({ ilustracionPath, titulo, subtitulo, fuente, categoria, salidaPath }) {
-  const b64 = fs.readFileSync(ilustracionPath).toString('base64');
-  const html = htmlPlacaHistoria({
-    ilustracionDataUri: 'data:image/png;base64,' + b64,
-    titulo, subtitulo, fuente, categoria,
-  });
+// diseno: 'clasico' (default) · 'typexxl' · 'brutal' · 'aurora' (sin imagen).
+async function componerPlacaHistoria({ ilustracionPath, titulo, subtitulo, fuente, categoria, salidaPath, diseno }) {
+  const d = DISENOS_HISTORIA.includes(diseno) ? diseno : 'clasico';
+  let html;
+  if (d === 'aurora') {
+    html = htmlHistoriaAurora({ titulo, subtitulo, fuente, categoria });
+  } else {
+    const b64 = fs.readFileSync(ilustracionPath).toString('base64');
+    const dataUri = 'data:image/png;base64,' + b64;
+    const args = { ilustracionDataUri: dataUri, titulo, subtitulo, fuente, categoria };
+    html = d === 'typexxl' ? htmlHistoriaTypexxl(args)
+         : d === 'brutal'  ? htmlHistoriaBrutal(args)
+         : htmlPlacaHistoria(args);
+  }
   await renderHtml(html, salidaPath);
   return salidaPath;
 }
@@ -452,4 +689,4 @@ async function componerSlideCarrusel({ ilustracionPath, titulo, cuerpo, dato, ca
   return salidaPath;
 }
 
-module.exports = { componerPlacaHistoria, componerPlacaFeed, componerSlideCarrusel, CATEGORIAS };
+module.exports = { componerPlacaHistoria, componerPlacaFeed, componerSlideCarrusel, CATEGORIAS, DISENOS_HISTORIA };

@@ -11,6 +11,15 @@ const MKT_GEN_MODOS = {
   foto:        'Foto propia',
 };
 
+// Diseños de la placa de historia. Aurora no usa imagen de fondo
+// (gradient mesh de marca) — no gasta crédito de imagen.
+const MKT_GEN_DISENOS = {
+  clasico: 'Clásico',
+  typexxl: 'Type XXL',
+  brutal:  'Brutal',
+  aurora:  'Aurora (sin imagen)',
+};
+
 const MKT_GEN_CATEGORIAS = {
   novedad:   'Novedad',
   educativo: 'Educativo',
@@ -24,6 +33,7 @@ const MKT_GEN_CAT_PILAR = {
 };
 
 let mktGenModo      = 'ilustracion';
+let mktGenDiseno    = 'clasico';
 let mktGenCategoria = 'novedad';
 let mktGenIdea      = '';
 let mktGenFuente    = '';
@@ -113,10 +123,18 @@ function mktGenFormHTML() {
   const dis = mktGenCargando ? 'disabled' : '';
   const opt = (obj, sel) => Object.entries(obj).map(([k, v]) =>
     `<option value="${k}" ${k === sel ? 'selected' : ''}>${v}</option>`).join('');
+  const esHistoria = mktGenCfg().formato === 'historia';
+  const sinImagen = esHistoria && mktGenDiseno === 'aurora';
   return `
   <div class="card" style="margin-bottom:20px;">
     <div class="form-row">
+      ${esHistoria ? `
       <div class="form-group">
+        <label class="form-label">Diseño</label>
+        <select class="form-select" id="mgen_diseno" ${dis}
+          onchange="mktGenSetDiseno(this.value)">${opt(MKT_GEN_DISENOS, mktGenDiseno)}</select>
+      </div>` : ''}
+      <div class="form-group" id="mgen_modo_wrap" style="display:${sinImagen ? 'none' : 'block'};">
         <label class="form-label">Modo</label>
         <select class="form-select" id="mgen_modo" ${dis}
           onchange="mktGenToggleModo(this.value)">${opt(MKT_GEN_MODOS, mktGenModo)}</select>
@@ -150,7 +168,7 @@ function mktGenFormHTML() {
         placeholder="Ej: TechCrunch — aparece como crédito en la placa">
     </div>
     <div class="form-group" id="mgen_ref_wrap"
-         style="display:${mktGenModo !== 'foto' ? 'block' : 'none'};">
+         style="display:${mktGenModo !== 'foto' && !sinImagen ? 'block' : 'none'};">
       <label class="form-label">Imagen de referencia (opcional)</label>
       <input type="file" class="form-input" id="mgen_referencia" accept="image/*" ${dis}
         onchange="mktGenSetReferencia(this)">
@@ -160,7 +178,7 @@ function mktGenFormHTML() {
       </div>
     </div>
     <div class="form-group" id="mgen_foto_wrap"
-         style="display:${mktGenModo === 'foto' ? 'block' : 'none'};">
+         style="display:${mktGenModo === 'foto' && !sinImagen ? 'block' : 'none'};">
       <label class="form-label">Tu foto</label>
       <input type="file" class="form-input" id="mgen_foto" accept="image/*" ${dis}
         onchange="mktGenSetFoto(this)">
@@ -190,10 +208,19 @@ function mktGenFormHTML() {
 
 function mktGenToggleModo(v) {
   mktGenModo = v;
+  const sinImagen = mktGenCfg().formato === 'historia' && mktGenDiseno === 'aurora';
   const w = document.getElementById('mgen_foto_wrap');
-  if (w) w.style.display = v === 'foto' ? 'block' : 'none';
+  if (w) w.style.display = v === 'foto' && !sinImagen ? 'block' : 'none';
   const r = document.getElementById('mgen_ref_wrap');
-  if (r) r.style.display = v !== 'foto' ? 'block' : 'none';
+  if (r) r.style.display = v !== 'foto' && !sinImagen ? 'block' : 'none';
+}
+
+// Cambio de diseño de historia: Aurora no usa imagen — oculta modo/foto/ref.
+function mktGenSetDiseno(v) {
+  mktGenDiseno = MKT_GEN_DISENOS[v] ? v : 'clasico';
+  const m = document.getElementById('mgen_modo_wrap');
+  if (m) m.style.display = mktGenDiseno === 'aurora' ? 'none' : 'block';
+  mktGenToggleModo(mktGenModo);
 }
 
 function mktGenToggleRetoque(checked) {
@@ -244,6 +271,7 @@ function mktGenResultadoHTML() {
                border:1px solid var(--border);cursor:zoom-in;">
       <div style="flex:1;min-width:240px;">
         ${mktGenCampo('Categoría', MKT_GEN_CATEGORIAS[u.categoria] || u.categoria)}
+        ${u.diseno && u.diseno !== 'clasico' ? mktGenCampo('Diseño', MKT_GEN_DISENOS[u.diseno] || u.diseno) : ''}
         ${mktGenCampo('Modo', MKT_GEN_MODOS[u.modo] || u.modo)}
         ${mktGenCampo('Tu idea', u.idea)}
         ${mktGenCampo('Título', u.titulo)}
@@ -394,8 +422,9 @@ async function mktGenSubmit() {
   const categoria = document.getElementById('mgen_categoria').value;
   const modo = document.getElementById('mgen_modo').value;
   const fuente = document.getElementById('mgen_fuente').value.trim();
+  const sinImagen = mktGenCfg().formato === 'historia' && mktGenDiseno === 'aurora';
   if (!idea) { toast('Escribí tu idea primero', 'error'); return; }
-  if (modo === 'foto' && !mktGenFoto) { toast('Subí una foto', 'error'); return; }
+  if (modo === 'foto' && !mktGenFoto && !sinImagen) { toast('Subí una foto', 'error'); return; }
 
   mktGenIdea = idea; mktGenCategoria = categoria; mktGenModo = modo; mktGenFuente = fuente;
   mktGenCargando = true;
@@ -408,6 +437,7 @@ async function mktGenSubmit() {
     fd.append('fuente', fuente);
     fd.append('formato', mktGenCfg().formato);
     fd.append('modoLibre', mktGenModoLibre ? 'true' : 'false');
+    if (mktGenCfg().formato === 'historia') fd.append('diseno', mktGenDiseno);
     if (modo === 'foto' && mktGenFoto) {
       fd.append('foto', mktGenFoto);
       const rc = document.getElementById('mgen_retocar');
