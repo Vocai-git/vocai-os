@@ -43,6 +43,10 @@ let mktGenCargando  = false;
 let mktGenMuestras  = [];
 let mktGenFbPaso    = null;   // veredicto: null preguntar · 'motivo' · 'hecho'
 
+// Pieza del calendario que se está produciendo (viene del botón 🎨 Producir).
+// Si está seteada, "Añadir al calendario" adjunta la placa a ESA pieza.
+let mktGenPiezaDestino = null;  // { id, fecha, titulo }
+
 // Modo libre: el especialista respeta la idea al pie, sin filtrar contra la
 // lista negra ni la regla de oro. El campo "Tu idea" sigue siendo el mismo;
 // solo cambia cómo lo interpreta el especialista de copy.
@@ -124,8 +128,18 @@ function mktGenFormHTML() {
     `<option value="${k}" ${k === sel ? 'selected' : ''}>${v}</option>`).join('');
   const esHistoria = mktGenCfg().formato === 'historia';
   const sinImagen = esHistoria && mktGenDiseno === 'aurora';
+  const destino = mktGenPiezaDestino && esHistoria ? `
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;
+                padding:10px 14px;border-radius:10px;border:1px solid var(--border);
+                background:rgba(41,121,255,0.08);font-size:13px;">
+      <span>🎨 Produciendo pieza del calendario:
+        <b>${escHtml(mktGenPiezaDestino.titulo)}</b> · ${escHtml(mktGenPiezaDestino.fecha)}</span>
+      <button class="btn btn-secondary" style="margin-left:auto;padding:2px 10px;font-size:12px;"
+        onclick="mktGenSoltarDestino()">Soltar</button>
+    </div>` : '';
   return `
   <div class="card" style="margin-bottom:20px;">
+    ${destino}
     <div class="form-row">
       ${esHistoria ? `
       <div class="form-group">
@@ -469,23 +483,33 @@ async function mktGenSubmit() {
 }
 
 // ── Añadir al calendario ────────────────────────────────────
+function mktGenSoltarDestino() {
+  mktGenPiezaDestino = null;
+  navigate('marketing-generator');
+}
+
 function mktGenAlCalendario(archivo) {
   const m = mktGenMuestras.find(x => x.archivo === archivo) ||
             (mktGenUltimo && mktGenUltimo.archivo === archivo ? mktGenUltimo : null);
   if (!m) { toast('No se encontró la placa', 'error'); return; }
-  const hoy = new Date().toISOString().slice(0, 10);
   const cfg = mktGenCfg();
-  createModal('mktGenCalModal', 'Añadir al calendario', `
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5;">
-      Se va a crear una pieza en el <b>Calendario · ${cfg.calNombre}</b> con esta placa,
-      en la categoría <b>${escHtml(MKT_GEN_CATEGORIAS[m.categoria] || m.categoria || '—')}</b>.</p>
+  const dest = mktGenPiezaDestino && cfg.formato === 'historia' ? mktGenPiezaDestino : null;
+  const fecha = dest ? dest.fecha : new Date().toISOString().slice(0, 10);
+  const intro = dest
+    ? `Esta placa se adjunta a la pieza <b>${escHtml(dest.titulo)}</b> del calendario,
+       que pasa a estado <b>Lista</b>. No se publica sola.`
+    : `Se va a crear una pieza en el <b>Calendario · ${cfg.calNombre}</b> con esta placa,
+       en la categoría <b>${escHtml(MKT_GEN_CATEGORIAS[m.categoria] || m.categoria || '—')}</b>.`;
+  createModal('mktGenCalModal', dest ? 'Adjuntar a la pieza' : 'Añadir al calendario', `
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.5;">${intro}</p>
     <div class="form-group">
       <label class="form-label">Fecha de publicación</label>
-      <input class="form-input" type="date" id="mgcal_fecha" value="${hoy}">
+      <input class="form-input" type="date" id="mgcal_fecha" value="${fecha}">
     </div>
   `, `
     <button class="btn btn-secondary" onclick="closeModal('mktGenCalModal')">Cancelar</button>
-    <button class="btn btn-primary" onclick="mktGenCalGuardar('${escHtml(archivo)}')">Añadir</button>
+    <button class="btn btn-primary" onclick="mktGenCalGuardar('${escHtml(archivo)}')">
+      ${dest ? 'Adjuntar' : 'Añadir'}</button>
   `);
 }
 
@@ -496,18 +520,27 @@ async function mktGenCalGuardar(archivo) {
   const fecha = document.getElementById('mgcal_fecha').value;
   if (!fecha) { toast('Elegí una fecha', 'error'); return; }
   const cfg = mktGenCfg();
+  const notas = '[media:' + (m.url || '').split('?')[0] + '] ' +
+                (m.copy || 'Placa del Generador');
+  const dest = mktGenPiezaDestino && cfg.formato === 'historia' ? mktGenPiezaDestino : null;
   try {
-    await API.post('/marketing-calendar', {
-      titulo:  m.titulo || m.idea || 'Placa generada',
-      fecha,
-      formato: cfg.calFormato,
-      pilar:   MKT_GEN_CAT_PILAR[m.categoria] || 'ia',
-      estado:  'lista',
-      notas:   '[media:' + (m.url || '').split('?')[0] + '] ' +
-               (m.copy || 'Placa del Generador'),
-    });
-    toast('Añadida al Calendario · ' + cfg.calNombre, 'success');
+    if (dest) {
+      await API.put('/marketing-calendar/' + dest.id, { fecha, estado: 'lista', notas });
+      mktGenPiezaDestino = null;
+      toast('Placa adjuntada — la pieza quedó Lista en el calendario', 'success');
+    } else {
+      await API.post('/marketing-calendar', {
+        titulo:  m.titulo || m.idea || 'Placa generada',
+        fecha,
+        formato: cfg.calFormato,
+        pilar:   MKT_GEN_CAT_PILAR[m.categoria] || 'ia',
+        estado:  'lista',
+        notas,
+      });
+      toast('Añadida al Calendario · ' + cfg.calNombre, 'success');
+    }
     closeModal('mktGenCalModal');
+    if (dest) navigate('marketing-generator');
   } catch (err) { toast(err.message, 'error'); }
 }
 

@@ -253,7 +253,16 @@ function mktCalMedia(notas) {
   return null;
 }
 function mktCalNotasLimpias(notas) {
-  return (notas || '').replace(/\[media:[^\]]+\]\s*/g, '').trim();
+  return (notas || '')
+    .replace(/\[media:[^\]]+\]\s*/g, '')
+    .replace(/\[gen:[^\]]+\]\s*/g, '')
+    .trim();
+}
+
+// Config del Generador guardada por el planificador en las notas: [gen:categoria,diseno]
+function mktCalGenConfig(notas) {
+  const m = /\[gen:([a-z]+),([a-z]+)\]/.exec(notas || '');
+  return m ? { categoria: m[1], diseno: m[2] } : null;
 }
 
 // ── Previsualizar la pieza (abre el visor ampliado) ─────────
@@ -447,13 +456,36 @@ async function mktCalEdit(id) {
     ? `<button class="btn btn-secondary" onclick="mktCalPublicar('${id}')"
         title="Publica YA, ignorando lo que tengas en 'Programar publicación'">⚡ Publicar al instante</button>`
     : '';
+  // Historia sin placa → se puede producir en el Generador con un clic
+  const btnProd = (!media && p.formato === 'story')
+    ? `<button class="btn btn-secondary" onclick="mktCalProducir('${id}')"
+        title="Abre el Generador precargado con esta idea">🎨 Producir</button>`
+    : '';
   createModal('mktCalModal', 'Editar pieza', previewHTML + mktCalForm(p), `
     <button class="btn btn-danger" onclick="mktCalDelete('${id}')"
       style="margin-right:auto;">Eliminar</button>
-    ${btnPub}
+    ${btnProd}${btnPub}
     <button class="btn btn-secondary" onclick="closeModal('mktCalModal')">Cancelar</button>
     <button class="btn btn-primary" onclick="mktCalSave('${id}')">Guardar</button>
   `);
+}
+
+// Abre el Generador precargado con la idea de esta pieza. La placa
+// que salga se adjunta a ESTA pieza (no crea otra en el calendario).
+function mktCalProducir(id) {
+  const p = mktCalPiezas.find(x => x.id === id);
+  if (!p) return;
+  const cfg = mktCalGenConfig(p.notas);
+  const angulo = mktCalNotasLimpias(p.notas);
+  mktGenSeccion = 'historias';
+  mktGenIdea = p.titulo + (angulo ? '. ' + angulo : '');
+  mktGenCategoria = cfg ? cfg.categoria : (p.pilar === 'casos' ? 'caso'
+    : p.pilar === 'estudio' || p.pilar === 'personas' ? 'interno' : 'educativo');
+  if (cfg && MKT_GEN_DISENOS[cfg.diseno]) mktGenDiseno = cfg.diseno;
+  mktGenUltimo = null;
+  mktGenPiezaDestino = { id: p.id, fecha: p.fecha, titulo: p.titulo };
+  closeModal('mktCalModal');
+  navigate('marketing-generator');
 }
 
 // Publica la pieza ya mismo en Instagram + Facebook.
@@ -472,11 +504,11 @@ async function mktCalPublicar(id) {
 
 async function mktCalSave(id) {
   let notas = document.getElementById('mkf_notas').value.trim();
-  // conservar el marcador [media:...] de la pieza original
+  // conservar los marcadores [media:...] y [gen:...] de la pieza original
   if (id) {
     const orig = mktCalPiezas.find(x => x.id === id);
-    const tag = orig ? /\[media:[^\]]+\]/.exec(orig.notas || '') : null;
-    if (tag) notas = tag[0] + (notas ? ' ' + notas : '');
+    const tags = orig ? (orig.notas || '').match(/\[(?:media|gen):[^\]]+\]/g) : null;
+    if (tags) notas = tags.join(' ') + (notas ? ' ' + notas : '');
   }
   const publishStr = document.getElementById('mkf_publish_at').value;
   const body = {
