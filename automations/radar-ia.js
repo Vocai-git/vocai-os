@@ -292,7 +292,6 @@ async function videosRecientesYT(channelId, desde) {
 // que las novedades de Grok para que entren al mismo flujo.
 async function analizarVideosYT(crudos) {
   if (!crudos.length) return [];
-  const { generarTexto } = {};  // placeholder — usamos llamada directa abajo
   const sys =
 `Sos el analista de research de VOCAI. Te paso una lista de videos publicados
 por los referentes de IA en YouTube en las últimas 24 horas. Por cada video,

@@ -1,7 +1,8 @@
 /* ============================================================
    VOCAI OS — Scheduler de automatizaciones
-   Corre el Radar IA cada 3 días. Vive dentro del proceso del
-   server: mientras VOCAI OS está online, el cron está activo.
+   Radar IA diario, publicaciones cada 15 min, métricas diarias.
+   Vive dentro del proceso del server: mientras VOCAI OS está
+   online, el cron está activo.
    ============================================================ */
 
 const cron = require('node-cron');

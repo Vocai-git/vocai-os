@@ -20,6 +20,7 @@ const MKT_ESTADO = {
   idea:       { label: 'Idea',          color: 'var(--text-muted)' },
   produccion: { label: 'En producción', color: '#2979FF' },
   lista:      { label: 'Lista',         color: '#FF8C42' },
+  publicando: { label: 'Publicando…',   color: '#2979FF' },
   publicada:  { label: 'Publicada',     color: '#00C48C' },
   error:      { label: 'Error',         color: '#FF6B6B' },
 };

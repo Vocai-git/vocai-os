@@ -77,26 +77,46 @@ async function publicarPieza(pieza) {
   const caption = captionDePieza(pieza);
 
   try {
-    let igId = null, fbId = null;
+    let igId = null, fbId = null, fbError = null;
     if (pieza.formato === 'story') {
       // historia → Instagram Story (una imagen)
       const r = await meta.publicarHistoriaInstagram(media.urls[0], token, igUser);
       igId = r && r.id || null;
-    } else if (media.tipo === 'carrusel') {
-      const r = await meta.publicarCarruselInstagram(media.urls, caption, token, igUser);
-      igId = r && r.id || null;
-      const f = await meta.publicarFacebook(media.urls, caption, token, fbPage);
-      fbId = f && (f.post_id || f.id) || null;
     } else {
-      const r = await meta.publicarImagenInstagram(media.urls[0], caption, token, igUser);
-      igId = r && r.id || null;
-      const f = await meta.publicarFacebook(media.urls, caption, token, fbPage);
-      fbId = f && (f.post_id || f.id) || null;
+      if (media.tipo === 'carrusel') {
+        const r = await meta.publicarCarruselInstagram(media.urls, caption, token, igUser);
+        igId = r && r.id || null;
+      } else {
+        const r = await meta.publicarImagenInstagram(media.urls[0], caption, token, igUser);
+        igId = r && r.id || null;
+      }
+      // FB va aparte: si falla, el post de IG ya salió — marcar error acá
+      // haría que un reintento duplique la publicación en Instagram.
+      try {
+        const f = await meta.publicarFacebook(media.urls, caption, token, fbPage);
+        fbId = f && (f.post_id || f.id) || null;
+      } catch (e) {
+        fbError = e.message;
+        console.error(`[Publisher] FB falló para "${pieza.titulo}" (IG ya publicado): ${fbError}`);
+      }
     }
-    return { ok: true, igId, fbId };
+    return { ok: true, igId, fbId, fbError };
   } catch (err) {
     return { ok: false, error: err.message };
   }
+}
+
+// Reclama una pieza para publicarla (estado → 'publicando') de forma atómica.
+// Devuelve true si esta corrida la tomó; false si otra ya la está publicando.
+// Evita la doble publicación cuando dos corridas del cron se solapan.
+async function reclamarPieza(id, desdeEstado) {
+  let q = supabase.from('content_pieces')
+    .update({ estado: 'publicando', updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .neq('estado', 'publicando');
+  if (desdeEstado) q = q.eq('estado', desdeEstado);
+  const { data, error } = await q.select('id');
+  return !error && !!(data && data.length);
 }
 
 // Marca el estado de una pieza en Supabase (+ campos extra, ej. ig_media_id).
@@ -123,6 +143,8 @@ async function publicarPiezaPorId(id) {
   const { data: pieza, error } = await supabase
     .from('content_pieces').select('*').eq('id', id).single();
   if (error || !pieza) throw new Error('No se encontró la pieza');
+  const tomada = await reclamarPieza(id);
+  if (!tomada) throw new Error('La pieza ya se está publicando');
   const r = await publicarPieza(pieza);
   await marcarEstado(id, r.ok ? 'publicada' : 'error', r.ok ? idsDeResultado(r) : null);
   if (!r.ok) throw new Error(r.error);
@@ -131,31 +153,43 @@ async function publicarPiezaPorId(id) {
 
 // Publicación automática: piezas con publish_at <= ahora y estado 'lista'.
 // Si publish_at es null, la pieza no se autopublica (es manual desde el dashboard).
+let corridaEnCurso = false;   // una corrida lenta (carruseles) no debe solaparse con el próximo tick
 async function correrPublicaciones() {
   if (!meta.metaConfigurado()) {
     console.log('[Publisher] Sin credenciales Meta — no se publica.');
     return { publicadas: 0, errores: 0 };
   }
-  const ahora = new Date().toISOString();
-  const { data: piezas, error } = await supabase
-    .from('content_pieces').select('*')
-    .not('publish_at', 'is', null)
-    .lte('publish_at', ahora)
-    .eq('estado', 'lista');
-  if (error) {
-    console.error('[Publisher] Error leyendo el calendario:', error.message);
+  if (corridaEnCurso) {
+    console.log('[Publisher] Corrida anterior todavía en curso — se saltea este tick.');
     return { publicadas: 0, errores: 0 };
   }
+  corridaEnCurso = true;
+  try {
+    const ahora = new Date().toISOString();
+    const { data: piezas, error } = await supabase
+      .from('content_pieces').select('*')
+      .not('publish_at', 'is', null)
+      .lte('publish_at', ahora)
+      .eq('estado', 'lista');
+    if (error) {
+      console.error('[Publisher] Error leyendo el calendario:', error.message);
+      return { publicadas: 0, errores: 0 };
+    }
 
-  let pub = 0, err = 0;
-  for (const pieza of piezas || []) {
-    if (!mediaDePieza(pieza.notas)) continue;   // sin imagen → se ignora
-    const r = await publicarPieza(pieza);
-    await marcarEstado(pieza.id, r.ok ? 'publicada' : 'error', r.ok ? idsDeResultado(r) : null);
-    if (r.ok) { pub++; console.log(`[Publisher] Publicada: ${pieza.titulo}`); }
-    else { err++; console.error(`[Publisher] Error en "${pieza.titulo}": ${r.error}`); }
+    let pub = 0, err = 0;
+    for (const pieza of piezas || []) {
+      if (!mediaDePieza(pieza.notas)) continue;   // sin imagen → se ignora
+      const tomada = await reclamarPieza(pieza.id, 'lista');
+      if (!tomada) continue;                       // otra corrida ya la tiene
+      const r = await publicarPieza(pieza);
+      await marcarEstado(pieza.id, r.ok ? 'publicada' : 'error', r.ok ? idsDeResultado(r) : null);
+      if (r.ok) { pub++; console.log(`[Publisher] Publicada: ${pieza.titulo}`); }
+      else { err++; console.error(`[Publisher] Error en "${pieza.titulo}": ${r.error}`); }
+    }
+    return { publicadas: pub, errores: err };
+  } finally {
+    corridaEnCurso = false;
   }
-  return { publicadas: pub, errores: err };
 }
 
 module.exports = { publicarPieza, publicarPiezaPorId, correrPublicaciones, captionDePieza };
