@@ -403,6 +403,20 @@ function fondoRico(acento) {
          `linear-gradient(160deg, #1b2649 0%, #141d35 62%)`;
 }
 
+// Blobs aurora de marca (mismo lenguaje que el diseño Aurora de historias)
+// para que los slides sin imagen no queden planos. El halo oscurece el
+// centro para que el texto siga legible sobre los blobs.
+const AURORA_HTML = `
+  <div class="ab ab1"></div><div class="ab ab2"></div><div class="ab ab3"></div>
+  <div class="ahalo"></div>`;
+const AURORA_CSS = `
+.ab{position:absolute;border-radius:50%;filter:blur(80px);}
+.ab1{width:760px;height:760px;left:-220px;top:-160px;background:rgba(41,121,255,.5);}
+.ab2{width:680px;height:680px;right:-260px;top:340px;background:rgba(255,107,107,.38);}
+.ab3{width:600px;height:600px;left:-140px;bottom:-180px;background:rgba(88,64,187,.45);}
+.ahalo{position:absolute;left:110px;right:110px;top:360px;height:600px;border-radius:50%;
+  background:rgba(20,29,53,.6);filter:blur(60px);}`;
+
 // Numerador de slide (arriba a la derecha).
 function numHtml(indice, total) {
   return `<div class="num"><b>${indice}</b> / ${total}</div>`;
@@ -549,6 +563,7 @@ html,body{width:1080px;height:1350px;}
 .slide{position:relative;width:1080px;height:1350px;overflow:hidden;
   font-family:'Inter','Segoe UI',sans-serif;
   background:${sinImagen ? fondoRico(acento) : '#141d35'};}
+${sinImagen ? AURORA_CSS : ''}
 .fondo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 .velo{position:absolute;left:0;right:0;bottom:0;height:86%;
   background:linear-gradient(to bottom,rgba(20,29,53,0) 0%,
@@ -570,7 +585,7 @@ html,body{width:1080px;height:1350px;}
   height:56px;z-index:5;}
 .logo-e{position:absolute;bottom:56px;right:74px;height:34px;z-index:5;}
 </style></head><body>
-<div class="slide">${interior}</div>
+<div class="slide">${sinImagen ? AURORA_HTML : ''}${interior}</div>
 <script>
 (function(){
   function fit(){

@@ -450,6 +450,9 @@ Campos:
   * Empieza con este estilo, tal cual: ${estiloDesc}
   * Coherencia visual entre TODAS las slides con imagen (mismo mundo, misma paleta,
     mismos personajes si aparecen).
+  * PROHIBIDO repetir escena: cada prompt_imagen describe una escena DISTINTA.
+    En especial el CIERRE — mismo mundo que la portada, pero otro encuadre, otro
+    sujeto u otro ángulo. Nunca dos slides con la misma composición.
   * Paleta: deep navy blue (#141d35) dominant background, electric blue (#2979FF)
     and coral red (#FF6B6B) accents.
   * Vertical 4:5 composition. Keep one area calm and darker for text.
