@@ -58,4 +58,5 @@ app.listen(PORT, () => {
   console.log(`VOCAI OS corriendo en puerto ${PORT}`);
   require('./config/storage').asegurarBucket();
   require('./automations/scheduler').iniciarScheduler();
+  require('./config/geoip-refresh').refrescar();
 });
