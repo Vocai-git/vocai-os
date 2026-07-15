@@ -10,6 +10,9 @@
 const { execSync } = require('child_process');
 const path = require('path');
 
+// En Railway la variable viene inyectada; en local sale del .env.
+try { require('dotenv').config({ path: path.join(__dirname, '..', '.env') }); } catch { /* sin dotenv */ }
+
 const key = process.env.MAXMIND_LICENSE_KEY;
 if (!key) {
   console.log('GeoIP: sin MAXMIND_LICENSE_KEY — se usa la base embebida del paquete');
