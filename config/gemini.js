@@ -13,7 +13,8 @@ const BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 // Modelos de texto en orden de preferencia: si el primario está
 // sobrecargado (429/502/503), se cae automáticamente al siguiente.
-const MODELOS_TEXTO = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+// Primero los PRO (mejor copy y estructura); flash queda de red de seguridad.
+const MODELOS_TEXTO = ['gemini-3.1-pro-preview', 'gemini-3-pro-preview', 'gemini-2.5-pro', 'gemini-2.5-flash'];
 
 // Estilos de ilustración — base del prompt de imagen.
 const ESTILOS_ILUSTRACION = {
@@ -146,7 +147,10 @@ async function llamarTexto({ sys, user, json, imagenPath }) {
   }
   if (!res.ok) throw await errorGemini(res, 'texto');
   const data = await res.json();
+  // Los modelos pro con razonamiento devuelven parts con thought:true —
+  // son el pensamiento interno, no la respuesta: se filtran.
   const txt = (data?.candidates?.[0]?.content?.parts || [])
+    .filter(p => !p.thought)
     .map(p => p.text || '').join('').trim();
   if (!txt) throw new Error('Gemini no devolvió respuesta');
   return txt;
