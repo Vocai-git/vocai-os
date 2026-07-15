@@ -163,9 +163,10 @@ router.post('/cargar', auth, async (req, res) => {
     }));
   if (!filas.length) return res.status(400).json({ error: 'No hay piezas válidas para cargar' });
 
-  const { data, error } = await supabase.from('content_pieces').insert(filas).select('id');
+  const { data, error } = await supabase.from('content_pieces')
+    .insert(filas).select('id,fecha,titulo');
   if (error) return res.status(400).json({ error: error.message });
-  res.json({ ok: true, creadas: (data || []).length });
+  res.json({ ok: true, creadas: (data || []).length, piezas: data || [] });
 });
 
 module.exports = router;

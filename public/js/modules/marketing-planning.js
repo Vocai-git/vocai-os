@@ -7,6 +7,7 @@
 let mktPlanDate = new Date();
 let mktPlanPropuesta = [];      // plan de historias propuesto por la IA (editable)
 let mktPlanProponiendo = false; // spinner mientras la IA arma el plan
+let mktPlanProduciendo = false; // evita doble clic mientras se carga una pieza suelta
 
 const MKT_PLAN_CATEGORIAS = {
   novedad: 'Novedad', educativo: 'Educativo', caso: 'Caso real', interno: 'VOCAI por dentro',
@@ -179,7 +180,10 @@ function mktPlanPropuestaHTML() {
           <select class="form-select" onchange="mktPlanEditar(${i},'diseno',this.value)">
             ${opt(MKT_PLAN_DISENOS, p.diseno)}</select>
         </div>
-        <button class="btn btn-secondary" style="margin-left:auto;" title="Quitar del plan"
+        <button class="btn btn-primary" style="margin-left:auto;" ${mktPlanProduciendo ? 'disabled' : ''}
+          title="La carga al calendario y abre el Generador con esta idea"
+          onclick="mktPlanProducir(${i})">🎨 Producir</button>
+        <button class="btn btn-secondary" title="Quitar del plan"
           onclick="mktPlanQuitar(${i})">✕</button>
       </div>
       ${p.angulo ? `<div style="font-size:12px;color:var(--text-muted);margin-top:8px;line-height:1.4;">
@@ -233,6 +237,37 @@ async function mktPlanProponer() {
 function mktPlanEditar(i, campo, valor) {
   if (mktPlanPropuesta[i]) mktPlanPropuesta[i][campo] = valor;
   if (campo === 'pilar') mktPlanRepintarPropuesta();
+}
+
+/* Carga UNA pieza de la propuesta al calendario y abre el Generador
+   con la idea precargada y la placa enganchada a esa pieza (mismo
+   circuito que el botón Producir del calendario). */
+async function mktPlanProducir(i) {
+  const p = mktPlanPropuesta[i];
+  if (!p || mktPlanProduciendo) return;
+  mktPlanProduciendo = true;
+  mktPlanRepintarPropuesta();
+  try {
+    const r = await API.post('/marketing-planning/cargar', { piezas: [p] });
+    const creada = (r.piezas || [])[0];
+    if (!creada) throw new Error('No se pudo cargar la pieza al calendario');
+    mktPlanPropuesta.splice(i, 1);
+
+    // Precargar el Generador igual que mktCalProducir (marketing-calendar.js)
+    mktGenSeccion = 'historias';
+    mktGenIdea = p.titulo + (p.angulo ? '. ' + p.angulo : '');
+    mktGenCategoria = p.categoria || 'educativo';
+    if (MKT_GEN_DISENOS[p.diseno]) mktGenDiseno = p.diseno;
+    mktGenUltimo = null;
+    mktGenPiezaDestino = { id: creada.id, fecha: creada.fecha, titulo: creada.titulo };
+    toast('Idea cargada al calendario — producila en el Generador', 'success');
+    navigate('marketing-generator');
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    mktPlanProduciendo = false;
+    mktPlanRepintarPropuesta();
+  }
 }
 
 function mktPlanQuitar(i) {
