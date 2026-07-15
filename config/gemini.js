@@ -404,9 +404,14 @@ NUNCA repitas el mismo layout dos veces seguidas):
   conceptos o frases que pegan más solas. Da respiro al carrusel.
 - "dato": SIN imagen, un número o cifra GIGANTE como protagonista. Úsalo SOLO si
   hay un dato concreto (un porcentaje, una cantidad, un "3x").
-- "cita": SIN imagen, una frase tipo cita destacada. Para una afirmación fuerte.
+- "cita": SIN imagen, una frase tipo cita destacada. SOLO si tienes una frase
+  CITABLE de verdad (algo que alguien diría, con voz propia); el "cuerpo" es el
+  autor o la firma, no una segunda frase. Si no la tienes, usa otro layout.
 
 La PORTADA usa siempre "portada" y el CIERRE siempre "cierre" — esos los fijo yo.
+El título de la PORTADA promete el contenido CONCRETO del carrusel (qué se
+lleva el lector: "5 tareas que...", "El error que..."), nunca un aforismo
+genérico tipo "Tu tiempo vale oro" — eso es lista negra.
 Un buen carrusel MEZCLA: algunos slides con imagen, otros sin imagen.
 
 Devuelve SOLO un JSON con esta forma exacta:

@@ -568,8 +568,9 @@ ${sinImagen ? AURORA_CSS : ''}
 .velo{position:absolute;left:0;right:0;bottom:0;height:86%;
   background:linear-gradient(to bottom,rgba(20,29,53,0) 0%,
     rgba(20,29,53,.5) 30%,rgba(20,29,53,.93) 62%,#141d35 88%);}
-.num{position:absolute;top:58px;right:74px;font-size:29px;font-weight:700;
-  color:rgba(255,255,255,.55);letter-spacing:.04em;z-index:5;}
+.num{position:absolute;top:52px;right:64px;font-size:27px;font-weight:700;
+  color:rgba(255,255,255,.75);letter-spacing:.04em;z-index:5;
+  background:rgba(13,19,34,.78);padding:8px 20px;border-radius:99px;}
 .num b{color:${acento};}
 .zona{position:absolute;left:0;right:0;padding:0 80px;z-index:4;}
 .zona-c{top:50%;transform:translateY(-50%);}
