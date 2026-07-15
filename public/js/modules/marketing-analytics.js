@@ -6,8 +6,9 @@
    Reutiliza MKT_PILAR y mktCalInjectStyles de marketing-calendar.js.
    ============================================================ */
 
-let mktAnaMes = '';      // 'YYYY-MM' en foco
-let mktAnaChart = null;  // instancia Chart.js viva
+let mktAnaMes = '';         // 'YYYY-MM' en foco
+let mktAnaChart = null;     // instancia Chart.js viva (cuenta IG)
+let mktAnaWebChart = null;  // instancia Chart.js viva (visitas web por día)
 
 const MKT_ANA_MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -60,8 +61,11 @@ async function renderMarketingAnalytics(el) {
     el.innerHTML = `<div class="alert alert-error">Error al cargar: ${escHtml(err.message)}</div>`;
     return;
   }
+  let webDetalle = null;
   try { web = await API.get(`/track/resumen?mes=${mktAnaMes}`); }
   catch { /* sin migración web todavía — la sección no se muestra */ }
+  try { if (web) webDetalle = await API.get(`/track/visitas?mes=${mktAnaMes}`); }
+  catch { /* sin detalle — la sección web se muestra igual */ }
 
   const { piezas, cuenta, totales, mesAnterior } = data;
   const publicadas = piezas.filter(p => p.estado === 'publicada');
@@ -112,7 +116,7 @@ async function renderMarketingAnalytics(el) {
         <div style="position:relative;height:200px;"><canvas id="mktAnaCanvas"></canvas></div>
       </div>` : ''}
 
-    ${web ? mktAnaWeb(web) : ''}
+    ${web ? mktAnaWeb(web, webDetalle) : ''}
 
     ${conDatos.length ? mktAnaPilares(conDatos) : ''}
 
@@ -137,6 +141,7 @@ async function renderMarketingAnalytics(el) {
   `;
 
   if (cuenta.length >= 2) mktAnaDibujarChart(cuenta);
+  if (web && Object.keys(web.por_dia || {}).length) mktAnaDibujarWebChart(web.por_dia);
 }
 
 function mktAnaCard(label, valor, sub) {
@@ -150,7 +155,79 @@ function mktAnaCard(label, valor, sub) {
 }
 
 // ── Web (vocai.es) — tracker propio, /api/track ─────────────
-function mktAnaWeb(w) {
+
+// 'ES' → 🇪🇸 (regional indicators). Sin país devuelve ''.
+function mktAnaBandera(cc) {
+  if (!cc || !/^[A-Za-z]{2}$/.test(cc)) return '';
+  return String.fromCodePoint(...[...cc.toUpperCase()].map(c => 0x1F1A5 + c.charCodeAt(0)));
+}
+
+// 'ES' → 'España'. En Windows la bandera emoji no se renderiza, así que
+// el nombre es lo que realmente identifica al país.
+function mktAnaPais(cc) {
+  try {
+    return new Intl.DisplayNames(['es'], { type: 'region' }).of(cc.toUpperCase()) || cc;
+  } catch { return cc; }
+}
+
+// Punto de color estable por hash de visitante: misma persona en el día
+// = mismo color. Para distinguir "quién" sin guardar datos personales.
+function mktAnaPuntoVisitante(hash) {
+  if (!hash) return '';
+  const hue = parseInt(hash.slice(0, 4), 16) % 360;
+  return `<span title="Visitante ${escHtml(hash)}" style="display:inline-block;width:8px;height:8px;
+    border-radius:50%;background:hsl(${hue},70%,55%);flex:0 0 auto;"></span>`;
+}
+
+// Desglose horizontal: "chrome (5) · safari (3)" con etiqueta al frente.
+function mktAnaDesglose(label, obj, format) {
+  const entradas = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  if (!entradas.length) return '';
+  return `
+    <div style="font-size:13px;color:var(--text-muted);margin-top:8px;">
+      <strong style="color:var(--text);">${label}:</strong>
+      ${entradas.map(([k, n]) => `${format ? format(k) : escHtml(k)} (${n})`).join(' · ')}
+    </div>`;
+}
+
+const MKT_ANA_EVENTO = {
+  'click-whatsapp':   { label: 'WhatsApp',   emoji: '💬' },
+  'reserva-estudio':  { label: 'Reserva',    emoji: '🎙' },
+  'contacto-enviado': { label: 'Formulario', emoji: '📨' },
+  'click-instagram':  { label: 'Instagram',  emoji: '📷' },
+};
+
+// Fila de la tabla de últimas visitas: fecha/hora · fuente · página ·
+// dispositivo · país · navegador. Un evento se pinta como acción.
+function mktAnaVisitaFila(v) {
+  const f = new Date(v.ts).toLocaleString('es-ES', {
+    timeZone: 'Europe/Madrid', day: '2-digit', month: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+  });
+  const esEvento = v.tipo === 'evento';
+  const ev = esEvento ? (MKT_ANA_EVENTO[v.evento] || { label: v.evento, emoji: '⚡' }) : null;
+  const lugar = [mktAnaBandera(v.pais), v.ciudad ? escHtml(v.ciudad) : (v.pais ? escHtml(mktAnaPais(v.pais)) : '')]
+    .filter(Boolean).join(' ');
+  const detalle = [
+    v.dispositivo === 'movil' ? '📱' : '🖥',
+    v.navegador ? escHtml(v.navegador) : '',
+    lugar,
+  ].filter(Boolean).join(' · ');
+  return `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;
+         border-bottom:1px solid var(--border);font-size:12px;flex-wrap:wrap;">
+      ${mktAnaPuntoVisitante(v.visitante)}
+      <span style="color:var(--text-muted);flex:0 0 84px;white-space:nowrap;">${f}</span>
+      <span style="font-weight:600;flex:0 0 auto;">${escHtml(v.fuente || 'directo')}</span>
+      ${esEvento
+        ? `<span style="color:#00C48C;font-weight:600;">${ev.emoji} ${escHtml(ev.label)}${v.origen ? ` · ${escHtml(v.origen)}` : ''}</span>`
+        : `<span style="color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;
+             white-space:nowrap;max-width:160px;">${escHtml(v.path || '/')}</span>`}
+      <span style="color:var(--text-muted);margin-left:auto;white-space:nowrap;">${detalle}</span>
+    </div>`;
+}
+
+function mktAnaWeb(w, det) {
   const ev = w.eventos || {};
   const fuentes = Object.entries(w.fuentes || {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const conversiones = [
@@ -159,6 +236,8 @@ function mktAnaWeb(w) {
     { k: 'reserva-estudio',  label: 'Intentos de reserva',  emoji: '🎙' },
     { k: 'click-instagram',  label: 'Clicks a Instagram',   emoji: '📷' },
   ];
+  const hayDias = Object.keys(w.por_dia || {}).length > 0;
+  const ultimas = det && det.ultimas ? det.ultimas : [];
   return `
     <div class="card" style="margin-bottom:20px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
@@ -171,15 +250,66 @@ function mktAnaWeb(w) {
         ${conversiones.map(c => mktAnaCard(c.label, mktAnaNum(ev[c.k] || 0),
           `<span style="font-size:14px;">${c.emoji}</span>`)).join('')}
       </div>
-      ${fuentes.length ? `
-        <div style="margin-top:12px;font-size:13px;color:var(--text-muted);">
-          <strong style="color:var(--text);">De dónde vienen:</strong>
-          ${fuentes.map(([f, n]) => `${escHtml(f)} (${n})`).join(' · ')}
-        </div>` : `
+      ${hayDias ? `
+        <div style="margin-top:14px;">
+          <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;
+            letter-spacing:.4px;margin-bottom:6px;">Visitas por día</div>
+          <div style="position:relative;height:120px;"><canvas id="mktAnaWebCanvas"></canvas></div>
+        </div>` : ''}
+      ${fuentes.length ? mktAnaDesglose('De dónde vienen', Object.fromEntries(fuentes)) : `
         <div style="margin-top:12px;font-size:13px;color:var(--text-muted);">
           Sin visitas registradas este mes todavía.
         </div>`}
+      ${det ? `
+        ${mktAnaDesglose('Páginas', det.paginas)}
+        ${mktAnaDesglose('Dispositivos', det.dispositivos,
+          k => k === 'movil' ? '📱 móvil' : '🖥 desktop')}
+        ${mktAnaDesglose('Países', det.paises, k => `${mktAnaBandera(k)} ${escHtml(mktAnaPais(k))}`)}
+        ${mktAnaDesglose('Navegadores', det.navegadores)}
+        ${mktAnaDesglose('Idiomas', det.idiomas)}
+      ` : ''}
+      ${ultimas.length ? `
+        <div style="margin-top:16px;">
+          <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;
+            letter-spacing:.4px;margin-bottom:4px;">Últimas visitas
+            <span style="text-transform:none;letter-spacing:0;">· el punto de color identifica
+            al mismo visitante dentro del día</span></div>
+          ${ultimas.map(mktAnaVisitaFila).join('')}
+        </div>` : ''}
     </div>`;
+}
+
+// ── Gráfico de visitas web por día ──────────────────────────
+function mktAnaDibujarWebChart(porDia) {
+  const canvas = document.getElementById('mktAnaWebCanvas');
+  if (!canvas || typeof Chart === 'undefined') return;
+  if (mktAnaWebChart) { mktAnaWebChart.destroy(); mktAnaWebChart = null; }
+  const [y, m] = mktAnaMes.split('-').map(Number);
+  const ultimoDia = new Date(y, m, 0).getDate();
+  const labels = [], valores = [];
+  for (let d = 1; d <= ultimoDia; d++) {
+    const key = `${mktAnaMes}-${String(d).padStart(2, '0')}`;
+    labels.push(String(d));
+    valores.push(porDia[key] || 0);
+  }
+  mktAnaWebChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Visitas', data: valores,
+        backgroundColor: 'rgba(41,121,255,.55)', borderRadius: 3,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { ticks: { font: { size: 10 }, precision: 0 }, beginAtZero: true },
+        x: { ticks: { font: { size: 9 }, maxRotation: 0 }, grid: { display: false } },
+      },
+    },
+  });
 }
 
 // ── Performance por pilar — qué pilar empuja y cuál no ──────
