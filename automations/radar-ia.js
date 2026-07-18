@@ -37,9 +37,19 @@ const MEDIOS_TRUSTED = [
   // Agendas institucionales y comunidades cercanas a Alicante.
   'alicante.es', 'impulsalicante.es', 'camaralicante.com', 'ua.es',
   'elche.es', 'umh.es', 'pcumh.es', 'ceeielche.es', 'palmera.tech',
-  'startupvalencia.org', 'ifrm-murcia.es', 'iamurcia.com', 'enae.es',
+  'startupvalencia.org', 'valenciadigitalsummit.com',
+  'ifrm-murcia.es', 'iamurcia.com', 'enae.es',
   // Plataformas de inscripción: el prompt exige evento, organizador y fecha verificables.
   'meetup.com', 'eventbrite.es', 'eventbrite.com',
+];
+
+const AGENDAS_LOCALES = [
+  { nombre: 'ImpulsAlicante', url: 'https://www.impulsalicante.es/emprender/' },
+  { nombre: 'Cámara de Alicante', url: 'https://www.camaralicante.com/acelerapyme/eventos/' },
+  { nombre: 'Parque Científico de Alicante', url: 'https://pca.ua.es/es/agenda/2025/agenda-2026.html' },
+  { nombre: 'Agenda Universidad de Alicante', url: 'https://cvnet.cpd.ua.es/AgendaUA/' },
+  { nombre: 'Emprendimiento Elche', url: 'https://www.elche.es/promocion-economica/emprendimiento/programas-emprendimiento/' },
+  { nombre: 'Startup Valencia', url: 'https://startupvalencia.org/es/eventos-tech/' },
 ];
 
 // Referentes de X/Twitter — sus cuentas son fuente confiable.
@@ -58,6 +68,7 @@ const REFERENTES_YT = [
   { nombre: 'Matt Wolfe',         handle: 'mreflow' },
 ];
 const cacheChannelId = {};   // handle → channel_id (en memoria)
+const HOY_MADRID = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
 
 const PROMPT_SISTEMA =
 `Sos el analista de research de VOCAI, una empresa de IA y automatización para
@@ -93,61 +104,87 @@ aprendizaje aplicable o acceso a potenciales clientes, aunque no produzca conten
 Respondés SOLO con un JSON array válido, sin markdown ni texto extra.`;
 
 const PROMPT_USUARIO =
-`Hacé dos búsquedas complementarias y devolvé entre 6 y 10 resultados en total:
-1. Las novedades de IA más relevantes de las últimas 24 horas.
-2. Eventos presenciales de los próximos 60 días cerca de Alicante.
-
-Para los eventos, intentá incluir de 2 a 5 oportunidades locales si realmente existen.
-No rellenes el cupo con eventos viejos, vagos, sin fecha o exclusivamente online.
+`Buscá las 4 a 6 novedades de IA más relevantes de las últimas 24 horas.
+No incluyas eventos: una segunda búsqueda separada se ocupa de las agendas locales.
 
 REGLA OBLIGATORIA DE FUENTES — solo aceptamos estas, las demás se descartan:
 - Medios trusted: Xataka, El País (Tecnología), TechCrunch, The Verge,
   MIT Technology Review, Wired, Ars Technica.
 - Cuentas de X verificadas: @elonmusk, @sama, @OpenAI, @AnthropicAI, @GoogleDeepMind.
-- Fuentes locales: Ayuntamiento de Alicante, ImpulsAlicante, Cámara de Alicante,
-  Universidad y Parque Científico de Alicante, Ayuntamiento de Elche, UMH, Parque
-  Científico UMH, CEEI Elche, Palmera Tech, Startup Valencia, INFO Murcia, Murcia IA
-  y ENAE. También se aceptan Meetup y Eventbrite si la ficha identifica claramente
-  organizador, ciudad, fecha futura y modalidad presencial.
 Si el item no está publicado en una de esas fuentes permitidas, NO lo incluyas.
 La fuente_url tiene que ser del dominio exacto del medio (ej. techcrunch.com,
 no techcrunch.news ni news-techcrunch.com). NO inventes URLs.
 
 Cada item, un objeto con:
 - titulo: titular corto y claro
-- descripcion: para noticias, qué pasó; para eventos, "Ciudad · hora/modalidad · precio o inscripción". Máximo 18 palabras
-- fecha: fecha de la noticia o DEL EVENTO, formato AAAA-MM-DD
-- tipo: uno de "local", "herramienta", "caso", "debate", "hype", "espana"
+- descripcion: qué pasó, máximo 18 palabras
+- fecha: fecha de la noticia, formato AAAA-MM-DD
+- tipo: uno de "herramienta", "caso", "debate", "hype", "espana"
 - angulo_contenido: en una frase, cómo convertirlo en un reel o carrusel para VOCAI
 - fuente: el nombre del medio o referente de donde salió
 - fuente_url: link directo a la noticia o página de información/inscripción
 
-Para tipo "local", el angulo_contenido debe explicar por qué conviene asistir:
-contactos esperables, aprendizaje aplicable, posibles clientes o material para contenido.
 Nunca inventes fechas, ubicaciones, precios, organizadores ni enlaces.
 
 Devolvé solo el JSON array.`;
 
+const PROMPT_EVENTOS_LOCALES =
+`Hoy es ${HOY_MADRID}. Buscá EXCLUSIVAMENTE eventos presenciales futuros a los que
+el equipo de VOCAI pueda asistir desde Alicante durante los próximos 120 días.
+
+Investigá una por una estas agendas y dominios, no una búsqueda genérica:
+- impulsalicante.es y alicante.es
+- camaralicante.com
+- ua.es y pca.ua.es
+- elche.es, umh.es, pcumh.es, ceeielche.es y palmera.tech
+- startupvalencia.org
+- ifrm-murcia.es, iamurcia.com y enae.es
+- meetup.com y eventbrite.es para Alicante, Elche, Murcia y Valencia
+
+Temas válidos: inteligencia artificial, automatización, marketing, creación de
+contenido, networking empresarial, startups, innovación, tecnología y desarrollo
+de negocio. Prioridad absoluta Alicante y provincia; después Murcia y Valencia si
+el evento justifica el desplazamiento. No incluyas eventos pasados ni solo online.
+Incluí congresos de octubre o noviembre que ya tengan fecha confirmada aunque falten
+varios meses: necesitamos margen para reservar agenda y entradas.
+
+Devolvé de 2 a 6 eventos reales, o un array vacío si no encontrás ninguno verificable.
+Cada objeto debe tener exactamente:
+{
+  "titulo": "nombre del evento",
+  "descripcion": "Ciudad · hora/modalidad · precio o inscripción",
+  "fecha": "AAAA-MM-DD",
+  "tipo": "local",
+  "angulo_contenido": "por qué conviene asistir: contactos, aprendizaje, clientes o contenido",
+  "fuente": "organizador o agenda",
+  "fuente_url": "URL directa del evento o inscripción"
+}
+
+La fecha debe ser la DEL EVENTO. Verificá ciudad, presencialidad y organizador en
+la página enlazada. Nunca inventes datos ni devuelvas páginas generales si existe
+una ficha directa. Respondé solo con un JSON array válido.`;
+
 // ── 1. Buscar novedades con Grok ────────────────────────────
-async function buscarNovedades() {
+async function consultarGrok(prompt, tools) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 240000); // 4 min
   try {
+    const body = {
+      model: 'grok-4.3',
+      stream: false,
+      input: [
+        { role: 'system', content: PROMPT_SISTEMA },
+        { role: 'user',   content: prompt },
+      ],
+    };
+    if (tools && tools.length) body.tools = tools;
     const res = await fetch('https://api.x.ai/v1/responses', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${XAI_KEY}`,
       },
-      body: JSON.stringify({
-        model: 'grok-4.3',
-        stream: false,
-        input: [
-          { role: 'system', content: PROMPT_SISTEMA },
-          { role: 'user',   content: PROMPT_USUARIO },
-        ],
-        tools: [{ type: 'web_search' }, { type: 'x_search' }],
-      }),
+      body: JSON.stringify(body),
       signal: ctrl.signal,
     });
     if (!res.ok) throw new Error(`xAI ${res.status}: ${await res.text()}`);
@@ -156,10 +193,84 @@ async function buscarNovedades() {
     if (!msg) throw new Error('xAI: respuesta sin mensaje');
     const txt = (msg.content || []).find(c => c.type === 'output_text')?.text || '';
     const limpio = txt.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-    return JSON.parse(limpio);
+    const items = JSON.parse(limpio);
+    if (!Array.isArray(items)) throw new Error('xAI: la respuesta no es una lista JSON');
+    return items;
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function buscarNovedades() {
+  return consultarGrok(PROMPT_USUARIO, [{ type: 'web_search' }, { type: 'x_search' }]);
+}
+
+function textoAgenda(html, baseUrl) {
+  let txt = String(html || '')
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/gi, ' ')
+    .replace(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_m, href, label) => {
+      const limpio = String(label).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      let url = href;
+      try { url = new URL(href, baseUrl).toString(); } catch { /* usa href original */ }
+      return ` ${limpio} [${url}] `;
+    })
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&#(\d+);/g, (_m, n) => String.fromCharCode(Number(n)))
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&aacute;/gi, 'á').replace(/&eacute;/gi, 'é')
+    .replace(/&iacute;/gi, 'í').replace(/&oacute;/gi, 'ó')
+    .replace(/&uacute;/gi, 'ú').replace(/&ntilde;/gi, 'ñ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return txt.slice(0, 12000);
+}
+
+async function leerAgendasLocales() {
+  const resultados = [];
+  for (const agenda of AGENDAS_LOCALES) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20000);
+    try {
+      const res = await fetch(agenda.url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; VOCAI-Radar/1.0)' },
+        signal: ctrl.signal,
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const texto = textoAgenda(await res.text(), agenda.url);
+      if (texto.length > 150) resultados.push({ ...agenda, texto });
+    } catch (err) {
+      console.warn(`[Radar local] ${agenda.nombre}: ${err.message}`);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  return resultados;
+}
+
+async function buscarEventosLocales() {
+  const agendas = await leerAgendasLocales();
+  let items = [];
+  if (agendas.length) {
+    const evidencia = agendas.map(a =>
+      `\n\n=== ${a.nombre} | ${a.url} ===\n${a.texto}`
+    ).join('');
+    items = await consultarGrok(
+      PROMPT_EVENTOS_LOCALES +
+      `\n\nEstas son las agendas descargadas hoy. Extraé únicamente eventos presentes en este material:` +
+      evidencia,
+      [],
+    );
+  }
+  if (!items.length) {
+    console.log('[Radar local] Las agendas directas no dieron eventos; pruebo búsqueda web dirigida.');
+    items = await consultarGrok(PROMPT_EVENTOS_LOCALES, [{ type: 'web_search' }]);
+  }
+  return items.map(it => ({ ...it, tipo: 'local' }));
 }
 
 // Valida que una URL pertenezca a un medio trusted o a un referente de X/YouTube.
@@ -230,7 +341,7 @@ function eventoLocalVigente(it) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(it.fecha || ''))) return false;
   const hoy = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
   const limite = new Date(hoy + 'T12:00:00');
-  limite.setDate(limite.getDate() + 60);
+  limite.setDate(limite.getDate() + 120);
   const hasta = limite.toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
   return it.fecha >= hoy && it.fecha <= hasta;
 }
@@ -447,10 +558,23 @@ async function monitorearYoutube() {
 }
 
 // ── Orquestador ─────────────────────────────────────────────
-async function runRadarIA() {
-  console.log('[Radar IA] Buscando novedades con Grok (web + X)...');
-  const crudas = await buscarNovedades();
-  console.log(`[Radar IA] ${crudas.length} novedades de Grok (crudas).`);
+async function runRadarIA({ soloLocal = false } = {}) {
+  let crudasNovedades = [];
+  if (!soloLocal) {
+    console.log('[Radar IA] Buscando novedades con Grok (web + X)...');
+    crudasNovedades = await buscarNovedades();
+    console.log(`[Radar IA] ${crudasNovedades.length} novedades de Grok (crudas).`);
+  }
+
+  let crudasLocales = [];
+  try {
+    console.log('[Radar IA] Buscando eventos presenciales cerca de Alicante...');
+    crudasLocales = await buscarEventosLocales();
+    console.log(`[Radar IA] ${crudasLocales.length} eventos locales detectados (crudos).`);
+  } catch (err) {
+    console.error('[Radar IA] Búsqueda local falló (sigo con novedades):', err.message);
+  }
+  const crudas = [...crudasNovedades, ...crudasLocales];
 
   // Filtro de confiabilidad — solo medios trusted o referentes X/YouTube.
   const novedades = [];
@@ -466,11 +590,13 @@ async function runRadarIA() {
   console.log(`[Radar IA] ${novedades.length} novedades confiables.`);
 
   let yt = [];
-  try {
-    yt = await monitorearYoutube();
-    console.log(`[Radar IA] ${yt.length} videos de YouTube analizados.`);
-  } catch (err) {
-    console.error('[Radar IA] YouTube falló (sigo sin él):', err.message);
+  if (!soloLocal) {
+    try {
+      yt = await monitorearYoutube();
+      console.log(`[Radar IA] ${yt.length} videos de YouTube analizados.`);
+    } catch (err) {
+      console.error('[Radar IA] YouTube falló (sigo sin él):', err.message);
+    }
   }
 
   // Opción B: si no hay nada confiable, no se manda digest (evita ruido).
@@ -517,9 +643,11 @@ async function pruebaDigest() {
 
 module.exports = { runRadarIA, avisarErrorTelegram };
 
-// Ejecutar directo:  node automations/radar-ia.js  [--digest-test]
+// Ejecutar directo: node automations/radar-ia.js [--digest-test|--local-only]
 if (require.main === module) {
-  const tarea = process.argv.includes('--digest-test') ? pruebaDigest() : runRadarIA();
+  const tarea = process.argv.includes('--digest-test')
+    ? pruebaDigest()
+    : runRadarIA({ soloLocal: process.argv.includes('--local-only') });
   tarea
     .then(() => { console.log('[Radar IA] OK'); process.exit(0); })
     .catch(err => { console.error('[Radar IA] ERROR:', err.message); process.exit(1); });
