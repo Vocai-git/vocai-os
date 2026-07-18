@@ -8,6 +8,14 @@ let mktPlanDate = new Date();
 let mktPlanPropuesta = [];      // plan de historias propuesto por la IA (editable)
 let mktPlanProponiendo = false; // spinner mientras la IA arma el plan
 let mktPlanProduciendo = false; // evita doble clic mientras se carga una pieza suelta
+let mktPlanSemana = mktPlanInicioSemana(new Date());
+let mktPlanSemanalSemanaCargada = '';
+let mktPlanSemanalGenerando = false;
+let mktPlanSemanalCargando = false;
+let mktPlanSemanalInputs = {
+  prioridad: '', contexto: '', materiales: '', disponibilidad: '', cantidad: 3,
+};
+let mktPlanSemanalPropuesta = { foco: '', criterio: '', piezas: [] };
 
 const MKT_PLAN_CATEGORIAS = {
   novedad: 'Novedad', educativo: 'Educativo', caso: 'Caso real', interno: 'VOCAI por dentro',
@@ -15,6 +23,7 @@ const MKT_PLAN_CATEGORIAS = {
 const MKT_PLAN_DISENOS = { clasico: 'Clásico', brutal: 'Brutal', aurora: 'Aurora' };
 
 async function renderMarketingPlanning(el) {
+  mktPlanSemanalAsegurarSemana();
   mktCalInjectStyles();
   const y = mktPlanDate.getFullYear();
   const m = mktPlanDate.getMonth();
@@ -88,6 +97,8 @@ async function renderMarketingPlanning(el) {
       <button class="btn btn-primary" onclick="mktPlanSave()">Guardar objetivos</button>
     </div>
 
+    ${mktPlanSemanalCardHTML()}
+
     <div class="card" style="margin-bottom:20px;">
       <div class="card-title" style="margin-bottom:6px;">Planificar historias con IA</div>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.5;">
@@ -132,6 +143,361 @@ function mktPlanNav(delta) {
 function mktPlanToday() {
   mktPlanDate = new Date();
   navigate('marketing-planning');
+}
+
+/* ── Cerebro semanal ────────────────────────────────────────── */
+
+function mktPlanFechaISO(fecha) {
+  const d = fecha instanceof Date ? fecha : new Date(String(fecha) + 'T12:00:00');
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + dia;
+}
+
+function mktPlanInicioSemana(fecha) {
+  const d = fecha instanceof Date ? new Date(fecha) : new Date(String(fecha) + 'T12:00:00');
+  d.setHours(12, 0, 0, 0);
+  const dia = d.getDay() || 7;
+  d.setDate(d.getDate() - dia + 1);
+  return mktPlanFechaISO(d);
+}
+
+function mktPlanSumarDias(fecha, dias) {
+  const d = new Date(String(fecha) + 'T12:00:00');
+  d.setDate(d.getDate() + dias);
+  return mktPlanFechaISO(d);
+}
+
+function mktPlanSemanalClave() {
+  return 'vocai-plan-semanal:' + mktPlanSemana;
+}
+
+function mktPlanSemanalAsegurarSemana(forzar = false) {
+  if (!forzar && mktPlanSemanalSemanaCargada === mktPlanSemana) return;
+  mktPlanSemanalSemanaCargada = mktPlanSemana;
+  mktPlanSemanalInputs = {
+    prioridad: '', contexto: '', materiales: '', disponibilidad: '', cantidad: 3,
+  };
+  mktPlanSemanalPropuesta = { foco: '', criterio: '', piezas: [] };
+  try {
+    const guardado = JSON.parse(localStorage.getItem(mktPlanSemanalClave()) || 'null');
+    if (guardado && guardado.inputs) {
+      mktPlanSemanalInputs = { ...mktPlanSemanalInputs, ...guardado.inputs };
+      mktPlanSemanalInputs.cantidad = Math.min(
+        Math.max(parseInt(mktPlanSemanalInputs.cantidad) || 3, 2), 7
+      );
+    }
+    if (guardado && guardado.propuesta && Array.isArray(guardado.propuesta.piezas)) {
+      mktPlanSemanalPropuesta = guardado.propuesta;
+    }
+  } catch (e) { /* localStorage puede no estar disponible */ }
+}
+
+function mktPlanSemanalGuardar() {
+  try {
+    localStorage.setItem(mktPlanSemanalClave(), JSON.stringify({
+      inputs: mktPlanSemanalInputs,
+      propuesta: mktPlanSemanalPropuesta,
+    }));
+  } catch (e) { /* el borrador sigue vivo en memoria */ }
+}
+
+function mktPlanSemanalLeerInputs() {
+  const valor = id => (document.getElementById(id) || {}).value || '';
+  mktPlanSemanalInputs = {
+    prioridad: valor('mps_prioridad').trim(),
+    contexto: valor('mps_contexto').trim(),
+    materiales: valor('mps_materiales').trim(),
+    disponibilidad: valor('mps_disponibilidad').trim(),
+    cantidad: Math.min(Math.max(parseInt(valor('mps_cantidad')) || 3, 2), 7),
+  };
+}
+
+function mktPlanSemanalGuardarInputs() {
+  mktPlanSemanalLeerInputs();
+  mktPlanSemanalGuardar();
+}
+
+function mktPlanSemanalRangoHTML() {
+  const hasta = mktPlanSumarDias(mktPlanSemana, 6);
+  const fmt = fecha => new Date(fecha + 'T12:00:00').toLocaleDateString('es-ES', {
+    day: 'numeric', month: 'short',
+  });
+  return fmt(mktPlanSemana) + ' — ' + fmt(hasta);
+}
+
+function mktPlanSemanalCardHTML() {
+  const i = mktPlanSemanalInputs;
+  return `
+    <div class="card" id="mplan_semanal_card" style="margin-bottom:20px;border-top:3px solid var(--primary);">
+      <div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap;">
+        <div>
+          <div class="card-title" style="margin-bottom:6px;">Cerebro semanal</div>
+          <p style="font-size:13px;color:var(--text-muted);line-height:1.5;max-width:720px;">
+            Contale qué está pasando y qué material tienen. El sistema cruza ese contexto con
+            objetivos, calendario, Radar y resultados para proponer una estrategia ejecutable.
+          </p>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <button class="btn btn-secondary" onclick="mktPlanSemanaMover(-1)">←</button>
+          <input class="form-input" type="date" value="${mktPlanSemana}"
+            onchange="mktPlanSemanaCambiar(this.value)" style="width:150px;">
+          <button class="btn btn-secondary" onclick="mktPlanSemanaHoy()">Hoy</button>
+          <button class="btn btn-secondary" onclick="mktPlanSemanaMover(1)">→</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--primary);font-weight:700;margin:12px 0 16px;">
+        Semana ${mktPlanSemanalRangoHTML()}
+      </div>
+      <div class="form-group">
+        <label class="form-label">¿Qué necesitamos conseguir esta semana?</label>
+        <input class="form-input" id="mps_prioridad" value="${escHtml(i.prioridad)}"
+          oninput="mktPlanSemanalGuardarInputs()"
+          placeholder="Ej. posicionar el estudio y conseguir consultas de empresas de Alicante">
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;">
+        <div class="form-group">
+          <label class="form-label">Contexto, ideas y oportunidades</label>
+          <textarea class="form-textarea" id="mps_contexto" oninput="mktPlanSemanalGuardarInputs()"
+            placeholder="Qué está pasando, qué querés contar, preguntas de clientes, novedades…">${escHtml(i.contexto)}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Material disponible</label>
+          <textarea class="form-textarea" id="mps_materiales" oninput="mktPlanSemanalGuardarInputs()"
+            placeholder="Vídeos grabados, fotos, testimonios, demos, guiones o enlaces…">${escHtml(i.materiales)}</textarea>
+        </div>
+      </div>
+      <div class="form-row" style="align-items:flex-end;">
+        <div class="form-group" style="flex:1;">
+          <label class="form-label">Disponibilidad y límites</label>
+          <input class="form-input" id="mps_disponibilidad" value="${escHtml(i.disponibilidad)}"
+            oninput="mktPlanSemanalGuardarInputs()"
+            placeholder="Ej. Agus graba el jueves · máximo 2 reels · esta semana no vender">
+        </div>
+        <div class="form-group" style="max-width:130px;">
+          <label class="form-label">Piezas</label>
+          <input class="form-input" id="mps_cantidad" type="number" min="2" max="7"
+            value="${i.cantidad}" oninput="mktPlanSemanalGuardarInputs()">
+        </div>
+        <div class="form-group">
+          <button class="btn btn-primary" onclick="mktPlanSemanalProponer()"
+            ${mktPlanSemanalGenerando ? 'disabled' : ''}>
+            ${mktPlanSemanalGenerando ? 'Pensando la semana…' : '✦ Armar plan semanal'}
+          </button>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:-4px;">
+        El contexto se guarda como borrador en este navegador. Nada entra al calendario sin tu aprobación.
+      </div>
+      <div id="mplan_semanal_propuesta">${mktPlanSemanalPropuestaHTML()}</div>
+    </div>`;
+}
+
+function mktPlanSemanalPropuestaHTML() {
+  if (mktPlanSemanalGenerando) {
+    return `<div style="text-align:center;padding:28px 0 8px;">
+      <div class="loader"><div class="spinner"></div></div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:12px;">
+        Revisando contexto, calendario, Radar y resultados…</div>
+    </div>`;
+  }
+  const plan = mktPlanSemanalPropuesta;
+  if (!plan.piezas || !plan.piezas.length) return '';
+  const formatos = { reel: 'Reel', story: 'Historia', carrusel: 'Carrusel', post: 'Post' };
+  const responsables = ['Santi', 'Agus', 'Ambos', 'Sin definir'];
+  const opciones = (obj, seleccionado) => Object.entries(obj).map(([k, v]) =>
+    `<option value="${k}" ${k === seleccionado ? 'selected' : ''}>${v}</option>`).join('');
+  const pilares = Object.fromEntries(Object.entries(MKT_PILAR).map(([k, v]) => [k, v.label]));
+  const filas = plan.piezas.map((p, idx) => `
+    <div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:12px;
+                border-left:4px solid ${(MKT_PILAR[p.pilar] || MKT_PILAR.ia).color};">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:13px;">Pieza ${idx + 1}</div>
+        <button class="btn btn-secondary" onclick="mktPlanSemanalQuitar(${idx})"
+          title="Quitar del plan">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:minmax(130px,160px) 1fr;gap:10px;">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Fecha</label>
+          <input class="form-input" type="date" value="${escHtml(p.fecha || '')}"
+            onchange="mktPlanSemanalEditar(${idx},'fecha',this.value)">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Título de trabajo</label>
+          <input class="form-input" value="${escHtml(p.titulo)}"
+            oninput="mktPlanSemanalEditar(${idx},'titulo',this.value)">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px;">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Formato</label>
+          <select class="form-select" onchange="mktPlanSemanalEditar(${idx},'formato',this.value)">
+            ${opciones(formatos, p.formato)}</select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Pilar</label>
+          <select class="form-select" onchange="mktPlanSemanalEditar(${idx},'pilar',this.value)">
+            ${opciones(pilares, p.pilar)}</select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Responsable</label>
+          <select class="form-select" onchange="mktPlanSemanalEditar(${idx},'responsable',this.value)">
+            ${responsables.map(r => `<option ${r === p.responsable ? 'selected' : ''}>${r}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <details style="margin-top:12px;">
+        <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--primary);">
+          Ver y editar la estrategia de esta pieza
+        </summary>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:10px;">
+          ${mktPlanSemanalCampo(idx, 'objetivo', 'Objetivo de la pieza', p.objetivo)}
+          ${mktPlanSemanalCampo(idx, 'audiencia', 'Audiencia', p.audiencia)}
+          ${mktPlanSemanalCampo(idx, 'razon', 'Por qué esta semana', p.razon)}
+          ${mktPlanSemanalCampo(idx, 'hook', 'Hook o enfoque', p.hook)}
+          ${mktPlanSemanalCampo(idx, 'material', 'Material / qué grabar', p.material)}
+          ${mktPlanSemanalCampo(idx, 'cta', 'CTA', p.cta)}
+        </div>
+      </details>
+    </div>`).join('');
+
+  return `
+    <div style="border-top:1px solid var(--border);margin-top:20px;padding-top:18px;">
+      <div class="form-group">
+        <label class="form-label">Foco de la semana</label>
+        <input class="form-input" value="${escHtml(plan.foco)}"
+          oninput="mktPlanSemanalEditarCabecera('foco',this.value)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Por qué este plan</label>
+        <textarea class="form-textarea" oninput="mktPlanSemanalEditarCabecera('criterio',this.value)"
+          style="min-height:80px;">${escHtml(plan.criterio)}</textarea>
+      </div>
+      ${filas}
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:16px;">
+        <button class="btn btn-secondary" onclick="mktPlanSemanalDescartar()">Descartar propuesta</button>
+        <button class="btn btn-primary" onclick="mktPlanSemanalCargar()"
+          ${mktPlanSemanalCargando ? 'disabled' : ''}>
+          ${mktPlanSemanalCargando ? 'Cargando…' : 'Aprobar y cargar ' + plan.piezas.length + ' ideas'}
+        </button>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:10px;">
+        Se crearán como ideas editables. No se programará ni publicará nada.
+      </div>
+    </div>`;
+}
+
+function mktPlanSemanalCampo(i, campo, etiqueta, valor) {
+  return `<div class="form-group" style="margin:0;">
+    <label class="form-label">${etiqueta}</label>
+    <textarea class="form-textarea" style="min-height:72px;"
+      oninput="mktPlanSemanalEditar(${i},'${campo}',this.value)">${escHtml(valor || '')}</textarea>
+  </div>`;
+}
+
+function mktPlanSemanalRepintar() {
+  const card = document.getElementById('mplan_semanal_card');
+  if (card) card.outerHTML = mktPlanSemanalCardHTML();
+}
+
+function mktPlanSemanaCambiar(fecha) {
+  if (!fecha) return;
+  mktPlanSemana = mktPlanInicioSemana(fecha);
+  mktPlanSemanalAsegurarSemana(true);
+  navigate('marketing-planning');
+}
+
+function mktPlanSemanaMover(direccion) {
+  mktPlanSemanaCambiar(mktPlanSumarDias(mktPlanSemana, direccion * 7));
+}
+
+function mktPlanSemanaHoy() {
+  mktPlanSemanaCambiar(mktPlanInicioSemana(new Date()));
+}
+
+async function mktPlanSemanalProponer() {
+  if (mktPlanSemanalGenerando) return;
+  mktPlanSemanalLeerInputs();
+  const i = mktPlanSemanalInputs;
+  if (!i.prioridad && !i.contexto && !i.materiales) {
+    toast('Contame una prioridad, contexto o material disponible', 'error');
+    return;
+  }
+  mktPlanSemanalGuardar();
+  mktPlanSemanalGenerando = true;
+  mktPlanSemanalRepintar();
+  try {
+    const data = await API.post('/marketing-planning/proponer-semana', {
+      semana: mktPlanSemana,
+      cantidad: i.cantidad,
+      prioridad: i.prioridad,
+      contexto: i.contexto,
+      materiales: i.materiales,
+      disponibilidad: i.disponibilidad,
+    });
+    mktPlanSemanalPropuesta = {
+      foco: data.foco || '',
+      criterio: data.criterio || '',
+      piezas: data.piezas || [],
+    };
+    mktPlanSemanalGuardar();
+    toast('Plan semanal listo para revisar', 'success');
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    mktPlanSemanalGenerando = false;
+    mktPlanSemanalRepintar();
+  }
+}
+
+function mktPlanSemanalEditar(i, campo, valor) {
+  if (!mktPlanSemanalPropuesta.piezas[i]) return;
+  mktPlanSemanalPropuesta.piezas[i][campo] = valor;
+  mktPlanSemanalGuardar();
+}
+
+function mktPlanSemanalEditarCabecera(campo, valor) {
+  mktPlanSemanalPropuesta[campo] = valor;
+  mktPlanSemanalGuardar();
+}
+
+function mktPlanSemanalQuitar(i) {
+  mktPlanSemanalPropuesta.piezas.splice(i, 1);
+  mktPlanSemanalGuardar();
+  mktPlanSemanalRepintar();
+}
+
+function mktPlanSemanalDescartar() {
+  if (!confirm('¿Descartar esta propuesta semanal? El contexto escrito se conservará.')) return;
+  mktPlanSemanalPropuesta = { foco: '', criterio: '', piezas: [] };
+  mktPlanSemanalGuardar();
+  mktPlanSemanalRepintar();
+}
+
+async function mktPlanSemanalCargar() {
+  const piezas = mktPlanSemanalPropuesta.piezas || [];
+  if (!piezas.length || mktPlanSemanalCargando) return;
+  if (!confirm('¿Aprobar y cargar ' + piezas.length + ' piezas al calendario como ideas?')) return;
+  mktPlanSemanalCargando = true;
+  mktPlanSemanalRepintar();
+  try {
+    const r = await API.post('/marketing-planning/cargar-semana', {
+      semana: mktPlanSemana,
+      piezas,
+    });
+    mktPlanSemanalPropuesta = { foco: '', criterio: '', piezas: [] };
+    mktPlanSemanalGuardar();
+    toast(r.creadas + ' ideas cargadas. Nada fue programado ni publicado.', 'success');
+    mktCalDate = new Date(mktPlanSemana + 'T12:00:00');
+    mktCalCanal = 'feed';
+    navigate('marketing-calendar');
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    mktPlanSemanalCargando = false;
+    mktPlanSemanalRepintar();
+  }
 }
 
 /* ── Planificador de historias con IA ──────────────────────── */
