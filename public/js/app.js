@@ -276,6 +276,7 @@ async function navigate(module) {
   }
   currentModule = module;
   window.vocaiSeccionActual = module;
+  if (typeof asistActualizarContexto === 'function') asistActualizarContexto();
 
   // Update sidebar active
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -357,7 +358,7 @@ function init() {
   const hash = window.location.hash.slice(1);
   navigate(hash && MODULES[hash] ? hash : 'dashboard');
 
-  // Asistente flotante — vive sobre todo el dashboard.
+  // Copiloto contextual — visible únicamente dentro de Marketing.
   if (typeof initAsistenteWidget === 'function') initAsistenteWidget();
 }
 

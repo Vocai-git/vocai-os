@@ -1,6 +1,6 @@
 /* ============================================================
    VOCAI OS — Radar IA · disparo manual desde el dashboard
-   El Radar también corre por cron (cada 3 días, 09:00 Madrid).
+   El Radar también corre por cron (todos los días, 09:00 Madrid).
    Este endpoint lo dispara a mano cuando el cron falló o cuando
    se quiere forzar una corrida.
    ============================================================ */

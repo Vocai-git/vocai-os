@@ -13,11 +13,15 @@ const XAI_KEY  = process.env.XAI_API_KEY;
 const TG_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TG_CHAT  = process.env.TELEGRAM_CHAT_ID;
 
-const TIPO_EMOJI = { herramienta: '🛠', caso: '📈', debate: '💬', hype: '🔥', espana: '🇪🇸', youtube: '📺' };
+const TIPO_EMOJI = {
+  local: '📍', herramienta: '🛠', caso: '📈', debate: '💬', hype: '🔥',
+  espana: '🇪🇸', youtube: '📺',
+};
 
 // Secciones del digest — orden + título por categoría. Si una sección no tiene
 // items ese día, no aparece.
 const SECCIONES = [
+  { tipo: 'local',       titulo: '📍 CERCA DE ALICANTE · PARA ASISTIR' },
   { tipo: 'herramienta', titulo: '🛠 HERRAMIENTAS NUEVAS' },
   { tipo: 'caso',        titulo: '📈 CASOS REALES' },
   { tipo: 'hype',        titulo: '🔥 TENDENCIA / LO QUE PEGA' },
@@ -30,6 +34,12 @@ const SECCIONES = [
 const MEDIOS_TRUSTED = [
   'xataka.com', 'elpais.com', 'techcrunch.com', 'theverge.com',
   'technologyreview.com', 'wired.com', 'arstechnica.com',
+  // Agendas institucionales y comunidades cercanas a Alicante.
+  'alicante.es', 'impulsalicante.es', 'camaralicante.com', 'ua.es',
+  'elche.es', 'umh.es', 'pcumh.es', 'ceeielche.es', 'palmera.tech',
+  'startupvalencia.org', 'ifrm-murcia.es', 'iamurcia.com', 'enae.es',
+  // Plataformas de inscripción: el prompt exige evento, organizador y fecha verificables.
+  'meetup.com', 'eventbrite.es', 'eventbrite.com',
 ];
 
 // Referentes de X/Twitter — sus cuentas son fuente confiable.
@@ -55,41 +65,66 @@ negocios (pymes, comercios, restaurantes). Tu trabajo es encontrar novedades de
 IA que se conviertan en MATERIAL DE CONTENIDO para redes — para una audiencia de
 dueños de negocios, no técnicos.
 
-Buscás 5 tipos de info:
-1. herramienta — una herramienta o función nueva de IA, concreta y usable por un negocio.
-2. caso — un negocio real que aplicó IA o automatización, y su resultado.
-3. debate — una duda, miedo o discusión sobre la IA en el mundo de los negocios.
-4. hype — un tema de IA que está caliente o viral ahora mismo.
-5. espana — un evento (congreso, feria, charla) o una novedad del sector marketing + IA en España.
+Buscás 6 tipos de info:
+1. local — un evento PRESENCIAL al que el equipo de VOCAI pueda asistir desde Alicante:
+   charla, meetup, networking, congreso, feria, taller o jornada sobre IA, automatización,
+   marketing, creación de contenido, startups, innovación o empresa.
+2. herramienta — una herramienta o función nueva de IA, concreta y usable por un negocio.
+3. caso — un negocio real que aplicó IA o automatización, y su resultado.
+4. debate — una duda, miedo o discusión sobre la IA en el mundo de los negocios.
+5. hype — un tema de IA que está caliente o viral ahora mismo.
+6. espana — solo un evento nacional excepcional o una novedad importante que no sea local.
+
+PRIORIDAD GEOGRÁFICA PARA "local":
+- Prioridad 1: Alicante capital y provincia (San Vicente, Elche, Santa Pola, Torrevieja,
+  Benidorm, Alcoy, Villena, Marina Alta y Costa Blanca).
+- Prioridad 2: Murcia y Valencia si el evento justifica desplazarse y queda aproximadamente
+  a dos horas o menos en coche desde Alicante.
+- No incluyas Madrid, Barcelona ni eventos exclusivamente online como "local".
+- Solo eventos futuros con fecha, ciudad y página de información o inscripción verificables.
 
 FILTRO OBLIGATORIO: cada item tiene que poder convertirse en una pieza de
 contenido (un reel o un carrusel). Si no podés explicar en una línea cómo se
 convierte, NO lo incluyas. Descartá noticias de la industria tech que no sean
 accionables: rondas de inversión, papers académicos, valoraciones de empresas.
+Excepción para tipo "local": también sirve si ofrece networking relevante,
+aprendizaje aplicable o acceso a potenciales clientes, aunque no produzca contenido inmediato.
 
 Respondés SOLO con un JSON array válido, sin markdown ni texto extra.`;
 
 const PROMPT_USUARIO =
-`Buscá las 4 a 6 novedades de IA más relevantes de las últimas 24 horas.
-Incluí siempre al menos una sobre marketing + IA en España: eventos,
-congresos, ferias o novedades del sector allá.
+`Hacé dos búsquedas complementarias y devolvé entre 6 y 10 resultados en total:
+1. Las novedades de IA más relevantes de las últimas 24 horas.
+2. Eventos presenciales de los próximos 60 días cerca de Alicante.
+
+Para los eventos, intentá incluir de 2 a 5 oportunidades locales si realmente existen.
+No rellenes el cupo con eventos viejos, vagos, sin fecha o exclusivamente online.
 
 REGLA OBLIGATORIA DE FUENTES — solo aceptamos estas, las demás se descartan:
 - Medios trusted: Xataka, El País (Tecnología), TechCrunch, The Verge,
   MIT Technology Review, Wired, Ars Technica.
 - Cuentas de X verificadas: @elonmusk, @sama, @OpenAI, @AnthropicAI, @GoogleDeepMind.
-Si la noticia no está publicada en uno de esos medios o cuentas, NO la incluyas.
+- Fuentes locales: Ayuntamiento de Alicante, ImpulsAlicante, Cámara de Alicante,
+  Universidad y Parque Científico de Alicante, Ayuntamiento de Elche, UMH, Parque
+  Científico UMH, CEEI Elche, Palmera Tech, Startup Valencia, INFO Murcia, Murcia IA
+  y ENAE. También se aceptan Meetup y Eventbrite si la ficha identifica claramente
+  organizador, ciudad, fecha futura y modalidad presencial.
+Si el item no está publicado en una de esas fuentes permitidas, NO lo incluyas.
 La fuente_url tiene que ser del dominio exacto del medio (ej. techcrunch.com,
 no techcrunch.news ni news-techcrunch.com). NO inventes URLs.
 
 Cada item, un objeto con:
 - titulo: titular corto y claro
-- descripcion: qué pasó, máximo 12 palabras
-- fecha: la fecha de la noticia, formato AAAA-MM-DD
-- tipo: uno de "herramienta", "caso", "debate", "hype", "espana"
+- descripcion: para noticias, qué pasó; para eventos, "Ciudad · hora/modalidad · precio o inscripción". Máximo 18 palabras
+- fecha: fecha de la noticia o DEL EVENTO, formato AAAA-MM-DD
+- tipo: uno de "local", "herramienta", "caso", "debate", "hype", "espana"
 - angulo_contenido: en una frase, cómo convertirlo en un reel o carrusel para VOCAI
 - fuente: el nombre del medio o referente de donde salió
-- fuente_url: el link directo
+- fuente_url: link directo a la noticia o página de información/inscripción
+
+Para tipo "local", el angulo_contenido debe explicar por qué conviene asistir:
+contactos esperables, aprendizaje aplicable, posibles clientes o material para contenido.
+Nunca inventes fechas, ubicaciones, precios, organizadores ni enlaces.
 
 Devolvé solo el JSON array.`;
 
@@ -146,7 +181,35 @@ function fuenteConfiable(url) {
 
 // ── 2. Guardar en el banco de temas ─────────────────────────
 async function guardar(items) {
-  const filas = items.map(it => ({
+  if (!items.length) return [];
+
+  // El Radar corre a diario y los eventos permanecen vigentes varias semanas.
+  // Evitamos repetir en el banco y en Telegram una misma URL o un mismo título.
+  const { data: existentes, error: errorLectura } = await supabase
+    .from('content_topics')
+    .select('titulo,fuente_url')
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (errorLectura) throw new Error(`Supabase: ${errorLectura.message}`);
+
+  const normalizar = s => String(s || '').trim().toLowerCase();
+  const claves = new Set();
+  (existentes || []).forEach(it => {
+    if (it.fuente_url) claves.add('url:' + normalizar(it.fuente_url));
+    if (it.titulo) claves.add('titulo:' + normalizar(it.titulo));
+  });
+
+  const nuevos = items.filter(it => {
+    const clavesItem = [];
+    if (it.fuente_url) clavesItem.push('url:' + normalizar(it.fuente_url));
+    if (it.titulo) clavesItem.push('titulo:' + normalizar(it.titulo));
+    if (!clavesItem.length || clavesItem.some(k => claves.has(k))) return false;
+    clavesItem.forEach(k => claves.add(k));
+    return true;
+  });
+
+  if (!nuevos.length) return [];
+  const filas = nuevos.map(it => ({
     titulo:        it.titulo,
     descripcion:   it.descripcion || '',
     fecha_noticia: it.fecha || null,
@@ -159,7 +222,17 @@ async function guardar(items) {
   }));
   const { error } = await supabase.from('content_topics').insert(filas);
   if (error) throw new Error(`Supabase: ${error.message}`);
-  return filas.length;
+  return nuevos;
+}
+
+function eventoLocalVigente(it) {
+  if (it.tipo !== 'local') return true;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(it.fecha || ''))) return false;
+  const hoy = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+  const limite = new Date(hoy + 'T12:00:00');
+  limite.setDate(limite.getDate() + 60);
+  const hasta = limite.toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+  return it.fecha >= hoy && it.fecha <= hasta;
 }
 
 // ── 3. Digest liviano por Telegram ──────────────────────────
@@ -383,7 +456,7 @@ async function runRadarIA() {
   const novedades = [];
   const descartadas = [];
   for (const it of crudas) {
-    if (fuenteConfiable(it.fuente_url)) novedades.push(it);
+    if (fuenteConfiable(it.fuente_url) && eventoLocalVigente(it)) novedades.push(it);
     else descartadas.push(it);
   }
   if (descartadas.length) {
@@ -407,13 +480,25 @@ async function runRadarIA() {
   }
 
   const items = [...novedades, ...yt];
-  const n = await guardar(items);
-  console.log(`[Radar IA] ${n} guardadas en content_topics.`);
+  const guardados = await guardar(items);
+  console.log(`[Radar IA] ${guardados.length} nuevas guardadas en content_topics.`);
+  if (!guardados.length) {
+    console.log('[Radar IA] Todo lo encontrado ya estaba registrado — no se repite el digest.');
+    return { total: 0, grok: 0, youtube: 0, descartadas: descartadas.length, duplicadas: items.length };
+  }
 
-  await digest(novedades, yt);
+  const novedadesNuevas = guardados.filter(it => it.tipo !== 'youtube');
+  const youtubeNuevos = guardados.filter(it => it.tipo === 'youtube');
+  await digest(novedadesNuevas, youtubeNuevos);
   console.log('[Radar IA] Digest enviado por Telegram.');
 
-  return { total: items.length, grok: novedades.length, youtube: yt.length, descartadas: descartadas.length };
+  return {
+    total: guardados.length,
+    grok: novedadesNuevas.length,
+    youtube: youtubeNuevos.length,
+    descartadas: descartadas.length,
+    duplicadas: items.length - guardados.length,
+  };
 }
 
 // Reenvía el digest con los últimos temas guardados, sin buscar (para testing).

@@ -1,9 +1,8 @@
 /* ============================================================
-   VOCAI OS — Asistente (widget flotante global)
-   La cara conversacional del Gerente de marketing. Vive como un
-   botón circular fijo (abajo a la derecha) presente en TODO el
-   dashboard. Al tocarlo abre un panel de chat. Conoce la sección
-   donde estás, lee planificación y calendario y ejecuta cambios.
+   VOCAI OS — Copiloto contextual de Marketing
+   Un único panel lateral que acompaña Planificación, Calendario,
+   Inteligencia, Analítica, Generador y Web/Blog. Adapta su ayuda a
+   la sección actual y separa consulta, propuesta y acción aprobada.
    Backend: POST /api/asistente/chat (motor Claude).
    ============================================================ */
 
@@ -11,6 +10,57 @@ let asistHistorial = [];
 let asistMes = new Date().toISOString().slice(0, 7);
 let asistEnviando = false;
 let asistAbierto = false;
+let asistModo = 'consulta';
+
+const ASIST_MARKETING = new Set([
+  'marketing-calendar', 'marketing-planning', 'marketing-intelligence',
+  'marketing-analytics', 'marketing-generator', 'marketing-web',
+]);
+
+const ASIST_CONTEXTO = {
+  'marketing-planning': {
+    titulo: 'Copiloto · Planificación',
+    subtitulo: 'Estrategia mensual y semanal',
+    placeholder: 'Preguntá por el foco, la semana o una idea…',
+    inicio: 'Estoy viendo tu planificación. Puedo cuestionar el foco, cruzarlo con el calendario o convertir contexto y material en una propuesta.',
+    sugerencias: ['¿Qué priorizarías esta semana?', 'Revisá si el foco mensual es claro', 'Proponé 3 piezas con el material disponible'],
+  },
+  'marketing-calendar': {
+    titulo: 'Copiloto · Calendario',
+    subtitulo: 'Ritmo, equilibrio y producción',
+    placeholder: 'Consultá o proponé cambios al calendario…',
+    inicio: 'Estoy viendo el calendario editorial. Puedo detectar huecos, repeticiones, sobrecarga y piezas que conviene producir primero.',
+    sugerencias: ['¿Cómo está el equilibrio del mes?', 'Detectá huecos esta semana', '¿Qué pieza conviene producir primero?'],
+  },
+  'marketing-intelligence': {
+    titulo: 'Copiloto · Inteligencia',
+    subtitulo: 'Radar, oportunidades y criterio',
+    placeholder: 'Preguntá por temas u oportunidades…',
+    inicio: 'Estoy viendo Inteligencia. Puedo ordenar el Radar, evaluar oportunidades y convertir un tema prometedor en un enfoque para VOCAI.',
+    sugerencias: ['¿A qué evento cercano conviene asistir?', '¿Qué oportunidad priorizarías?', 'Convertí el mejor tema en una propuesta'],
+  },
+  'marketing-analytics': {
+    titulo: 'Copiloto · Analítica',
+    subtitulo: 'Resultados y próximos ajustes',
+    placeholder: 'Preguntá qué funcionó y qué ajustar…',
+    inicio: 'Estoy viendo Analítica. Puedo explicar los resultados, separar señales de ruido y recomendar el próximo ajuste concreto.',
+    sugerencias: ['¿Qué funcionó mejor este mes?', '¿Qué deberíamos dejar de hacer?', 'Dame una recomendación para la próxima semana'],
+  },
+  'marketing-generator': {
+    titulo: 'Copiloto · Generador',
+    subtitulo: 'Producción de una pieza concreta',
+    placeholder: 'Contame qué contenido querés producir…',
+    inicio: 'Estoy en el Generador. Decime qué querés comunicar y te ayudo a definir formato, hook, estructura, CTA y brief de producción.',
+    sugerencias: ['Ayudame a definir una pieza puntual', 'Convertí una idea del calendario en un guion', 'Mejorá el hook de este contenido'],
+  },
+  'marketing-web': {
+    titulo: 'Copiloto · Web y Blog',
+    subtitulo: 'Contenido web en borrador',
+    placeholder: 'Consultá o prepará un borrador…',
+    inicio: 'Estoy viendo Web y Blog. Puedo revisar artículos, proponer mejoras SEO y preparar borradores. La publicación siempre queda en tus manos.',
+    sugerencias: ['Revisá los borradores pendientes', 'Proponé un artículo desde el foco mensual', '¿Qué mejoraría del blog actual?'],
+  },
+};
 
 // Nombre legible de la sección actual del dashboard (para el contexto).
 const ASIST_SECCIONES = {
@@ -38,6 +88,7 @@ function asistInjectStyles() {
     .asist-fab:hover{transform:scale(1.06);box-shadow:0 8px 26px rgba(41,121,255,0.45);}
     .asist-fab svg{width:28px;height:28px;color:#fff;}
     .asist-fab.hide{opacity:0;pointer-events:none;transform:scale(.8);}
+    .asist-fab.context-hidden{display:none;}
     .asist-online{position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:50%;
       background:#22c55e;border:2.5px solid var(--surface);box-shadow:0 0 0 0 rgba(34,197,94,0.6);
       animation:asistPulse 2s infinite;}
@@ -64,6 +115,12 @@ function asistInjectStyles() {
     .asist-phead .x{margin-left:auto;background:none;border:none;color:var(--text-muted);
       font-size:22px;cursor:pointer;line-height:1;padding:2px 6px;}
     .asist-phead .x:hover{color:var(--text);}
+    .asist-modos{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:8px 10px;
+      border-bottom:1px solid var(--border);background:var(--surface);}
+    .asist-modo{border:1px solid var(--border);background:transparent;color:var(--text-muted);
+      border-radius:8px;padding:7px 5px;font-size:11px;cursor:pointer;transition:.15s ease;}
+    .asist-modo:hover{color:var(--text);border-color:rgba(41,121,255,.55);}
+    .asist-modo.active{color:#fff;background:rgba(41,121,255,.22);border-color:#2979FF;}
     .asist-feed{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px;}
     .asist-msg{display:flex;flex-direction:column;max-width:88%;}
     .asist-msg.user{align-self:flex-end;align-items:flex-end;}
@@ -78,6 +135,11 @@ function asistInjectStyles() {
       color:#9cc3ff;border:1px solid rgba(41,121,255,0.35);}
     .asist-chip.err{background:rgba(255,107,107,0.18);color:#ff9a9a;border-color:rgba(255,107,107,0.35);}
     .asist-empty{color:var(--text-muted);font-size:13px;margin:auto;text-align:center;line-height:1.6;padding:0 8px;}
+    .asist-sugerencias{display:flex;flex-direction:column;gap:7px;margin-top:16px;}
+    .asist-sugerencia{border:1px solid var(--border);background:var(--surface-hover);color:var(--text);
+      border-radius:10px;padding:8px 10px;font:inherit;font-size:12px;text-align:left;cursor:pointer;}
+    .asist-sugerencia:hover{border-color:#2979FF;}
+    .asist-aviso{padding:7px 12px;font-size:10.5px;color:var(--text-muted);border-top:1px solid var(--border);}
     .asist-bar{display:flex;gap:8px;align-items:flex-end;padding:12px;border-top:1px solid var(--border);}
     .asist-bar textarea{flex:1;resize:none;background:var(--surface);
       border:1px solid var(--border);color:var(--text);border-radius:11px;padding:9px 12px;
@@ -101,10 +163,12 @@ function asistRenderFeed() {
   const feed = document.getElementById('asistFeed');
   if (!feed) return;
   if (!asistHistorial.length) {
+    const cfg = asistConfigActual();
     feed.innerHTML = `<div class="asist-empty">
-      Hola 👋 Soy el asistente de VOCAI. Te acompaño por todo el dashboard.<br><br>
-      Pedime una recomendación ("¿cómo viene el mix de este mes?") o un cambio concreto
-      ("mové la pieza del 12 al 15", "creá un reel de IA el lunes").
+      ${escHtml(cfg.inicio)}
+      <div class="asist-sugerencias">
+        ${cfg.sugerencias.map(s => `<button class="asist-sugerencia" onclick="asistUsarSugerencia('${escHtml(s).replace(/'/g, '&#39;')}')">${escHtml(s)}</button>`).join('')}
+      </div>
     </div>`;
     return;
   }
@@ -135,6 +199,7 @@ function asistFmt(s) {
 function asistLabelAccion(a) {
   const map = {
     ver_calendario: 'leyó el calendario', ver_planificacion: 'leyó la planificación',
+    ver_radar: 'leyó el Radar', ver_analitica: 'revisó la analítica',
     crear_pieza: 'creó una pieza', editar_pieza: 'editó una pieza', borrar_pieza: 'borró una pieza',
     ver_blog: 'revisó el blog', ver_post: 'leyó un artículo',
     redactar_post: 'redactó un artículo', crear_post: 'creó un artículo',
@@ -151,11 +216,81 @@ function asistSeccionActual() {
   return ASIST_SECCIONES[m] || m;
 }
 
+function asistModuloActual() {
+  return window.vocaiSeccionActual || 'dashboard';
+}
+
+function asistMesActual() {
+  const modulo = asistModuloActual();
+  let fecha = null;
+  if (modulo === 'marketing-planning' && typeof mktPlanDate !== 'undefined') fecha = mktPlanDate;
+  if (modulo === 'marketing-calendar' && typeof mktCalDate !== 'undefined') fecha = mktCalDate;
+  if (fecha instanceof Date && !Number.isNaN(fecha.getTime())) {
+    return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+  }
+  if (modulo === 'marketing-analytics' && typeof mktAnaMes !== 'undefined' && /^\d{4}-\d{2}$/.test(mktAnaMes)) {
+    return mktAnaMes;
+  }
+  return asistMes;
+}
+
+function asistConfigActual() {
+  return ASIST_CONTEXTO[asistModuloActual()] || ASIST_CONTEXTO['marketing-planning'];
+}
+
+function asistEsMarketing() {
+  return ASIST_MARKETING.has(asistModuloActual());
+}
+
+function asistSetModo(modo) {
+  if (!['consulta', 'propuesta', 'accion'].includes(modo)) return;
+  asistModo = modo;
+  document.querySelectorAll('.asist-modo').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.modo === modo);
+  });
+  const avisos = {
+    consulta: 'Solo lectura. No modifica nada.',
+    propuesta: 'Analiza y propone. No modifica nada.',
+    accion: 'Puede crear o editar borradores con tu confirmación. Nunca publica ni elimina.',
+  };
+  const aviso = document.getElementById('asistAviso');
+  if (aviso) aviso.textContent = avisos[modo];
+}
+
+function asistUsarSugerencia(texto) {
+  const ta = document.getElementById('asistInput');
+  if (!ta) return;
+  ta.value = texto;
+  ta.focus();
+}
+
+function asistActualizarContexto() {
+  const fab = document.getElementById('asistFab');
+  const panel = document.getElementById('asistPanel');
+  if (!fab || !panel) return;
+  const activo = asistEsMarketing();
+  fab.classList.toggle('context-hidden', !activo);
+  if (!activo && asistAbierto) asistToggle(false);
+  if (!activo) return;
+
+  const cfg = asistConfigActual();
+  const titulo = document.getElementById('asistTitulo');
+  const subtitulo = document.getElementById('asistSubtitulo');
+  const input = document.getElementById('asistInput');
+  if (titulo) titulo.textContent = cfg.titulo;
+  if (subtitulo) subtitulo.textContent = cfg.subtitulo;
+  if (input) input.placeholder = cfg.placeholder;
+  if (!asistHistorial.length) asistRenderFeed();
+}
+
 async function asistEnviar() {
   if (asistEnviando) return;
   const ta = document.getElementById('asistInput');
   const texto = ta.value.trim();
   if (!texto) return;
+  if (asistModo === 'accion' && !window.confirm(
+    'El Copiloto podrá crear o editar borradores para cumplir este pedido. No puede publicar ni eliminar. ¿Continuar?'
+  )) return;
 
   asistHistorial.push({ role: 'user', content: texto });
   ta.value = '';
@@ -175,13 +310,15 @@ async function asistEnviar() {
   try {
     const messages = asistHistorial.map(m => ({ role: m.role, content: m.content }));
     const r = await API.post('/asistente/chat', {
-      messages, mes: asistMes, seccion: asistSeccionActual(),
+      messages, mes: asistMesActual(), seccion: asistSeccionActual(),
+      modulo: asistModuloActual(), modo: asistModo,
     });
     asistHistorial.push({ role: 'assistant', content: r.texto || '(sin respuesta)', acciones: r.acciones || [] });
   } catch (err) {
     asistHistorial.push({ role: 'assistant', content: `Error: ${err.message}`, acciones: [] });
   } finally {
     asistEnviando = false;
+    if (asistModo === 'accion') asistSetModo('consulta');
     if (btn) btn.disabled = false;
     asistRenderFeed();
   }
@@ -200,7 +337,7 @@ function asistToggle(forzar) {
   }
 }
 
-// Monta el widget una sola vez, en el body — vive sobre todo el dashboard.
+// Monta el widget una sola vez y lo muestra únicamente dentro de Marketing.
 function initAsistenteWidget() {
   if (document.getElementById('asistFab')) return;
   asistInjectStyles();
@@ -208,7 +345,7 @@ function initAsistenteWidget() {
   const fab = document.createElement('button');
   fab.id = 'asistFab';
   fab.className = 'asist-fab';
-  fab.title = 'Asistente VOCAI';
+  fab.title = 'Copiloto de Marketing';
   fab.innerHTML = `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 3v-3z"/></svg><span class="asist-online" title="En línea"></span>`;
   fab.addEventListener('click', () => asistToggle(true));
 
@@ -219,12 +356,18 @@ function initAsistenteWidget() {
     <div class="asist-phead">
       <div class="dot"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 3v-3z"/></svg></div>
       <div>
-        <div class="ttl">Asistente VOCAI</div>
-        <div class="sub">Recomienda y ejecuta · conoce tu dashboard</div>
+        <div class="ttl" id="asistTitulo">Copiloto de Marketing</div>
+        <div class="sub" id="asistSubtitulo">Contexto de la sección actual</div>
       </div>
       <button class="x" id="asistClose" title="Cerrar">&times;</button>
     </div>
+    <div class="asist-modos" aria-label="Modo del copiloto">
+      <button class="asist-modo active" data-modo="consulta" onclick="asistSetModo('consulta')">Consultar</button>
+      <button class="asist-modo" data-modo="propuesta" onclick="asistSetModo('propuesta')">Proponer</button>
+      <button class="asist-modo" data-modo="accion" onclick="asistSetModo('accion')">Aplicar</button>
+    </div>
     <div class="asist-feed" id="asistFeed"></div>
+    <div class="asist-aviso" id="asistAviso">Solo lectura. No modifica nada.</div>
     <div class="asist-bar">
       <textarea id="asistInput" rows="1" placeholder="Escribí acá…"></textarea>
       <button class="asist-send" id="asistSend" title="Enviar">
@@ -245,4 +388,5 @@ function initAsistenteWidget() {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && asistAbierto) asistToggle(false); });
 
   asistRenderFeed();
+  asistActualizarContexto();
 }

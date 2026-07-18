@@ -7,6 +7,7 @@
 let mktIntTemas = [];
 let mktIntFPilar = '';
 let mktIntFEstado = '';
+let mktIntFTipo = '';
 
 const MKT_TOPIC_ESTADO = {
   nuevo:      { label: 'Nuevo',      color: '#2979FF' },
@@ -15,6 +16,7 @@ const MKT_TOPIC_ESTADO = {
 };
 
 const MKT_TIPO = {
+  local:       { label: 'Cerca de Alicante', emoji: '📍' },
   herramienta: { label: 'Herramienta', emoji: '🛠' },
   caso:        { label: 'Caso real',   emoji: '📈' },
   debate:      { label: 'Debate',      emoji: '💬' },
@@ -39,6 +41,7 @@ async function renderMarketingIntelligence(el) {
   let vis = temas;
   if (mktIntFPilar)  vis = vis.filter(t => t.pilar === mktIntFPilar);
   if (mktIntFEstado) vis = vis.filter(t => t.estado === mktIntFEstado);
+  if (mktIntFTipo)   vis = vis.filter(t => t.tipo === mktIntFTipo);
 
   const grupos = mktIntAgrupar(vis);
 
@@ -66,6 +69,11 @@ async function renderMarketingIntelligence(el) {
         <option value="">Todos los estados</option>
         ${Object.entries(MKT_TOPIC_ESTADO).map(([k, v]) =>
           `<option value="${k}" ${mktIntFEstado === k ? 'selected' : ''}>${v.label}</option>`).join('')}
+      </select>
+      <select class="filter-select" onchange="mktIntSetTipo(this.value)">
+        <option value="">Todos los tipos</option>
+        ${Object.entries(MKT_TIPO).map(([k, v]) =>
+          `<option value="${k}" ${mktIntFTipo === k ? 'selected' : ''}>${v.emoji} ${v.label}</option>`).join('')}
       </select>
       <span style="margin-left:auto;font-size:13px;color:var(--text-muted);">
         ${vis.length} de ${temas.length} temas
@@ -125,6 +133,7 @@ function mktIntFila(t) {
   const est = MKT_TOPIC_ESTADO[t.estado] || MKT_TOPIC_ESTADO.nuevo;
   const tipo = MKT_TIPO[t.tipo];
   const emoji = tipo ? tipo.emoji : '•';
+  const colorBorde = t.tipo === 'local' ? '#FFB020' : pilar.color;
 
   const meta = [];
   meta.push(`<span style="font-size:11px;font-weight:600;color:${pilar.color};
@@ -143,7 +152,7 @@ function mktIntFila(t) {
   }
 
   return `
-    <div class="card" style="border-left:3px solid ${pilar.color};cursor:pointer;
+    <div class="card" style="border-left:3px solid ${colorBorde};cursor:pointer;
          padding:12px 14px;" onclick="mktIntEdit('${t.id}')">
       <div style="display:flex;gap:10px;align-items:flex-start;">
         <span style="font-size:16px;line-height:1.3;">${emoji}</span>
@@ -189,7 +198,9 @@ async function mktIntCorrerRadar() {
   toast('Radar corriendo… esperá 1-2 min', 'info');
   try {
     const r = await API.post('/radar/run');
-    toast(`Radar OK · ${r.total} temas nuevos · revisá Telegram`, 'success');
+    toast(r.total
+      ? `Radar OK · ${r.total} temas nuevos · revisá Telegram`
+      : 'Radar OK · no encontró temas nuevos; no repitió el digest', 'success');
     navigate('marketing-intelligence');
   } catch (err) {
     toast('Radar falló: ' + err.message, 'error');
@@ -198,6 +209,7 @@ async function mktIntCorrerRadar() {
 
 function mktIntSetPilar(v)  { mktIntFPilar = v;  navigate('marketing-intelligence'); }
 function mktIntSetEstado(v) { mktIntFEstado = v; navigate('marketing-intelligence'); }
+function mktIntSetTipo(v)   { mktIntFTipo = v;   navigate('marketing-intelligence'); }
 
 // ── Formulario ──────────────────────────────────────────────
 function mktIntForm(t) {

@@ -25,15 +25,15 @@ function slugify(s) {
 
 const PILARES = ['ia', 'estudio', 'casos', 'personas'];
 const FORMATOS = ['reel', 'carrusel', 'story', 'post', 'otro'];
-const ESTADOS = ['idea', 'produccion', 'lista', 'publicada'];
+const ESTADOS = ['idea', 'produccion', 'lista'];
 const ESTADOS_BLOG = ['borrador', 'en_revision', 'publicado'];
 
 // ── Contexto de marca (estático) ────────────────────────────
 const CONTEXTO_MARCA =
-`Eres el asistente del dashboard de VOCAI — empresa de IA y automatización en
+`Eres el Copiloto de Marketing de VOCAI — empresa de IA y automatización en
 Alicante, con estudio de grabación propio. Tagline: "La voz de tu negocio".
-Sos, en la práctica, la cara conversacional del Gerente general de marketing:
-ayudás a planificar, ajustar el calendario editorial y decidir con criterio.
+Conectás Planificación, Calendario, Inteligencia, Analítica, Generador y Web/Blog.
+Ayudás a decidir con criterio y entendés la sección que el usuario está mirando.
 
 CÓMO HABLÁS:
 - Español rioplatense con el usuario (es interno), directo y sin floreos.
@@ -66,12 +66,13 @@ REGLAS DE EQUILIBRIO DEL CALENDARIO (para aconsejar):
 - El estudio es la puerta, la IA es el destino: no comuniques a VOCAI como agencia
   de marketing.
 
-EJECUCIÓN:
-- Tenés herramientas para LEER y para MODIFICAR el calendario.
-- Cuando el usuario te pide un cambio concreto ("movéme esto", "creá una pieza"),
-  ejecutá la herramienta correspondiente y después confirmá en una línea qué hiciste.
-- Cuando el usuario te pide opinión o recomendación, NO toques nada: respondé.
-- Si un pedido es ambiguo o destructivo (borrar varias piezas), preguntá antes.
+MODOS DE TRABAJO:
+- CONSULTA: analizá y respondé. Solo podés leer.
+- PROPUESTA: armá una recomendación o borrador para revisión. Solo podés leer.
+- ACCIÓN APROBADA: podés crear o editar ideas y borradores, porque el usuario activó
+  ese modo y confirmó el pedido en la interfaz. Confirmá exactamente qué cambiaste.
+- Publicar, despublicar y eliminar están bloqueados por el servidor en todos los modos.
+- Si falta información para una escritura segura, preguntá antes de actuar.
 
 GUIONES Y CONTENIDO:
 - Además de la estrategia, SÍ escribís los guiones de las piezas cuando te los piden.
@@ -87,9 +88,8 @@ GUIONES Y CONTENIDO:
   guardarlo en el campo "notas" de esa pieza con editar_pieza. Si te pide crear piezas
   con guion, creálas y dejá el guion en sus notas. Si solo quiere verlo, mostralo en el chat.
 
-BLOG DE VOCAI.ES — PODÉS ESCRIBIR Y PUBLICAR ARTÍCULOS:
-- Tenés control total del blog de vocai.es. Manejás el flujo completo: escribir,
-  armar, revisar, editar y publicar.
+BLOG DE VOCAI.ES — PODÉS PREPARAR BORRADORES:
+- Podés leer, escribir y editar borradores del blog de vocai.es.
 - Cuando el usuario te diga "hacé/escribime un blog sobre X", usá "redactar_post":
   el redactor escribe el artículo completo (título, slug, meta description, excerpt,
   keyword y cuerpo en markdown, optimizado para SEO) y queda guardado como BORRADOR.
@@ -100,10 +100,8 @@ BLOG DE VOCAI.ES — PODÉS ESCRIBIR Y PUBLICAR ARTÍCULOS:
 - Si el usuario ya te dio el texto o lo escribiste vos en el chat, usá "crear_post".
 - Para retocar un artículo (cambiar título, reescribir una parte, ajustar el SEO),
   leelo con "ver_post" si hace falta y guardá con "editar_post".
-- PUBLICAR es un paso aparte y EXPLÍCITO: solo publicás con "publicar_post" cuando el
-  usuario lo pide ("publicalo", "subilo", "que salga"). Al publicar, el artículo queda
-  visible en vivo en vocai.es/blog — avisá eso y pasale la URL.
-- Nunca publiques sin que te lo pidan. Nunca borres un post sin confirmar (es destructivo).
+- PUBLICAR, DESPUBLICAR y BORRAR son acciones manuales fuera del Copiloto. Si el usuario
+  las pide, explicá que debe realizarlas desde la interfaz correspondiente.
 - Por defecto los artículos nacen en BORRADOR: el usuario revisa y recién después publica.
 - El contenido del blog es PÚBLICO → español de España con tuteo, reglas de marca al pie.
 
@@ -127,6 +125,25 @@ const TOOLS = [
   {
     name: 'ver_planificacion',
     description: 'Lee los objetivos, foco y notas de la planificación de un mes.',
+    input_schema: {
+      type: 'object',
+      properties: { mes: { type: 'string', description: 'Mes YYYY-MM. Si se omite, usa el mes en foco.' } },
+    },
+  },
+  {
+    name: 'ver_radar',
+    description: 'Lee los temas y oportunidades guardados en Inteligencia/Radar. Devuelve título, pilar, ángulo, fuente y estado.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        estado: { type: 'string', description: 'Filtro opcional por estado del tema.' },
+        limite: { type: 'number', description: 'Cantidad máxima de temas. Por defecto 30; máximo 60.' },
+      },
+    },
+  },
+  {
+    name: 'ver_analitica',
+    description: 'Lee las piezas publicadas de un mes con sus métricas para detectar formatos, pilares y contenidos que funcionaron.',
     input_schema: {
       type: 'object',
       properties: { mes: { type: 'string', description: 'Mes YYYY-MM. Si se omite, usa el mes en foco.' } },
@@ -222,7 +239,6 @@ const TOOLS = [
         pilar: { type: 'string', enum: PILARES },
         cover_image: { type: 'string', description: 'URL de la imagen de portada, opcional.' },
         slug: { type: 'string', description: 'Slug URL, opcional (se deriva del título si no se pasa).' },
-        estado: { type: 'string', enum: ESTADOS_BLOG },
       },
       required: ['titulo'],
     },
@@ -275,6 +291,24 @@ const TOOLS = [
   },
 ];
 
+const TOOLS_LECTURA = new Set([
+  'ver_calendario', 'ver_planificacion', 'ver_radar', 'ver_analitica',
+  'ver_blog', 'ver_post',
+]);
+const TOOLS_BORRADOR = new Set([
+  'crear_pieza', 'editar_pieza', 'redactar_post', 'crear_post', 'editar_post',
+]);
+const TOOLS_BLOQUEADAS = new Set([
+  'borrar_pieza', 'publicar_post', 'despublicar_post', 'borrar_post',
+]);
+
+function toolsParaModo(modo) {
+  const permitidas = modo === 'accion'
+    ? new Set([...TOOLS_LECTURA, ...TOOLS_BORRADOR])
+    : TOOLS_LECTURA;
+  return TOOLS.filter(tool => permitidas.has(tool.name));
+}
+
 // ── Ejecutor de tools ───────────────────────────────────────
 function rangoMes(mes) {
   const [year, month] = mes.split('-');
@@ -283,7 +317,16 @@ function rangoMes(mes) {
   return { from, to };
 }
 
-async function ejecutarTool(mesFoco, nombre, input) {
+async function ejecutarTool(mesFoco, nombre, input, { permitirEscritura = false } = {}) {
+  if (TOOLS_BLOQUEADAS.has(nombre)) {
+    throw new Error('Esta acción requiere intervención manual y está bloqueada para el Copiloto.');
+  }
+  if (TOOLS_BORRADOR.has(nombre) && !permitirEscritura) {
+    throw new Error('La escritura requiere el modo Acción aprobada.');
+  }
+  if (!TOOLS_LECTURA.has(nombre) && !TOOLS_BORRADOR.has(nombre)) {
+    throw new Error(`Herramienta no autorizada: ${nombre}`);
+  }
   const mes = input.mes || mesFoco;
   switch (nombre) {
     case 'ver_calendario': {
@@ -301,14 +344,57 @@ async function ejecutarTool(mesFoco, nombre, input) {
       if (error) throw new Error(error.message);
       return data || { mes, vacio: true };
     }
+    case 'ver_radar': {
+      const limite = Math.min(Math.max(Number(input.limite) || 30, 1), 60);
+      let q = supabase.from('content_topics')
+        .select('id,titulo,descripcion,fecha_noticia,tipo,pilar,angulo,fuente,fuente_url,estado,created_at')
+        .order('created_at', { ascending: false })
+        .limit(limite);
+      if (input.estado) q = q.eq('estado', input.estado);
+      const { data, error } = await q;
+      if (error) throw new Error(error.message);
+      return { temas: data || [] };
+    }
+    case 'ver_analitica': {
+      const { from, to } = rangoMes(mes);
+      const piezasRes = await supabase.from('content_pieces')
+        .select('id,fecha,titulo,formato,pilar,estado')
+        .eq('estado', 'publicada')
+        .gte('fecha', from).lte('fecha', to)
+        .order('fecha', { ascending: true });
+      if (piezasRes.error) throw new Error(piezasRes.error.message);
+      const piezas = piezasRes.data || [];
+      if (!piezas.length) return { mes, piezas: [] };
+      const metricasRes = await supabase.from('content_metrics').select('*')
+        .in('pieza_id', piezas.map(p => p.id));
+      if (metricasRes.error) throw new Error(metricasRes.error.message);
+      const porPieza = Object.fromEntries((metricasRes.data || []).map(m => [m.pieza_id, m]));
+      return { mes, piezas: piezas.map(p => ({ ...p, metrics: porPieza[p.id] || null })) };
+    }
     case 'crear_pieza': {
+      const row = {
+        fecha: input.fecha,
+        titulo: input.titulo,
+        formato: FORMATOS.includes(input.formato) ? input.formato : 'otro',
+        pilar: PILARES.includes(input.pilar) ? input.pilar : 'ia',
+        estado: ESTADOS.includes(input.estado) ? input.estado : 'idea',
+        cta: input.cta || null,
+        notas: input.notas || null,
+      };
       const { data, error } = await supabase
-        .from('content_pieces').insert([input]).select().single();
+        .from('content_pieces').insert([row]).select().single();
       if (error) throw new Error(error.message);
       return { ok: true, pieza: data };
     }
     case 'editar_pieza': {
-      const { id, ...campos } = input;
+      const { id } = input;
+      const campos = {};
+      ['fecha', 'titulo', 'cta', 'notas'].forEach(k => {
+        if (input[k] !== undefined) campos[k] = input[k];
+      });
+      if (input.formato !== undefined && FORMATOS.includes(input.formato)) campos.formato = input.formato;
+      if (input.pilar !== undefined && PILARES.includes(input.pilar)) campos.pilar = input.pilar;
+      if (input.estado !== undefined && ESTADOS.includes(input.estado)) campos.estado = input.estado;
       campos.updated_at = new Date().toISOString();
       const { data, error } = await supabase
         .from('content_pieces').update(campos).eq('id', id).select().single();
@@ -372,7 +458,7 @@ async function ejecutarTool(mesFoco, nombre, input) {
         cover_image: input.cover_image || null,
         pilar: input.pilar || null,
         autor: 'VOCAI',
-        estado: input.estado || 'borrador',
+        estado: 'borrador',
       };
       const { data, error } = await supabase
         .from('blog_posts').insert([row]).select().single();
@@ -448,24 +534,44 @@ async function contextoEnVivo(mes) {
   return txt;
 }
 
+const CONTEXTO_SECCION = {
+  'marketing-planning': 'Ayudá a convertir objetivos mensuales y contexto real en una estrategia semanal ejecutable. No dupliques el Generador.',
+  'marketing-calendar': 'Evaluá ritmo, fechas, mezcla de pilares, estados y carga de producción. Priorizá claridad operativa.',
+  'marketing-intelligence': 'Trabajá sobre Radar y oportunidades: priorizá eventos futuros cerca de Alicante cuando corresponda y evaluá relevancia, evidencia y posibilidad real de asistir o producir contenido.',
+  'marketing-analytics': 'Interpretá resultados con prudencia. Diferenciá datos observados de hipótesis y terminá con un ajuste concreto.',
+  'marketing-generator': 'Ayudá a producir una pieza particular: formato, audiencia, hook, estructura, CTA y material necesario.',
+  'marketing-web': 'Ayudá a revisar y preparar contenido web o artículos en borrador. SEO al servicio de claridad y negocio, nunca publicación automática.',
+};
+
 // ── POST /api/asistente/chat ────────────────────────────────
 // body: { messages: [{role, content}], mes: 'YYYY-MM' }
 router.post('/chat', auth, async (req, res) => {
   try {
-    const { messages, mes, seccion } = req.body;
+    const { messages, mes, seccion, modulo, modo = 'consulta' } = req.body;
     if (!Array.isArray(messages) || !messages.length) {
       return res.status(400).json({ error: 'Faltan mensajes.' });
     }
+    if (!CONTEXTO_SECCION[modulo]) {
+      return res.status(400).json({ error: 'El Copiloto solo está disponible dentro de Marketing.' });
+    }
+    if (!['consulta', 'propuesta', 'accion'].includes(modo)) {
+      return res.status(400).json({ error: 'Modo del Copiloto inválido.' });
+    }
     const mesFoco = mes || new Date().toISOString().slice(0, 7);
-    const ubicacion = seccion ? `\n\nUBICACIÓN ACTUAL: el usuario está viendo la sección "${seccion}" del dashboard. Tenelo en cuenta si su pedido es ambiguo (ej. "esto", "acá").` : '';
+    const ubicacion = `\n\nUBICACIÓN ACTUAL: sección "${seccion || modulo}". ${CONTEXTO_SECCION[modulo]}`;
+    const instruccionModo = `\n\nMODO ACTIVO: ${modo.toUpperCase()}. ${modo === 'accion'
+      ? 'La interfaz confirmó este pedido. Podés crear o editar ideas y borradores; nunca publicar ni eliminar.'
+      : 'No realices escrituras. Leé lo necesario y respondé con análisis o una propuesta.'}`;
     const reglasContenido = `\n\n── REGLAS DE MARCA PARA TODO EL CONTENIDO PÚBLICO QUE ESCRIBAS (guiones, copys, títulos) ──\n${REGLAS_MARCA}`;
-    const system = CONTEXTO_MARCA + ubicacion + await contextoEnVivo(mesFoco) + reglasContenido;
+    const system = CONTEXTO_MARCA + ubicacion + instruccionModo + await contextoEnVivo(mesFoco) + reglasContenido;
 
     const { texto, acciones } = await chat({
       system,
       messages,
-      tools: TOOLS,
-      ejecutarTool: (nombre, input) => ejecutarTool(mesFoco, nombre, input),
+      tools: toolsParaModo(modo),
+      ejecutarTool: (nombre, input) => ejecutarTool(mesFoco, nombre, input, {
+        permitirEscritura: modo === 'accion',
+      }),
     });
 
     res.json({ texto, acciones });
