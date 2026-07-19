@@ -162,7 +162,7 @@ function mktGenDirectorFormHTML() {
       <textarea class="form-textarea" id="mgen_idea" rows="5" ${dis}
         placeholder="Ej: Quiero una historia impactante para la final Argentina–España. Messi de espaldas, clima cinematográfico, texto: HOY EL CORAZÓN SE PARTE EN DOS. Logo pequeño abajo.">${escHtml(mktGenIdea)}</textarea>
       <div style="font-size:12px;color:var(--text-muted);margin-top:7px;line-height:1.45;">
-        Genera el lienzo entero con GPT Image 2. Después podés pedir cambios sobre la misma placa.
+        Sol interpreta el pedido y dirige a GPT Image 2 para generar el lienzo entero. Después podés pedir cambios sobre la misma placa.
         Los resultados serán muy cercanos al flujo libre, aunque cada generación sigue siendo única.
       </div>
     </div>
@@ -340,7 +340,7 @@ function mktGenResultadoHTML() {
     <div class="card" style="margin-bottom:20px;text-align:center;padding:40px;">
       <div class="loader"><div class="spinner"></div></div>
       <div style="font-size:13px;color:var(--text-muted);margin-top:14px;">
-        Generando la placa… ${mktGenFlujo === 'director' ? 'puede tardar hasta dos minutos.' : 'esto puede tardar hasta un minuto.'}</div>
+        ${mktGenFlujo === 'director' ? 'Sol está pensando y generando la placa… puede tardar hasta dos minutos.' : 'Generando la placa… esto puede tardar hasta un minuto.'}</div>
     </div>`;
   }
   if (!mktGenUltimo) return '';
@@ -397,21 +397,30 @@ function mktGenResultadoHTML() {
 function mktGenCosteHTML(m) {
   const usd = Number(m && m.costeUsdAprox || 0);
   if (!usd) return '';
-  const n = (m.costes || []).length;
+  const costes = m.costes || [];
+  const sol = costes.filter(c => c.servicio === 'orquestacion');
+  const imagen = costes.filter(c => c.servicio !== 'orquestacion');
+  const solUsd = sol.reduce((s, c) => s + Number(c.usdAprox || 0), 0);
+  const imagenUsd = imagen.reduce((s, c) => s + Number(c.usdAprox || 0), 0);
   const importe = usd.toLocaleString('es-AR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
-  return `<div title="Coste API aproximado acumulado; la facturación real puede variar"
+  const detalle = `Sol: US$ ${solUsd.toFixed(4)} · Imagen: US$ ${imagenUsd.toFixed(4)}`;
+  return `<div title="${escHtml(detalle)} · La facturación real puede variar"
     style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:6px;opacity:.8;">
-    ≈ US$ ${importe} acumulado${n > 1 ? ` · ${n} generaciones` : ''}
+    ≈ US$ ${importe} acumulado${sol.length ? ' · Sol + imagen' : ''}${imagen.length > 1 ? ` · ${imagen.length} imágenes` : ''}
   </div>`;
 }
 
 function mktGenConversacionHTML(m) {
-  const mensajes = (m.conversaciones || []).slice(-4);
-  if (mensajes.length < 2) return '';
+  const historial = m.conversaciones || [];
+  if (historial.length < 2) return '';
+  const mensajes = historial.length > 6 ? historial.slice(-6) : historial.slice(1);
   return `<div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
-    <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Cambios pedidos</div>
-    ${mensajes.slice(1).map(x => `<div style="font-size:12px;line-height:1.45;padding:8px 10px;
-      margin-bottom:6px;border-radius:8px;background:rgba(41,121,255,.08);">${escHtml(x.texto)}</div>`).join('')}
+    <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Conversación con Sol</div>
+    ${mensajes.map(x => `<div style="font-size:12px;line-height:1.45;padding:8px 10px;
+      margin:0 0 6px ${x.rol === 'asistente' ? '0' : '18px'};border-radius:8px;
+      background:${x.rol === 'asistente' ? 'var(--surface-hover)' : 'rgba(41,121,255,.10)'};">
+      <b style="font-size:10px;color:var(--text-muted);">${x.rol === 'asistente' ? 'SOL' : 'VOS'}</b><br>
+      ${escHtml(x.texto)}</div>`).join('')}
   </div>`;
 }
 

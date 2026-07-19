@@ -13,6 +13,9 @@ const {
 const {
   generarImagenOpenAI, editarImagenOpenAI, costeDesdeUsage,
 } = require('../config/openai-image');
+const {
+  MODEL: DIRECTOR_MODEL, orquestarCreacion, orquestarEdicion, costeDesdeUsageSol,
+} = require('../config/openai-director');
 const storage = require('../config/storage');
 const { supabase } = require('../config/supabase');
 
@@ -110,9 +113,17 @@ function costeTotal(costes) {
 
 function registrarCoste(usage, formato, accion) {
   return {
-    accion,
+    servicio: 'imagen', accion,
     fecha: new Date().toISOString(),
     ...costeDesdeUsage(usage, { formato, accion }),
+  };
+}
+
+function registrarCosteSol(usage, accion) {
+  return {
+    servicio: 'orquestacion', accion,
+    fecha: new Date().toISOString(),
+    ...costeDesdeUsageSol(usage),
   };
 }
 
@@ -192,19 +203,30 @@ router.post('/director/generar', auth, upload.single('referencia'), async (req, 
 
   try {
     if (!fs.existsSync(DIR)) fs.mkdirSync(DIR, { recursive: true });
-    const prompt = promptDirector(idea, formato);
+    const direccion = await orquestarCreacion({
+      idea, formato, categoria, referenciaPath: refFile ? refFile.path : null,
+    });
+    const prompt = promptDirector(direccion.prompt_imagen, formato);
     const resultado = refFile
       ? await editarImagenOpenAI({ imagePaths: [refFile.path], prompt, size: fmt.directorSize })
       : await generarImagenOpenAI({ prompt, size: fmt.directorSize });
     fs.writeFileSync(fondoPath, resultado.buffer);
     await componerPlacaDirector({ imagenPath: fondoPath, salidaPath, formato });
 
-    const costes = [registrarCoste(resultado.usage, formato, refFile ? 'editar' : 'generar')];
+    const costes = [
+      registrarCosteSol(direccion.usage, 'direccion_inicial'),
+      registrarCoste(resultado.usage, formato, refFile ? 'editar' : 'generar'),
+    ];
+    const ahora = new Date().toISOString();
     const m = {
       flujo: 'director', modo: 'director', categoria, idea, formato,
       titulo: '', subtitulo: '', fuente: '', copy: '', diseno: 'libre',
       logoEscala: 1, logoVisible: true,
-      conversaciones: [{ rol: 'usuario', texto: idea, fecha: new Date().toISOString() }],
+      directorModel: direccion.responseModel || DIRECTOR_MODEL,
+      conversaciones: [
+        { rol: 'usuario', texto: idea, fecha: ahora },
+        { rol: 'asistente', texto: direccion.respuesta, fecha: ahora },
+      ],
       costes, costeUsdAprox: costeTotal(costes),
       stamp, fecha: new Date().toISOString(),
     };
@@ -354,10 +376,18 @@ router.post('/ajustar', auth, async (req, res) => {
       }
       const ajusteLogo = interpretarAjusteLogo(instruccion, m);
       let resultado = null;
+      let direccion = null;
       if (ajusteLogo.instruccionVisual) {
+        direccion = await orquestarEdicion({
+          instruccion: ajusteLogo.instruccionVisual,
+          idea: m.idea,
+          formato,
+          historial: m.conversaciones || [],
+          imagenPath: fondoPath,
+        });
         resultado = await editarImagenOpenAI({
           imagePaths: [fondoPath],
-          prompt: promptAjusteDirector(ajusteLogo.instruccionVisual, m.idea, formato),
+          prompt: promptAjusteDirector(direccion.prompt_imagen, m.idea, formato),
           size: fmt.directorSize,
         });
         fs.writeFileSync(fondoPath, resultado.buffer);
@@ -369,9 +399,19 @@ router.post('/ajustar', auth, async (req, res) => {
         logoEscala: m.logoEscala, logoVisible: m.logoVisible,
       });
       m.conversaciones = m.conversaciones || [];
-      m.conversaciones.push({ rol: 'usuario', texto: instruccion, fecha: new Date().toISOString() });
+      const ahora = new Date().toISOString();
+      m.conversaciones.push({ rol: 'usuario', texto: instruccion, fecha: ahora });
+      m.conversaciones.push({
+        rol: 'asistente',
+        texto: direccion ? direccion.respuesta : 'Ajusté el wordmark oficial sin regenerar la imagen.',
+        fecha: ahora,
+      });
       m.costes = m.costes || [];
-      if (resultado) m.costes.push(registrarCoste(resultado.usage, formato, 'editar'));
+      if (resultado) {
+        m.costes.push(registrarCosteSol(direccion.usage, 'direccion_edicion'));
+        m.costes.push(registrarCoste(resultado.usage, formato, 'editar'));
+        m.directorModel = direccion.responseModel || DIRECTOR_MODEL;
+      }
       m.costeUsdAprox = costeTotal(m.costes);
       m.stamp = Date.now();
       await Promise.all([
