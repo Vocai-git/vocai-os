@@ -6,7 +6,13 @@ const os = require('os');
 const path = require('path');
 const multer = require('multer');
 const { generarTexto, generarCopy, generarPromptImagen, generarImagen, editarImagen, generarBlog } = require('../config/gemini');
-const { componerPlacaHistoria, componerPlacaFeed, CATEGORIAS, DISENOS_HISTORIA } = require('../config/placa');
+const {
+  componerPlacaHistoria, componerPlacaFeed, componerPlacaDirector,
+  CATEGORIAS, DISENOS_HISTORIA,
+} = require('../config/placa');
+const {
+  generarImagenOpenAI, editarImagenOpenAI, costeDesdeUsage,
+} = require('../config/openai-image');
 const storage = require('../config/storage');
 const { supabase } = require('../config/supabase');
 
@@ -43,8 +49,14 @@ router.post('/blog', auth, async (req, res) => {
 //  · historia → 1080x1920 (9:16)
 //  · feed     → 1080x1350 (4:5)
 const FORMATOS = {
-  historia: { prefijo: 'muestras', aspecto: '9:16', componer: componerPlacaHistoria },
-  feed:     { prefijo: 'feed',     aspecto: '4:5',  componer: componerPlacaFeed },
+  historia: {
+    prefijo: 'muestras', aspecto: '9:16', componer: componerPlacaHistoria,
+    directorSize: '1024x1824',
+  },
+  feed: {
+    prefijo: 'feed', aspecto: '4:5', componer: componerPlacaFeed,
+    directorSize: '1024x1280',
+  },
 };
 function fmtDe(v) { return FORMATOS[v] ? v : 'historia'; }
 
@@ -59,6 +71,74 @@ const MODOS = ['ilustracion', 'realista', 'foto'];
 // Nombre del archivo de fondo a partir del nombre de la placa.
 function fondoDe(archivo) {
   return archivo.replace(/\.png$/i, '-fondo.png');
+}
+
+function promptDirector(idea, formato) {
+  const destino = formato === 'feed'
+    ? 'un post vertical de Instagram 4:5'
+    : 'una historia de Instagram 9:16';
+  return `Creá el diseño completo y terminado de ${destino} a partir de este pedido del usuario:
+
+${idea}
+
+Actuá como un director creativo senior. Interpretá el pedido en lenguaje natural y resolvé concepto,
+composición, jerarquía, fotografía o ilustración y tipografía como una única pieza premium. Si el usuario
+da textos concretos, escribilos exactamente, en español y sin agregar frases no solicitadas. Priorizá impacto
+visual, lectura inmediata en móvil y una composición cinematográfica contemporánea. Usá la identidad de VOCAI
+con criterio: azul noche #141D35, azul eléctrico #2979FF, blanco y acentos coral #FF6B6B cuando aporten.
+No dibujes logotipos, marcas de agua ni la palabra VOCAI: el sistema añadirá después el wordmark oficial.
+Reservá una zona limpia y discreta en el centro inferior para ese wordmark. Evitá elementos importantes en los
+bordes y respetá las zonas seguras de Instagram. Entregá solamente la placa visual final, sin mockup ni marco.`;
+}
+
+function promptAjusteDirector(instruccion, idea, formato) {
+  const destino = formato === 'feed' ? '4:5' : '9:16';
+  return `Editá la placa adjunta (${destino}) siguiendo exactamente esta nueva instrucción del usuario:
+
+${instruccion}
+
+La idea original era: ${idea || 'una pieza de VOCAI'}.
+Conservá todo lo que el usuario no pidió cambiar: concepto, composición, textos, personajes, proporciones y
+estilo. Si pide quitar un texto o elemento, eliminá también cualquier rastro. No inventes logotipos ni la palabra
+VOCAI; mantené limpia la pequeña zona central inferior porque el sistema coloca allí el wordmark oficial.
+Entregá solo la placa final editada, sin mockup ni explicaciones.`;
+}
+
+function costeTotal(costes) {
+  return Number((costes || []).reduce((s, c) => s + Number(c.usdAprox || 0), 0).toFixed(4));
+}
+
+function registrarCoste(usage, formato, accion) {
+  return {
+    accion,
+    fecha: new Date().toISOString(),
+    ...costeDesdeUsage(usage, { formato, accion }),
+  };
+}
+
+function interpretarAjusteLogo(instruccion, m) {
+  const partes = String(instruccion || '').split(/\s*(?:,|;|\r?\n|\by\b)\s*/i).filter(Boolean);
+  let escala = Number(m.logoEscala || 1);
+  let visible = m.logoVisible !== false;
+  const visuales = [];
+  partes.forEach((parte) => {
+    const hablaLogo = /\b(logo|wordmark)\b/i.test(parte);
+    const soportado = /(achic|reduc|pequeñ|agrand|aument|quit|sac|elimin|sin\s+(?:el\s+)?logo|mostr|agreg|pon)/i.test(parte);
+    if (!hablaLogo || !soportado) {
+      visuales.push(parte);
+      return;
+    }
+    const porcentaje = Number((parte.match(/(\d{1,3})\s*%/) || [])[1] || 0);
+    if (/(quit|sac|elimin|sin\s+(?:el\s+)?logo)/i.test(parte)) visible = false;
+    if (/(mostr|agreg|pon)/i.test(parte)) visible = true;
+    if (/(achic|reduc|pequeñ)/i.test(parte)) escala *= 1 - (porcentaje || 20) / 100;
+    if (/(agrand|aument)/i.test(parte)) escala *= 1 + (porcentaje || 20) / 100;
+  });
+  return {
+    logoEscala: Number(Math.max(0.3, Math.min(2, escala)).toFixed(3)),
+    logoVisible: visible,
+    instruccionVisual: visuales.join('. ').trim(),
+  };
 }
 
 // GET /api/marketing-generator/muestras?formato=historia|feed  → lista las placas
@@ -81,12 +161,67 @@ router.get('/muestras', auth, async (req, res) => {
         diseno: m.diseno || '', idea: m.idea || '', titulo: m.titulo || '',
         subtitulo: m.subtitulo || '', fuente: m.fuente || '',
         copy: m.copy || '',
+        flujo: m.flujo || 'rapido',
+        costeUsdAprox: Number(m.costeUsdAprox || 0),
+        costes: m.costes || [],
       };
     }));
     items.sort((a, b) => b.mtime - a.mtime);
     res.json(items);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/marketing-generator/director/generar → lienzo completo, sin plantilla fija.
+router.post('/director/generar', auth, upload.single('referencia'), async (req, res) => {
+  const idea = (req.body.idea || '').trim();
+  const categoria = CATEGORIAS[req.body.categoria] ? req.body.categoria : '';
+  const formato = fmtDe(req.body.formato);
+  const fmt = FORMATOS[formato];
+  const refFile = req.file || null;
+  if (!idea) return res.status(400).json({ error: 'Escribí qué placa querés crear' });
+
+  const DIR = dirDe(formato);
+  const stamp = Date.now();
+  const archivo = `pieza-director-${categoria || 'sincat'}-${stamp}.png`;
+  const fondoNombre = fondoDe(archivo);
+  const fondoPath = path.join(DIR, fondoNombre);
+  const salidaPath = path.join(DIR, archivo);
+  const jsonNombre = archivo.replace(/\.png$/i, '.json');
+
+  try {
+    if (!fs.existsSync(DIR)) fs.mkdirSync(DIR, { recursive: true });
+    const prompt = promptDirector(idea, formato);
+    const resultado = refFile
+      ? await editarImagenOpenAI({ imagePaths: [refFile.path], prompt, size: fmt.directorSize })
+      : await generarImagenOpenAI({ prompt, size: fmt.directorSize });
+    fs.writeFileSync(fondoPath, resultado.buffer);
+    await componerPlacaDirector({ imagenPath: fondoPath, salidaPath, formato });
+
+    const costes = [registrarCoste(resultado.usage, formato, refFile ? 'editar' : 'generar')];
+    const m = {
+      flujo: 'director', modo: 'director', categoria, idea, formato,
+      titulo: '', subtitulo: '', fuente: '', copy: '', diseno: 'libre',
+      logoEscala: 1, logoVisible: true,
+      conversaciones: [{ rol: 'usuario', texto: idea, fecha: new Date().toISOString() }],
+      costes, costeUsdAprox: costeTotal(costes),
+      stamp, fecha: new Date().toISOString(),
+    };
+    await Promise.all([
+      storage.subir(salidaPath, `${fmt.prefijo}/${archivo}`),
+      storage.subir(fondoPath, `${fmt.prefijo}/${fondoNombre}`),
+      storage.subirJson(m, `${fmt.prefijo}/${jsonNombre}`),
+    ]);
+    res.json({
+      archivo,
+      url: storage.urlPublica(`${fmt.prefijo}/${archivo}`) + '?t=' + stamp,
+      ...m,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  } finally {
+    if (refFile && fs.existsSync(refFile.path)) fs.unlink(refFile.path, () => {});
   }
 });
 
@@ -211,6 +346,45 @@ router.post('/ajustar', auth, async (req, res) => {
 
     const m = await storage.leerJson(`${fmt.prefijo}/${jsonNombre}`);
     if (!m) return res.status(400).json({ error: 'No se encontró la metadata de esta placa' });
+
+    if (m.flujo === 'director') {
+      if (!fs.existsSync(fondoPath)) {
+        const ok = await storage.bajar(`${fmt.prefijo}/${fondoNombre}`, fondoPath);
+        if (!ok) return res.status(400).json({ error: 'No se encontró el lienzo editable de esta placa' });
+      }
+      const ajusteLogo = interpretarAjusteLogo(instruccion, m);
+      let resultado = null;
+      if (ajusteLogo.instruccionVisual) {
+        resultado = await editarImagenOpenAI({
+          imagePaths: [fondoPath],
+          prompt: promptAjusteDirector(ajusteLogo.instruccionVisual, m.idea, formato),
+          size: fmt.directorSize,
+        });
+        fs.writeFileSync(fondoPath, resultado.buffer);
+      }
+      m.logoEscala = ajusteLogo.logoEscala;
+      m.logoVisible = ajusteLogo.logoVisible;
+      await componerPlacaDirector({
+        imagenPath: fondoPath, salidaPath, formato,
+        logoEscala: m.logoEscala, logoVisible: m.logoVisible,
+      });
+      m.conversaciones = m.conversaciones || [];
+      m.conversaciones.push({ rol: 'usuario', texto: instruccion, fecha: new Date().toISOString() });
+      m.costes = m.costes || [];
+      if (resultado) m.costes.push(registrarCoste(resultado.usage, formato, 'editar'));
+      m.costeUsdAprox = costeTotal(m.costes);
+      m.stamp = Date.now();
+      await Promise.all([
+        storage.subir(salidaPath, `${fmt.prefijo}/${archivo}`),
+        storage.subir(fondoPath, `${fmt.prefijo}/${fondoNombre}`),
+        storage.subirJson(m, `${fmt.prefijo}/${jsonNombre}`),
+      ]);
+      return res.json({
+        archivo,
+        url: storage.urlPublica(`${fmt.prefijo}/${archivo}`) + '?t=' + m.stamp,
+        ...m,
+      });
+    }
     if (m.diseno === 'aurora') {
       return res.status(400).json({ error: 'El diseño Aurora no usa imagen de fondo — no hay nada que ajustar' });
     }

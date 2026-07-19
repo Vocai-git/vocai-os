@@ -25,6 +25,9 @@ Abrir [http://localhost:3000](http://localhost:3000).
 
 Ver `.env.example`. Las claves reales viven en Railway → Variables. Pedir a Agus o Santi el `.env` por canal privado (nunca por git).
 
+- `OPENAI_API_KEY`: requerida por Marketing → Generador → Director creativo.
+- `OPENAI_IMAGE_MODEL`: opcional; por defecto usa `gpt-image-2`.
+
 ## Estructura
 
 ```

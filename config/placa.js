@@ -627,4 +627,33 @@ async function componerSlideCarrusel({ ilustracionPath, titulo, cuerpo, dato, ca
   return salidaPath;
 }
 
-module.exports = { componerPlacaHistoria, componerPlacaFeed, componerSlideCarrusel, CATEGORIAS, DISENOS_HISTORIA };
+// Normaliza el lienzo libre generado por IA al tamaño final y coloca el
+// wordmark oficial sin pedirle al modelo que lo redibuje.
+async function componerPlacaDirector({
+  imagenPath, salidaPath, formato = 'historia', logoEscala = 1, logoVisible = true,
+}) {
+  const esFeed = formato === 'feed';
+  const ancho = 1080;
+  const alto = esFeed ? 1350 : 1920;
+  const logoAlto = Math.round((esFeed ? 36 : 52) * Math.max(0.3, Math.min(2, logoEscala)));
+  const logoBottom = esFeed ? 54 : 155;
+  const dataUri = 'data:image/png;base64,' + fs.readFileSync(imagenPath).toString('base64');
+  const html = `<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:${ancho}px;height:${alto}px;background:#141d35;overflow:hidden;}
+.lienzo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.logo{position:absolute;left:50%;bottom:${logoBottom}px;transform:translateX(-50%);
+  height:${logoAlto}px;max-width:220px;object-fit:contain;
+  filter:drop-shadow(0 2px 10px rgba(0,0,0,.35));}
+</style></head><body>
+<img class="lienzo" src="${dataUri}">
+${LOGO_B64 && logoVisible ? `<img class="logo" src="data:image/png;base64,${LOGO_B64}">` : ''}
+</body></html>`;
+  await renderHtml(html, salidaPath, ancho, alto);
+  return salidaPath;
+}
+
+module.exports = {
+  componerPlacaHistoria, componerPlacaFeed, componerSlideCarrusel,
+  componerPlacaDirector, CATEGORIAS, DISENOS_HISTORIA,
+};

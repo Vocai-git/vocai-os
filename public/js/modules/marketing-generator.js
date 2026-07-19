@@ -43,6 +43,10 @@ let mktGenCargando  = false;
 let mktGenMuestras  = [];
 let mktGenFbPaso    = null;   // veredicto: null preguntar · 'motivo' · 'hecho'
 
+// Flujo de placa: plantilla rápida (copy + fondo + composición fija) o
+// Director creativo (lienzo completo generado y refinado por conversación).
+let mktGenFlujo = 'rapido';
+
 // Pieza del calendario que se está produciendo (viene del botón 🎨 Producir).
 // Si está seteada, "Añadir al calendario" adjunta la placa a ESA pieza.
 let mktGenPiezaDestino = null;  // { id, fecha, titulo }
@@ -115,10 +119,76 @@ function mktGenSetSeccion(s) {
 async function mktGenPanelHistorias(panel) {
   mktGenMuestras = await API.get('/marketing-generator/muestras?formato=' + mktGenCfg().formato);
   panel.innerHTML = `
-    ${mktGenFormHTML()}
+    ${mktGenFlujoHTML()}
+    ${mktGenFlujo === 'director' ? mktGenDirectorFormHTML() : mktGenFormHTML()}
     ${mktGenResultadoHTML()}
     ${mktGenGaleriaHTML()}
   `;
+}
+
+function mktGenFlujoHTML() {
+  const boton = (valor, titulo, bajada) => `
+    <button type="button" onclick="mktGenSetFlujo('${valor}')"
+      style="flex:1;min-width:220px;text-align:left;padding:14px 16px;border-radius:12px;cursor:pointer;
+        border:1px solid ${mktGenFlujo === valor ? 'var(--blue)' : 'var(--border)'};
+        background:${mktGenFlujo === valor ? 'rgba(41,121,255,.10)' : 'var(--surface)'};color:var(--text);">
+      <span style="display:block;font-weight:700;font-size:13px;margin-bottom:4px;">${titulo}</span>
+      <span style="display:block;font-size:12px;line-height:1.4;color:var(--text-muted);">${bajada}</span>
+    </button>`;
+  return `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+    ${boton('rapido', 'Plantilla rápida', 'Copy y fondo IA dentro de un diseño fijo de VOCAI.')}
+    ${boton('director', 'Director creativo', 'Pedí la placa completa en lenguaje natural y refinála conversando.')}
+  </div>`;
+}
+
+function mktGenSetFlujo(flujo) {
+  if (!['rapido', 'director'].includes(flujo) || mktGenFlujo === flujo) return;
+  const idea = document.getElementById('mgen_idea');
+  if (idea) mktGenIdea = idea.value;
+  mktGenFlujo = flujo;
+  mktGenUltimo = null;
+  mktGenReferencia = null;
+  navigate('marketing-generator');
+}
+
+function mktGenDirectorFormHTML() {
+  const dis = mktGenCargando ? 'disabled' : '';
+  const optCategorias = Object.entries(MKT_GEN_CATEGORIAS).map(([k, v]) =>
+    `<option value="${k}" ${k === mktGenCategoria ? 'selected' : ''}>${v}</option>`).join('');
+  return `
+  <div class="card" style="margin-bottom:20px;">
+    <div class="form-group">
+      <label class="form-label">Describí la placa como me la pedirías por chat</label>
+      <textarea class="form-textarea" id="mgen_idea" rows="5" ${dis}
+        placeholder="Ej: Quiero una historia impactante para la final Argentina–España. Messi de espaldas, clima cinematográfico, texto: HOY EL CORAZÓN SE PARTE EN DOS. Logo pequeño abajo.">${escHtml(mktGenIdea)}</textarea>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:7px;line-height:1.45;">
+        Genera el lienzo entero con GPT Image 2. Después podés pedir cambios sobre la misma placa.
+        Los resultados serán muy cercanos al flujo libre, aunque cada generación sigue siendo única.
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Categoría</label>
+        <select class="form-select" id="mgen_categoria" ${dis}>
+          <option value="" ${mktGenCategoria === '' ? 'selected' : ''}>Sin categoría</option>
+          ${optCategorias}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Referencia visual (opcional)</label>
+        <input type="file" class="form-input" id="mgen_referencia" accept="image/*" ${dis}
+          onchange="mktGenSetReferencia(this)">
+        <div id="mgen_ref_info" style="font-size:12px;color:var(--text-muted);margin-top:6px;">
+          ${mktGenReferencia ? '✓ ' + escHtml(mktGenReferencia.name)
+            : 'Podés subir una placa, foto o estilo que quieras tomar como referencia.'}
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="mktGenDirectorSubmit()" ${dis}>
+      ${mktGenCargando ? 'Creando…' : 'Crear con Director creativo'}
+    </button>
+    <span style="font-size:11px;color:var(--text-muted);margin-left:10px;">Coste estimado visible en el resultado</span>
+  </div>`;
 }
 
 // ── Formulario ──────────────────────────────────────────────
@@ -258,7 +328,9 @@ function mktGenSetReferencia(input) {
   mktGenReferencia = input.files && input.files[0] ? input.files[0] : null;
   const info = document.getElementById('mgen_ref_info');
   if (info) info.textContent = mktGenReferencia ? '✓ ' + mktGenReferencia.name
-    : 'Nano Banana la usa como guía de estilo, clima y composición.';
+    : (mktGenFlujo === 'director'
+      ? 'Podés subir una placa, foto o estilo que quieras tomar como referencia.'
+      : 'Nano Banana la usa como guía de estilo, clima y composición.');
 }
 
 // ── Zona de resultado ───────────────────────────────────────
@@ -268,26 +340,30 @@ function mktGenResultadoHTML() {
     <div class="card" style="margin-bottom:20px;text-align:center;padding:40px;">
       <div class="loader"><div class="spinner"></div></div>
       <div style="font-size:13px;color:var(--text-muted);margin-top:14px;">
-        Generando la placa… esto puede tardar hasta un minuto.</div>
+        Generando la placa… ${mktGenFlujo === 'director' ? 'puede tardar hasta dos minutos.' : 'esto puede tardar hasta un minuto.'}</div>
     </div>`;
   }
   if (!mktGenUltimo) return '';
   const u = mktGenUltimo;
+  const esDirector = u.flujo === 'director';
   return `
   <div class="card" style="margin-bottom:20px;">
     <div style="font-weight:700;font-size:14px;margin-bottom:14px;">Resultado</div>
     <div style="display:flex;gap:20px;flex-wrap:wrap;">
-      <img src="${escHtml(u.url)}" alt="placa generada" title="Clic para ampliar"
-        onclick="mktGenVerUltimo()"
-        style="width:260px;aspect-ratio:${mktGenCfg().ratio};object-fit:contain;
-               align-self:flex-start;flex:0 0 auto;border-radius:10px;
-               border:1px solid var(--border);cursor:zoom-in;">
+      <div style="width:260px;align-self:flex-start;flex:0 0 auto;">
+        <img src="${escHtml(u.url)}" alt="placa generada" title="Clic para ampliar"
+          onclick="mktGenVerUltimo()"
+          style="width:100%;aspect-ratio:${mktGenCfg().ratio};object-fit:contain;display:block;
+                 border-radius:10px;border:1px solid var(--border);cursor:zoom-in;">
+        ${mktGenCosteHTML(u)}
+      </div>
       <div style="flex:1;min-width:240px;">
         ${mktGenCampo('Categoría', MKT_GEN_CATEGORIAS[u.categoria] || u.categoria)}
-        ${u.diseno && u.diseno !== 'clasico' ? mktGenCampo('Diseño', MKT_GEN_DISENOS[u.diseno] || u.diseno) : ''}
-        ${mktGenCampo('Modo', MKT_GEN_MODOS[u.modo] || u.modo)}
+        ${esDirector ? mktGenCampo('Flujo', 'Director creativo') : `
+          ${u.diseno && u.diseno !== 'clasico' ? mktGenCampo('Diseño', MKT_GEN_DISENOS[u.diseno] || u.diseno) : ''}
+          ${mktGenCampo('Modo', MKT_GEN_MODOS[u.modo] || u.modo)}`}
         ${mktGenCampo('Tu idea', u.idea)}
-        ${mktGenCampo('Título', u.titulo)}
+        ${!esDirector ? mktGenCampo('Título', u.titulo) : ''}
         ${u.subtitulo ? mktGenCampo('Subtítulo', u.subtitulo) : ''}
         ${u.fuente ? mktGenCampo('Fuente', u.fuente) : ''}
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -302,16 +378,40 @@ function mktGenResultadoHTML() {
           <button class="btn btn-secondary" style="margin-top:8px;"
             onclick="mktGenCopiarCopy()">Copiar copy</button>
         </div>` : ''}
+        ${esDirector ? mktGenConversacionHTML(u) : ''}
         <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
-          <label class="form-label">Ajustar esta placa</label>
+          <label class="form-label">${esDirector ? 'Seguí conversando sobre esta placa' : 'Ajustar esta placa'}</label>
           <textarea class="form-textarea" id="mgen_ajuste" rows="2"
-            placeholder="Ej: sacá el objeto de la izquierda · dale más iluminación · fondo más despejado"></textarea>
+            placeholder="${esDirector
+              ? 'Ej: achicá el logo un 30%, quitá la pregunta y cambiá la frase inferior'
+              : 'Ej: sacá el objeto de la izquierda · dale más iluminación · fondo más despejado'}"></textarea>
           <button class="btn btn-secondary" style="margin-top:8px;"
-            onclick="mktGenAjustar()">Aplicar ajuste</button>
+            onclick="mktGenAjustar()">${esDirector ? 'Enviar cambio' : 'Aplicar ajuste'}</button>
         </div>
         ${mktGenFeedbackHTML()}
       </div>
     </div>
+  </div>`;
+}
+
+function mktGenCosteHTML(m) {
+  const usd = Number(m && m.costeUsdAprox || 0);
+  if (!usd) return '';
+  const n = (m.costes || []).length;
+  const importe = usd.toLocaleString('es-AR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  return `<div title="Coste API aproximado acumulado; la facturación real puede variar"
+    style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:6px;opacity:.8;">
+    ≈ US$ ${importe} acumulado${n > 1 ? ` · ${n} generaciones` : ''}
+  </div>`;
+}
+
+function mktGenConversacionHTML(m) {
+  const mensajes = (m.conversaciones || []).slice(-4);
+  if (mensajes.length < 2) return '';
+  return `<div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+    <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">Cambios pedidos</div>
+    ${mensajes.slice(1).map(x => `<div style="font-size:12px;line-height:1.45;padding:8px 10px;
+      margin-bottom:6px;border-radius:8px;background:rgba(41,121,255,.08);">${escHtml(x.texto)}</div>`).join('')}
   </div>`;
 }
 
@@ -374,6 +474,9 @@ function mktGenThumb(m) {
                   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
         ${escHtml(info)}
       </div>
+      ${m.costeUsdAprox ? `<div style="padding:0 9px 7px;font-size:9px;color:var(--text-muted);opacity:.75;">
+        ≈ US$ ${Number(m.costeUsdAprox).toLocaleString('es-AR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
+      </div>` : ''}
     </div>`;
 }
 
@@ -430,6 +533,40 @@ async function mktGenBorrar(archivo) {
 }
 
 // ── Generar ─────────────────────────────────────────────────
+async function mktGenDirectorSubmit() {
+  const idea = document.getElementById('mgen_idea').value.trim();
+  const categoria = document.getElementById('mgen_categoria').value;
+  if (!idea) { toast('Escribí qué placa querés crear', 'error'); return; }
+
+  mktGenIdea = idea;
+  mktGenCategoria = categoria;
+  mktGenCargando = true;
+  navigate('marketing-generator');
+  try {
+    const fd = new FormData();
+    fd.append('idea', idea);
+    fd.append('categoria', categoria);
+    fd.append('formato', mktGenCfg().formato);
+    if (mktGenReferencia) fd.append('referencia', mktGenReferencia);
+    const res = await fetch('/api/marketing-generator/director/generar', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('vocai_token') },
+      body: fd,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error del servidor');
+    mktGenUltimo = data;
+    mktGenFbPaso = null;
+    mktGenReferencia = null;
+    toast('Placa creada con Director creativo', 'success');
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    mktGenCargando = false;
+    navigate('marketing-generator');
+  }
+}
+
 async function mktGenSubmit() {
   const idea = document.getElementById('mgen_idea').value.trim();
   const categoria = document.getElementById('mgen_categoria').value;
