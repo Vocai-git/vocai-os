@@ -17,15 +17,18 @@
     "provisional": true,
     "n_reels": 4,
     "nota": "Provisional: son 4 reels. Se vuelve firme con 20–50 (ver método, sección 'Cómo se nutre el sistema').",
+    "hallazgo_arranque": "EL PATRÓN MÁS FUERTE (visto con el microscopio de los 2s): en los 4 reels, la parte jugosa del gancho —el dato, la intriga o el premio visual— llega DESPUÉS del segundo 2, que es donde ya se fue el 42-45%. No es problema de b-rolls ni de si salís vos: el golpe del gancho llega tarde. En los primeros 2s se define casi todo (7 de cada 10 de los que abandonan en 5s ya se fueron en el segundo 2).",
     "replicar": [
+      "Poné lo más fuerte en el primer 1,5s: el dato / la intriga / el premio visual PRIMERO, la explicación después. Nada de rampa ni relleno.",
       "Reels CORTOS: el de 29s retuvo 69%; los de 38–47s cayeron a 30–39%. Es la señal más fuerte.",
       "Arrancá con tu cara + una frase directa (pregunta/afirmación) desde el segundo 0, no con producción (mockup/comparación).",
       "Formato noticia + CTA de compartir → más shares y más seguidores sin depender de colab."
     ],
     "corregir": [
+      "Cero silencios y cero setup en los primeros 2s: en los 4 el golpe del gancho llegó tarde (2,0–4,0s).",
+      "Si hay un corte-premio (como el estudio neón), adelantalo o meté un flash de él en el segundo 0.",
       "Nadie llega al final (8–15% en los 4): acortá y poné un cierre que retenga.",
-      "Sin CTA no convertís: cerrá pidiendo algo (seguir / guardar / escribir).",
-      "El único bajón grande es el arranque (0–5s): meté cara + gancho en el segundo 0. En el medio no hay villano."
+      "Sin CTA no convertís: cerrá pidiendo algo (seguir / guardar / escribir)."
     ]
   },
   "reels": [
@@ -56,6 +59,20 @@
         "veredicto": "El mejor hook y la mejor distribución de los 4. Formato noticia + CTA funciona.",
         "replicar": "Formato 'última hora' + pedir que lo compartan → 1,6% shares y +6 seguidores SIN colab.",
         "corregir": "Solo el 13% llega al final. Acortar; el plano fijo de 22s cansa."
+      },
+      "microscopio": {
+        "caida_2s": -45,
+        "caida_5s": -65,
+        "payoff_seg": 2.0,
+        "guion": "0,3s «Decime una cosa» · 1,5s «soy real o no soy real» · 3,0s «este vídeo ¿es IA o no es IA?»",
+        "diagnostico": "Abre con relleno («decime una cosa»). La intriga de verdad («¿soy real o IA?») no llega hasta pasados los 2s — justo donde ya se fue el 45%.",
+        "frames": [
+          { "t": 0, "img": "leyia_0.jpg", "txt": "Habla, todavía sin texto" },
+          { "t": 1, "img": "leyia_1.jpg", "txt": "«Decime una cosa» (relleno)" },
+          { "t": 2, "img": "leyia_2.jpg", "txt": "«soy real o no» — recién arranca la intriga · ya se fue 45%" },
+          { "t": 3, "img": "leyia_3.jpg", "txt": "«este vídeo…»" },
+          { "t": 5, "img": "leyia_5.jpg", "txt": "«¿es IA o no es IA?» — la intriga completa" }
+        ]
       }
     },
     {
@@ -87,6 +104,20 @@
         "veredicto": "El que MEJOR retiene (69%) — es el más corto. La gente lo re-mira 2,3 veces.",
         "replicar": "Formato corto + cara hablando directo a cámara retiene mucho más.",
         "corregir": "Los primeros 4,5s son un mockup (no aparecés) → ahí se va el 52%. Y sin CTA: 1 solo seguidor."
+      },
+      "microscopio": {
+        "caida_2s": -45,
+        "caida_5s": -60,
+        "payoff_seg": 3.4,
+        "guion": "0,0–0,7s MUDO · 0,7s «38% más de likes» · 3,4s «…sólo por mostrar la cara» · silencio 1,3s · 4,9s «esto no es una opinión»",
+        "diagnostico": "Arranca 0,7s sin voz y con un concepto meta (móvil dentro del móvil) que cuesta leer. El número tarda y hay un silencio de 1,3s antes del giro.",
+        "frames": [
+          { "t": 0, "img": "cara_0.jpg", "txt": "Móvil en mano (concepto meta), MUDO 0,7s" },
+          { "t": 1, "img": "cara_1.jpg", "txt": "«38% más de…» aparece el número" },
+          { "t": 2, "img": "cara_2.jpg", "txt": "«…likes» · ya se fue 45%" },
+          { "t": 3, "img": "cara_3.jpg", "txt": "«…sólo por mostrar la cara»" },
+          { "t": 5, "img": "cara_5.jpg", "txt": "Corte: «¿OPINIÓN?» + tu cara real" }
+        ]
       }
     },
     {
@@ -117,6 +148,20 @@
         "veredicto": "Alcance alto pero PRESTADO por la colab (público argentino). La PEOR retención de los 4.",
         "replicar": "El tema tira (60 comentarios, '¿cómo pido cita?') y se compartió bien (1%).",
         "corregir": "Vieron 14 de 47s. Es un ANUNCIO ('quedate 40s'), no contenido. Muy largo."
+      },
+      "microscopio": {
+        "caida_2s": null,
+        "caida_5s": -56,
+        "payoff_seg": 4.0,
+        "guion": "0,4s «Así se ve un video sin estudio» · silencio · 3,2s «y así se ve con estudio» · corte al estudio neón ~4s",
+        "diagnostico": "Los primeros 4s son apagados A PROPÓSITO (ese es el concepto: «sin estudio»). Pero el premio —el estudio neón— no aparece hasta el corte de los 4s. La gente se va antes de cobrar.",
+        "frames": [
+          { "t": 0, "img": "podcast_0.jpg", "txt": "Plano oscuro y quieto, sin texto" },
+          { "t": 1, "img": "podcast_1.jpg", "txt": "«Así se ve un video…»" },
+          { "t": 2, "img": "podcast_2.jpg", "txt": "«…sin estudio» (feo a propósito)" },
+          { "t": 3, "img": "podcast_3.jpg", "txt": "Silencio, sigue el plano apagado" },
+          { "t": 5, "img": "podcast_5.jpg", "txt": "Corte al estudio neón (el premio) — llega tardísimo" }
+        ]
       }
     },
     {
@@ -147,6 +192,20 @@
         "veredicto": "El que más salió a gente nueva (83%) por recomendación orgánica pura (Feed 65% + Reels 23%), SIN colaboración. Alcance limpio, no prestado.",
         "replicar": "Arranque tipo alerta con tu cara + afirmación fuerte frena bien.",
         "corregir": "Retención baja (32%). Plano fijo de 29s + un silencio de 3s antes del CTA."
+      },
+      "microscopio": {
+        "caida_2s": -42,
+        "caida_5s": -61,
+        "payoff_seg": 2.7,
+        "guion": "0,2s «La imagen de tu negocio» · 1,7s «te está haciendo» · 2,7s «perder clientes» · corte 4,7s «te vas de vacaciones»",
+        "diagnostico": "El golpe del gancho («perder clientes») aterriza a los 2,7s, cuando ya se fue el 42%. El auricular que sube a cámara es una pregunta visual sin respuesta que distrae.",
+        "frames": [
+          { "t": 0, "img": "tuimagen_0.jpg", "txt": "Sube un auricular a cámara (distrae)" },
+          { "t": 1, "img": "tuimagen_1.jpg", "txt": "«…de tu negocio» (montando la frase)" },
+          { "t": 2, "img": "tuimagen_2.jpg", "txt": "«te está haciendo…» · ya se fue 42%" },
+          { "t": 3, "img": "tuimagen_3.jpg", "txt": "«…perder clientes» ← recién acá el gancho" },
+          { "t": 5, "img": "tuimagen_5.jpg", "txt": "Corte a otra escena: «te vas de vacaciones»" }
+        ]
       }
     }
   ]

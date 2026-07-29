@@ -80,6 +80,35 @@ function rfLect(titulo, txt, color) {
   return `<div style="font-size:12.5px;line-height:1.5;"><span style="color:${color};font-weight:700;">${titulo}:</span> ${escHtml(txt)}</div>`;
 }
 
+// Microscopio del arranque: qué se ve y qué se dice segundo a segundo en los
+// primeros 5s + cuánta gente se va en los primeros 2s y 5s.
+function rfMicroscopio(reel) {
+  const mi = reel.microscopio;
+  if (!mi) return '';
+  const frames = (mi.frames || []).map(f => `
+    <div style="flex:0 0 92px;">
+      <div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
+        <img src="/img/reels/${escHtml(f.img)}" alt="${f.t}s" loading="lazy" style="width:100%;display:block;aspect-ratio:9/16;object-fit:cover;">
+        <span style="position:absolute;top:4px;left:4px;background:#141d35cc;color:#fff;font-size:10px;font-weight:700;border-radius:4px;padding:1px 5px;">${f.t}s</span>
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);line-height:1.3;margin-top:4px;">${escHtml(f.txt)}</div>
+    </div>`).join('');
+  const cifra = (val, sufijo) => val == null
+    ? `<div style="font-size:13px;font-weight:700;color:var(--text-muted);line-height:1;">s/d</div><div style="font-size:10px;color:var(--text-muted);">${sufijo}</div>`
+    : `<div style="font-size:22px;font-weight:800;color:#FF6B6B;line-height:1;">${val}</div><div style="font-size:10px;color:var(--text-muted);">${sufijo}</div>`;
+  return `<div style="background:var(--surface-hover);border-radius:10px;padding:12px;margin-top:14px;">
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">🔬 Microscopio del arranque</div>
+    <div style="display:flex;gap:16px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+      <div style="text-align:center;flex:0 0 auto;">${cifra(mi.caida_2s, 'pts en 2s')}</div>
+      <div style="text-align:center;flex:0 0 auto;">${cifra(mi.caida_5s, 'pts en 5s')}</div>
+      <div style="font-size:11.5px;color:var(--text-muted);line-height:1.4;flex:1;min-width:120px;">Cuánta gente se va en los primeros 2 y 5 segundos.</div>
+    </div>
+    <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;">${frames}</div>
+    <div style="font-size:11.5px;color:var(--text-muted);line-height:1.5;margin-top:8px;"><span style="color:var(--text);font-weight:600;">Guion:</span> ${escHtml(mi.guion || '')}</div>
+    <div style="font-size:12.5px;line-height:1.5;margin-top:6px;"><span style="color:#FF6B6B;font-weight:700;">Diagnóstico:</span> ${escHtml(mi.diagnostico || '')}</div>
+  </div>`;
+}
+
 function rfFicha(reel) {
   const colab = reel.colab
     ? `<span style="font-size:10px;background:#2979FF22;color:#2979FF;border-radius:4px;padding:2px 6px;margin-left:6px;vertical-align:middle;">colab</span>` : '';
@@ -100,6 +129,7 @@ function rfFicha(reel) {
         ${rfTramos(reel)}
       </div>
     </div>
+    ${rfMicroscopio(reel)}
     <div style="margin-top:12px;display:grid;gap:6px;">
       ${rfLect('✅ Quedate con', reel.lectura && reel.lectura.replicar, '#00C48C')}
       ${rfLect('⚠️ Corregí', reel.lectura && reel.lectura.corregir, '#FF6B6B')}
@@ -131,8 +161,12 @@ function rfPatron(p) {
   if (!p) return '';
   const lista = arr => (arr || []).map(x => `<li style="margin-bottom:5px;">${escHtml(x)}</li>`).join('');
   const prov = p.provisional ? ` <span style="font-size:11px;color:#FFB020;font-weight:600;">· provisional (${p.n_reels} reels)</span>` : '';
+  const hallazgo = p.hallazgo_arranque
+    ? `<div style="background:#FF6B6B14;border-left:3px solid #FF6B6B;border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:12.5px;line-height:1.55;">${escHtml(p.hallazgo_arranque)}</div>`
+    : '';
   return `<div class="card" style="margin-bottom:16px;">
     <div style="font-weight:700;font-size:14px;margin-bottom:8px;">🔑 El patrón${prov}</div>
+    ${hallazgo}
     <div style="font-size:12px;font-weight:700;color:#00C48C;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Replicá</div>
     <ul style="margin:0 0 12px;padding-left:18px;font-size:13px;line-height:1.5;">${lista(p.replicar)}</ul>
     <div style="font-size:12px;font-weight:700;color:#FF6B6B;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Corregí</div>
@@ -194,6 +228,6 @@ async function renderReelsAFondo(el) {
     ${rfParametros(data.parametros)}
     <div style="font-size:11px;color:var(--text-muted);text-align:center;margin:8px 0 24px;line-height:1.5;">
       El "arranque" es dato duro (estudio de 140K reels); retención y "final" son orientativos.
-      La curva por segundo es lectura de las capturas de Instagram. Cada número lleva fuente y confianza.
+      La curva por segundo es lectura de las capturas de Instagram; los frames y el guion salen del video real (transcripción con tiempos). Cada número lleva fuente y confianza.
     </div>`;
 }
