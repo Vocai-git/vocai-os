@@ -629,5 +629,6 @@ Devuelve SOLO un JSON, sin markdown alrededor, con estos campos:
 
 module.exports = {
   generarTexto, generarCopy, generarPromptImagen, generarCarrusel,
-  generarImagen, editarImagen, generarBlog, ESTILOS_ILUSTRACION, REGLAS_MARCA,
+  generarImagen, editarImagen, generarBlog, llamarTexto,
+  ESTILOS_ILUSTRACION, REGLAS_MARCA,
 };

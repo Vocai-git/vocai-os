@@ -11,6 +11,8 @@ const { correrPublicaciones } = require('./publisher');
 const { metaConfigurado } = require('../config/meta');
 const { copyRecurringExpenses } = require('./copy-recurring-expenses');
 const { runMetricas } = require('./metricas');
+const { runInventario } = require('./inventario-ig');
+const { runClasificacion } = require('./clasificar-contenido');
 
 function iniciarScheduler() {
   // ── Radar IA — todos los días a las 09:00 ─────────────────
@@ -65,6 +67,24 @@ function iniciarScheduler() {
     console.log('[Scheduler] Métricas de marketing agendadas — todos los días, 08:30 Europe/Madrid.');
   } else {
     console.log('[Scheduler] Sin credenciales Meta — métricas de marketing no agendadas.');
+  }
+
+  // ── Inventario + clasificación de contenido — diario, 08:45 ─
+  // Trae TODO lo publicado en IG (incluidos reels a mano) con sus
+  // métricas y clasifica lo nuevo con IA. Alimenta "Análisis de
+  // contenido". Corre después de las métricas (08:30).
+  if (metaConfigurado()) {
+    cron.schedule('45 8 * * *', async () => {
+      console.log('[Scheduler] Sincronizando inventario de contenido...');
+      try {
+        const inv = await runInventario();
+        const clas = await runClasificacion({ soloNuevas: true });
+        console.log(`[Scheduler] Inventario OK — ${inv.actualizadas} medias (${inv.reels} reels), ${clas.clasificadas} clasificadas.`);
+      } catch (err) {
+        console.error('[Scheduler] Inventario ERROR:', err.message);
+      }
+    }, { timezone: 'Europe/Madrid' });
+    console.log('[Scheduler] Inventario de contenido agendado — todos los días, 08:45 Europe/Madrid.');
   }
 
   // ── Copia de gastos recurrentes — día 1 de cada mes, 00:05 ───
