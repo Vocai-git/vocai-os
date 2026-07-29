@@ -124,7 +124,7 @@
       "titulo": "Tu imagen te hace perder clientes",
       "gancho": "La imagen de tu negocio te hace perder clientes",
       "duracion_seg": 38,
-      "colab": true,
+      "colab": false,
       "metricas": { "views": 831, "reach": 360, "avg_watch_seg": 12, "likes": 32, "comentarios": 4, "compartidos": 3, "guardados": 0, "seguidores_nuevos": 3 },
       "kpis": {
         "hook":          { "valor": "59,0%", "estado": "amarillo" },
@@ -144,7 +144,7 @@
       "publico": { "pais_top": "España 47,9% · Argentina 43,9%", "sexo": "68% hombres", "edad_top": "25–44" },
       "origenes": "Feed 65% · Reels 23%",
       "lectura": {
-        "veredicto": "El que más salió a gente nueva (83%), por recomendación pura (Feed+Reels), no solo colab.",
+        "veredicto": "El que más salió a gente nueva (83%) por recomendación orgánica pura (Feed 65% + Reels 23%), SIN colaboración. Alcance limpio, no prestado.",
         "replicar": "Arranque tipo alerta con tu cara + afirmación fuerte frena bien.",
         "corregir": "Retención baja (32%). Plano fijo de 29s + un silencio de 3s antes del CTA."
       }
