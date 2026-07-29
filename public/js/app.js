@@ -261,6 +261,7 @@ const MODULES = {
   'marketing-planning': { title: 'Planificación', render: renderMarketingPlanning },
   'marketing-intelligence': { title: 'Inteligencia', render: renderMarketingIntelligence },
   'marketing-analytics': { title: 'Analítica', render: renderMarketingAnalytics },
+  'analisis-contenido': { title: 'Análisis de contenido', render: renderAnalisisContenido },
   'marketing-generator': { title: 'Generador', render: renderMarketingGenerator },
   'marketing-web': { title: 'Web · Blog', render: renderMarketingWeb },
 };

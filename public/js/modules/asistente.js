@@ -14,7 +14,7 @@ let asistModo = 'consulta';
 
 const ASIST_MARKETING = new Set([
   'marketing-calendar', 'marketing-planning', 'marketing-intelligence',
-  'marketing-analytics', 'marketing-generator', 'marketing-web',
+  'marketing-analytics', 'analisis-contenido', 'marketing-generator', 'marketing-web',
 ]);
 
 const ASIST_CONTEXTO = {
@@ -46,6 +46,13 @@ const ASIST_CONTEXTO = {
     inicio: 'Estoy viendo Analítica. Puedo explicar los resultados, separar señales de ruido y recomendar el próximo ajuste concreto.',
     sugerencias: ['¿Qué funcionó mejor este mes?', '¿Qué deberíamos dejar de hacer?', 'Dame una recomendación para la próxima semana'],
   },
+  'analisis-contenido': {
+    titulo: 'Copiloto · Análisis de contenido',
+    subtitulo: 'Qué funciona y por qué',
+    placeholder: 'Preguntá por ángulos, retención o temas…',
+    inicio: 'Estoy viendo el Análisis de contenido de todo lo publicado en Instagram. Puedo interpretar qué ángulos y ganchos rinden, la retención de los reels y qué temas enganchan más.',
+    sugerencias: ['¿Qué ángulo rinde mejor?', '¿Qué reels retienen más y por qué?', '¿Qué tema conviene explotar?'],
+  },
   'marketing-generator': {
     titulo: 'Copiloto · Generador',
     subtitulo: 'Producción de una pieza concreta',
@@ -74,6 +81,7 @@ const ASIST_SECCIONES = {
   'marketing-calendar': 'Calendario editorial', 'marketing-planning': 'Planificación',
   'marketing-intelligence': 'Inteligencia', 'marketing-generator': 'Generador',
   'marketing-web': 'Web · Blog', 'marketing-analytics': 'Analítica',
+  'analisis-contenido': 'Análisis de contenido',
 };
 
 function asistInjectStyles() {
