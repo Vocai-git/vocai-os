@@ -95,9 +95,31 @@ function createModal(id, title, bodyHTML, footerHTML = '', size = '') {
       <div class="modal-body">${bodyHTML}</div>
       ${footerHTML ? `<div class="modal-footer">${footerHTML}</div>` : ''}
     </div>`;
-  m.addEventListener('click', (e) => { if (e.target === m) closeModal(id); });
   document.body.appendChild(m);
+
+  // El fondo sigue cerrando el modal, pero sin sorpresas:
+  // 1) el clic tiene que EMPEZAR y terminar en el fondo (arrastrar desde
+  //    adentro y soltar afuera ya no cuenta como clic al aire)
+  // 2) si se cargo o cambio algo, avisa antes de tirarlo
+  const snapshot = modalSnapshot(m);
+  let arrancoEnElFondo = false;
+  m.addEventListener('mousedown', (e) => { arrancoEnElFondo = (e.target === m); });
+  m.addEventListener('click', (e) => {
+    if (e.target !== m || !arrancoEnElFondo) return;
+    arrancoEnElFondo = false;
+    if (modalSnapshot(m) !== snapshot && !confirm('Hay cambios sin guardar. ¿Cerrar igual?')) return;
+    closeModal(id);
+  });
+
   setTimeout(() => m.classList.add('open'), 10);
+}
+
+// Foto del estado de los campos del modal, para saber si el usuario toco algo
+function modalSnapshot(m) {
+  const SEP = String.fromCharCode(1);
+  return Array.from(m.querySelectorAll('input, textarea, select'))
+    .map(el => (el.type === 'checkbox' || el.type === 'radio') ? (el.checked ? '1' : '0') : (el.value || ''))
+    .join(SEP);
 }
 
 // ── Lightbox / visor ampliado ────────────────────────────────
