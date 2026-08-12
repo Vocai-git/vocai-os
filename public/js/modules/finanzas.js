@@ -318,12 +318,12 @@ function buildFinanzasHTML(el, d) {
                 </tr></thead>
                 <tbody>
                   ${ingresosOrdenados.map(i => {
-                    const blob = `${i.concepto||''} ${i.numero||''} ${i.clients?.nombre||''} ${i.estado||''} ${i.notas||''}`.toLowerCase();
+                    const blob = `${i.concepto||''} ${i.numero||''} ${invoiceCliente(i)} ${i.estado||''} ${i.notas||''}`.toLowerCase();
                     const estCol = { cobrada:'#00C48C', enviada:'#2979FF', vencida:'#FF6B6B', borrador:'#888' }[i.estado] || '#888';
                     return `
                     <tr class="finIngresoRow" data-search="${escHtml(blob)}">
                       <td><strong>${escHtml(i.concepto || i.numero || '—')}</strong></td>
-                      <td style="color:var(--text-muted);">${escHtml(i.clients?.nombre || '—')}</td>
+                      <td style="color:var(--text-muted);">${escHtml(invoiceCliente(i) || '—')}</td>
                       <td><span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;text-transform:capitalize;background:${estCol}22;color:${estCol};border:1px solid ${estCol}44;">${escHtml(i.estado || '—')}</span></td>
                       <td><strong style="color:#00C48C;">${formatMoney(montoOf(i))}</strong></td>
                       <td style="color:var(--text-muted);">${formatDate(i.fecha)}</td>

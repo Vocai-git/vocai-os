@@ -20,8 +20,15 @@ router.get('/:id', auth, async (req, res) => {
   res.json(data);
 });
 
+// Si la factura va a un cliente dado de alta, el nombre suelto sobra.
+function normalizarCliente(body) {
+  if (body.cliente_id) body.cliente_nombre = null;
+  else if (typeof body.cliente_nombre === 'string') body.cliente_nombre = body.cliente_nombre.trim() || null;
+}
+
 router.post('/', auth, async (req, res) => {
   const body = req.body;
+  normalizarCliente(body);
   // IVA / IRPF llegan del front (0 si la factura no los lleva).
   // Si vienen vacíos, se asume 0 (factura bruta).
   const base = parseFloat(body.importe) || 0;
@@ -38,6 +45,7 @@ router.post('/', auth, async (req, res) => {
 
 router.put('/:id', auth, async (req, res) => {
   const body = req.body;
+  normalizarCliente(body);
   if (body.importe != null) {
     const base = parseFloat(body.importe) || 0;
     body.iva  = body.iva  != null ? parseFloat(body.iva)  : 0;

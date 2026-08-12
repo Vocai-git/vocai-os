@@ -47,7 +47,7 @@ async function renderInvoices(el) {
 function invoiceRow(i) {
   return `<tr>
     <td><span style="font-family:'Syne',sans-serif;font-size:13px;">${escHtml(i.numero||'—')}</span></td>
-    <td>${escHtml(i.clients?.nombre||'—')}</td>
+    <td>${escHtml(invoiceCliente(i) || '—')}</td>
     <td style="max-width:200px;"><div class="truncate">${escHtml(i.concepto||'—')}</div></td>
     <td>${formatMoney(i.importe)}</td>
     <td style="color:var(--teal);">+${formatMoney(i.iva)}</td>
@@ -85,10 +85,12 @@ async function showInvoiceForm(data) {
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Cliente</label>
-        <select class="form-select" id="if_cliente">
-          <option value="">— Sin cliente —</option>
+        <select class="form-select" id="if_cliente" onchange="toggleInvoiceNombreSuelto()">
+          <option value="">— Sin cliente / nombre suelto —</option>
           ${clients.map(c => `<option value="${c.id}" ${data?.cliente_id===c.id?'selected':''}>${escHtml(c.nombre)}</option>`).join('')}
         </select>
+        <input class="form-input" id="if_cliente_nombre" style="margin-top:8px;${data?.cliente_id ? 'display:none;' : ''}"
+          value="${escHtml(data?.cliente_nombre||'')}" placeholder="Nombre y apellido (sin darlo de alta)">
       </div>
       <div class="form-group">
         <label class="form-label">Estado</label>
@@ -148,6 +150,20 @@ async function showInvoiceForm(data) {
   `);
 }
 
+// El campo de nombre suelto solo tiene sentido si no hay cliente dado de alta
+function toggleInvoiceNombreSuelto() {
+  const sel = document.getElementById('if_cliente');
+  const inp = document.getElementById('if_cliente_nombre');
+  if (!sel || !inp) return;
+  inp.style.display = sel.value ? 'none' : '';
+  if (sel.value) inp.value = '';
+}
+
+// Nombre a mostrar: cliente dado de alta > nombre suelto > guion
+function invoiceCliente(i) {
+  return (i.clients && i.clients.nombre) || i.cliente_nombre || '';
+}
+
 function calcInvoice() {
   const base = parseFloat(document.getElementById('if_importe')?.value) || 0;
   const llevaIva  = document.getElementById('if_lleva_iva')?.checked;
@@ -168,8 +184,10 @@ async function saveInvoice(id) {
   const iva  = llevaIva  ? +(base * 0.21).toFixed(2) : 0;
   const irpf = llevaIrpf ? +(base * 0.15).toFixed(2) : 0;
   const total = +(base + iva - irpf).toFixed(2);
+  const clienteId = document.getElementById('if_cliente').value || null;
   const body = {
-    cliente_id: document.getElementById('if_cliente').value || null,
+    cliente_id: clienteId,
+    cliente_nombre: clienteId ? null : (document.getElementById('if_cliente_nombre').value.trim() || null),
     concepto: document.getElementById('if_concepto').value.trim(),
     importe: base,
     iva,
@@ -215,7 +233,7 @@ async function previewInvoice(id) {
       </div>
       <div style="margin-bottom:24px;padding:16px;background:#f8f9fa;border-radius:8px;">
         <div style="font-size:12px;color:#666;margin-bottom:4px;">FACTURAR A</div>
-        <div style="font-weight:600;font-size:16px;">${escHtml(client.nombre||'—')}</div>
+        <div style="font-weight:600;font-size:16px;">${escHtml(invoiceCliente(inv) || '—')}</div>
         ${client.email ? `<div style="font-size:13px;color:#666;">${escHtml(client.email)}</div>` : ''}
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
