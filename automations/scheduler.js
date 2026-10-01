@@ -13,6 +13,8 @@ const { copyRecurringExpenses } = require('./copy-recurring-expenses');
 const { runMetricas } = require('./metricas');
 const { runInventario } = require('./inventario-ig');
 const { runClasificacion } = require('./clasificar-contenido');
+const { runMedicionPronosticos, igConfigurado: pronosIgConfigurado } = require('./pronosticos');
+const { tiktokConfigurado } = require('../config/tiktok');
 
 function iniciarScheduler() {
   // ── Radar IA — todos los días a las 09:00 ─────────────────
@@ -85,6 +87,24 @@ function iniciarScheduler() {
       }
     }, { timezone: 'Europe/Madrid' });
     console.log('[Scheduler] Inventario de contenido agendado — todos los días, 08:45 Europe/Madrid.');
+  }
+
+  // ── Pronósticos — cada hora mide los reels que cumplieron 48 h ─
+  // Foto de métricas de IG y TikTok para puntuar el juego del equipo.
+  if (pronosIgConfigurado() || tiktokConfigurado()) {
+    cron.schedule('10 * * * *', async () => {
+      try {
+        const r = await runMedicionPronosticos();
+        if (r.medidos || r.errores) {
+          console.log(`[Scheduler] Pronósticos — ${r.medidos} reels medidos, ${r.errores} con error.`);
+        }
+      } catch (err) {
+        console.error('[Scheduler] Pronósticos ERROR:', err.message);
+      }
+    }, { timezone: 'Europe/Madrid' });
+    console.log('[Scheduler] Medición de pronósticos agendada — cada hora (reels con 48 h).');
+  } else {
+    console.log('[Scheduler] Sin cuenta de IG ni TikTok para pronósticos — medición no agendada.');
   }
 
   // ── Copia de gastos recurrentes — día 1 de cada mes, 00:05 ───

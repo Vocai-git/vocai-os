@@ -34,6 +34,7 @@ Node.js + Express — HTML + CSS + JS vanilla — Supabase — Railway
 - `VOCAI_ASSISTANT_URL` = https://vocai-assistant-production.up.railway.app
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`
+- Pronósticos de reels (ver `automations/PRONOSTICOS.md`): `PRONOS_IG_USER_ID`, `PRONOS_IG_TOKEN` (opcional), `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`, `TIKTOK_REDIRECT_URI`
 
 ## Reglas de código
 - Mobile First obligatorio

@@ -169,4 +169,4 @@ async function runMetricas() {
   return { actualizadas, vinculadas, errores };
 }
 
-module.exports = { runMetricas };
+module.exports = { runMetricas, insightsDeMedia };

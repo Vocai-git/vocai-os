@@ -285,6 +285,7 @@ const MODULES = {
   'marketing-analytics': { title: 'Analítica', render: renderMarketingAnalytics },
   'analisis-contenido': { title: 'Análisis de contenido', render: renderAnalisisContenido },
   'reels-a-fondo': { title: 'Reels a fondo', render: renderReelsAFondo },
+  pronosticos: { title: 'Pronósticos', render: renderPronosticos },
   'marketing-generator': { title: 'Generador', render: renderMarketingGenerator },
   'marketing-web': { title: 'Web · Blog', render: renderMarketingWeb },
 };
