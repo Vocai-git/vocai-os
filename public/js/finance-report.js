@@ -10,7 +10,7 @@
  }
  function matches(date,month){return !month||String(date||'').startsWith(month);}
  function paymentRows(row){
-  const d=row.data,h=d.history||{},payments=(d.payments||[]).map(p=>({...p,estimated:false}));
+  const d=row.data,h=d.history||{},payments=(d.payments||[]).map(p=>({...p,estimated:!!row.included_in_opening&&h.payment_date_basis==='registered_month'}));
   // A historical paid record is confirmed paid, but its registered month is
   // only a fallback: do not invent a payment row or an exact payment date.
   if(h.status==='paid'&&!payments.length)payments.push({date:d.date,amount:d.amount,account:h.account,estimated:true});

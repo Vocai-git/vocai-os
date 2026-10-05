@@ -199,3 +199,10 @@ test('conflicting or missing source categories remain unclassified without infer
   assert.deepEqual(report.category(record),{key:'sin-categoria',label:'Sin categoría'});
  }
 });
+
+test('an explicit opening payment with uncertain day retains the registered-month label',()=>{
+ const row={included_in_opening:true,data:{kind:'expense',amount:2000,date:'2026-10-01',payments:[{date:'2026-10-01',amount:2000,account:'santi'}],history:{payment_date_basis:'registered_month'}}};
+ const report=require('../public/js/finance-report'),result=report.entry(row,'2026-10','cash');
+ assert.equal(result.amount,2000);assert.equal(result.basis,'registered_month');
+ assert.equal(report.monthly([row],'2026-10').registered_dates,1);
+});
