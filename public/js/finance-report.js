@@ -123,7 +123,7 @@
   }
   const byDue=(a,b)=>(a.due||'9999-12-31').localeCompare(b.due||'9999-12-31')||(a.date||'').localeCompare(b.date||'')||String(a.id).localeCompare(String(b.id));
   pending.income.sort(byDue);pending.expense.sort(byDue);forecastExpense.items.sort(byDue);
-  const cash={bank:summary.cash?.bank??0,cash:summary.cash?.cash??0,asOf:baseline.cutoff||null,isMonthEnd:false};
+  const cash={bank:summary.cash?.bank??0,cash:summary.cash?.cash??0,asOf:summary.as_of||baseline.cutoff||null,isMonthEnd:false};
   cash.total=cash.bank+cash.cash;
   cash.snapshotMonth=cash.asOf?cash.asOf.slice(0,7):null;
   cash.selectedMonthIsSnapshot=month===cash.snapshotMonth;

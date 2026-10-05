@@ -90,3 +90,21 @@ test('recurrence clears historical assignments and void metadata without mutatin
   assert.throws(()=>nextDocument({...original,history}),/revisión/);
  }
 });
+
+test('balance date advances only for actual payments and movements, never unpaid forecasts or document dates',()=>{
+ const future=doc({date:'2026-12-01',stage:'forecast'});
+ assert.equal(summarize(baseline,[{data:future}]).as_of,cutoff);
+ const records=[
+  {data:future},
+  {data:doc({date:'2026-12-20',payments:[payment(100,'santi','2026-10-07')]})},
+  {data:doc({kind:'income',date:'2026-12-25',payments:[payment(200,'bank','2026-10-09')]})},
+  {data:doc({kind:'transfer',date:'2026-10-08',source:'bank',target:'santi',amount:100})},
+ ];
+ assert.equal(summarize(baseline,records).as_of,'2026-10-09');
+ for(const kind of ['transfer','contribution','settlement']){
+  const move=doc({kind,date:'2026-10-10',source:kind==='settlement'?'agus':'santi',target:kind==='settlement'?'santi':'bank',group:kind==='transfer'?null:'capital',amount:100});
+  assert.equal(summarize(baseline,[...records,{data:move}]).as_of,'2026-10-10');
+  assert.equal(summarize(baseline,[...records,{data:move,voided:true}]).as_of,'2026-10-09');
+  assert.equal(summarize(baseline,[...records,{data:move,included_in_opening:true}]).as_of,'2026-10-09');
+ }
+});
