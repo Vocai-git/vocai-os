@@ -69,6 +69,7 @@ router.put('/records/:id', wrap(async (req, res) => {
   if (existing.included_in_opening) fail('Este pago ya está incluido en el cierre. Puedes adjuntar su factura o preparar el siguiente mes, pero no cambiar el saldo inicial desde aquí.', 409);
   const baseline = await setting();
   const body = finance.validate(req.body.data, baseline.cutoff);
+  if(existing.data.history) body.history=existing.data.history;
   if (req.body.version === existing.version - 1 && require('util').isDeepStrictEqual(existing.data, body)) return res.json(existing);
   if (req.body.version !== existing.version) fail('Otra persona modificó este registro. Recarga para ver los cambios.', 409);
   // Changing the nature of an existing transaction hides accounting history.

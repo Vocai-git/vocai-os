@@ -66,10 +66,10 @@ Dashboard and Goals continue using the original ledger during review.
 V2 displays the reviewed snapshot and the full original expenses/invoices via
 an authenticated, paginated API, with month/type/search filters. The local demo
 embeds a private snapshot from ignored `config/finance-history.private.json`.
-Original records include forecasts and incorrect payer/payment labels: they are
-not confirmed cash flows. Monthly cards show known reviewed payment dates, with
-an explicit partial-history warning through the opening month. This is NOT a
-complete reconciled monthly income statement for the historical period.
+Original records include forecasts and incorrect payer/payment labels. The
+offline importer requires a reviewed rule for every source before integrating
+it. Monthly reporting uses those classifications and preserves the original
+record for inspection. A source count confirms coverage, not bank reconciliation.
 Changes in legacy after the opening snapshot are not silently synchronized into
 V2 balances. Reconcile the delta and complete payment evidence before cutover.
 
@@ -85,7 +85,7 @@ OCR, email and messaging intake are future steps, not implemented features.
 
 ## Validation
 
-`node --test tests/finance.test.js tests/finance-api.test.js tests/finance-monthly.test.js`
+`npm run test:finance`
 
 Tests cover integer-cent balances, partial payments, personal/company accounts,
 reimbursements, contributions, private settlements, ignored closed references,
@@ -107,3 +107,52 @@ Branch: `santi/finanzas-practicas`, based on `origin/main`. Do not concurrently 
 recurring-expense automation. The pronósticos branch remains separate and was not
 merged. No schema migration, seed, production deployment or change of the Railway
 flag was performed while implementing this branch.
+
+
+## Integrated historical ledger
+
+Build the reviewed full seed offline with:
+`node scripts/finance-integrate-history.js config/finance-base.private.json config/finance-history.private.json config/finance-rules.private.json config/finance-opening.private.json`.
+All these inputs and the generated output are private and ignored by Git.
+Every source needs an explicit reviewed rule. The importer maps originals to an
+existing corrected record, or creates a stable read-only historical record with
+original fields and provenance. No legacy database records are modified.
+Historical paid records without an exact payment date use the original recorded
+month for monthly reporting and explicitly say so. They never invent bank dates.
+Assigned personal compensation, drafts, duplicates, startup investment and an
+unresolved possible duplicate are separate from operating receipts/payments.
+Assigned customer revenue remains business income even without a cash receipt.
+Its agreed reduction of the partner balance is already in the opening position;
+do not subtract it again when the customer settles privately with that partner.
+Historical references are excluded from opening balance arithmetic. Reviewed
+live/pending records retain their source metadata on edits. Investment details
+appear in the contributions view. Raw source records remain separately accessible.
+The opening SQL generator now preserves history metadata. This is a pre-activation
+seed, not a live overwrite/migration: do not run against an already active ledger
+without checking changes and a separately reviewed update plan.
+
+## Monthly overview and drill-down
+
+The opening view is the business result: recorded income less confirmed expenses
+for the service month. A single-month service period takes priority over the
+document date; a multi-month period retains the document month until allocation
+is explicitly reviewed. The original document and payment dates are preserved.
+Historical payroll with an explicit prior service month in its source notes is
+normalized in the private import rules, without changing its payment month.
+
+The separate cash view uses actual payments, including partial payments and money
+received or paid personally by partners. It covers operating client receipts and
+expense payments. Investment, capital and transfers remain visible in All
+movements and are not part of the operating result. No invoice, cash collection
+or payment is invented to make a balance match.
+
+`public/js/finance-report.js` supplies both card totals and the included amount of
+each drill-down row. The business table shows only that month's confirmed amount;
+the cash table shows only payments in that month, rather than the full invoice.
+Forecasts have a separate filter and do not appear as confirmed unpaid invoices.
+Source duplicates, drafts and review exceptions remain consultable in All.
+
+The overview has three figures with links to their exact breakdown, short
+explanations and a separate forecast section. Saldos is the last navigation item;
+its detailed review remains a later step requested by Santiago. The original
+VOCAI fonts, surfaces and coral controls are retained.
