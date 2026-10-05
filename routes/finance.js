@@ -74,6 +74,7 @@ router.put('/records/:id', wrap(async (req, res) => {
   if (req.body.version !== existing.version) fail('Otra persona modificó este registro. Recarga para ver los cambios.', 409);
   // Changing the nature of an existing transaction hides accounting history.
   if (body.kind !== existing.data.kind) fail('Anula el registro y crea otro para cambiar el tipo');
+  finance.preservePayments(existing.data, body);
   const { data, error } = await supabase.from('finance_records')
     .update({ data: body, version: existing.version + 1, actor: req.user.email || req.user.id, updated_at: new Date().toISOString() })
     .eq('id', existing.id).eq('version', existing.version).select('*').maybeSingle();
@@ -101,6 +102,9 @@ router.post('/records/:id/next', wrap(async (req, res) => {
   if (existing.voided) fail('El registro está anulado');
   const baseline = await setting();
   const body = finance.validate(finance.nextDocument(existing.data), baseline.cutoff);
+  if (body.date.slice(0, 7) <= baseline.cutoff.slice(0, 7)) {
+    fail('Ese mes ya está incluido en la revisión inicial. Abre el movimiento existente de ese mes o añade manualmente un gasto que falte; no lo copies otra vez.', 409);
+  }
   const origin_key = `next:${existing.id}:${body.date}`;
   const { data, error } = await supabase.from('finance_records').insert({
     id: randomUUID(), data: body, origin_key, actor: req.user.email || req.user.id,
@@ -108,6 +112,7 @@ router.post('/records/:id/next', wrap(async (req, res) => {
   if (error?.code === '23505') {
     const { data: previous, error: pe } = await supabase.from('finance_records').select('*').eq('origin_key', origin_key).single();
     if (pe) fail('No se pudo recuperar la previsión', 503);
+    if (previous.voided) fail('La previsión de ese mes ya fue anulada. Su historial se conserva; crea un movimiento nuevo si necesitas sustituirla.', 409);
     return res.json(previous);
   }
   if (error) fail('No se pudo preparar el próximo mes', 503);

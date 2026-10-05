@@ -58,7 +58,7 @@ check that it was not already included in the opening snapshot.
 
 The sidebar preserves Finanzas, Inversión and Facturas, and adds Finanzas V2 and
 Inversión V2. `FINANCE_V2=true` makes V2 available; it defaults to READ ONLY.
-Keep `FINANCE_V2_LIVE` unset/false until Santiago and Agustín approve cutover.
+Keep `FINANCE_V2_LIVE` unset/false until the owner authorizes live activation.
 In this review mode all V2 mutations (including file uploads and recurrence) are
 rejected server-side, while legacy editing and its existing automation continue.
 Dashboard and Goals continue using the original ledger during review.
@@ -104,9 +104,9 @@ substitute for a live integration test. Omit the private file for fictional data
 Branch: `santi/finanzas-practicas`, based on `origin/main`. Do not concurrently edit
 `public/js/app.js`, `public/app.html`, `public/js/modules/{money,dashboard,goals}.js`,
 `public/css/money.css`, `routes/finance.js`, `lib/finance.js`, `server.js`, or the
-recurring-expense automation. The pronósticos branch remains separate and was not
-merged. No schema migration, seed, production deployment or change of the Railway
-flag was performed while implementing this branch.
+recurring-expense automation. The pronósticos branch remains separate and must not be merged as part of this
+rollout. Activation state and private backup paths are recorded in the workspace
+handoff, outside this public repository.
 
 
 ## Integrated historical ledger
@@ -154,8 +154,8 @@ Source duplicates, drafts and review exceptions remain consultable in All.
 
 The overview separates the business result, actual cash movements and forecasts,
 with links to each exact breakdown. Saldos is the last navigation item;
-its detailed review remains a later step requested by Santiago. The original
-VOCAI fonts, surfaces and coral controls are retained.
+its calculation expands to the contributing payments, receipts and assignments.
+The original VOCAI fonts, surfaces and theme colors are retained.
 
 ## Finance dashboard
 
@@ -180,3 +180,29 @@ record IDs and can be cleared without changing data.
 
 Desktop, narrow-panel and mobile layouts were inspected. No production data,
 schema, activation flag or deployment was changed by this dashboard redesign.
+
+
+## Live entry and preservation of the original version
+
+The V2 navigation is available to the same authenticated users as the existing
+platform. The original finance, investment and invoice pages remain consultable,
+with a notice directing changes to V2 once live mode is active. Legacy writes and
+the old recurring copier stay frozen while `FINANCE_V2_LIVE=true`, even if V2
+visibility is temporarily switched off. Hiding V2 is not a rollback.
+
+Live capture supports new documents, document edits, partial payments, private
+attachments, transfers and partner contributions. Imported opening amounts remain
+locked; their original records, attachments and audit history are available.
+Correcting an opening amount needs a reviewed opening correction rather than a
+second payment. Recurrence creates a forecast in the next month, with no inherited
+payments or historical assignment. It cannot copy a month already in the opening.
+
+Confirmed payment entries are append-only within a document. Correct a mistaken
+payment by voiding the document with a reason and creating its replacement. These
+operations retain audit history. Attachment retries after a successful document
+save reuse that document rather than creating another expense.
+
+The dashboard and revenue goals use the same reporting model as V2. Assigned
+income remains revenue without a fabricated receipt. Forecasts are separate from
+confirmed payables. The styles inherit the existing theme colors, including green
+income and coral expense borders, in both light and dark themes.

@@ -6,3 +6,8 @@ npm-debug.log
 *.log
 public/generador
 public/fonts
+
+# Local-only financial backups and reviewed deployment inputs
+config/finance-*.private.json
+db/finance_opening_*.sql
+lib/finance-seed.js

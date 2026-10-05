@@ -99,3 +99,69 @@ test('legacy writes remain available during review and are blocked only after li
  process.env.FINANCE_V2_LIVE='true';next=false;guard({method:'POST'},res,()=>next=true);assert.equal(status,409);assert.equal(next,false);
  guard({method:'GET'},res,()=>next=true);assert.equal(next,true);
 });
+
+test('confirmed payments remain immutable while new partial payments and document edits are accepted',async()=>{
+ const id=randomUUID(),payment={id:randomUUID(),amount:400,date:'2026-10-05',account:'santi'};
+ const created=await req('/records','POST',{id,data:{...doc(),payments:[payment]}});
+ assert.equal(created.status,201);
+ for(const payments of [[],[{...payment,amount:300}],[{...payment,account:'bank'}]]){
+  const rejected=await req('/records/'+id,'PUT',{version:1,data:{...created.data.data,payments}});
+  assert.equal(rejected.status,400);assert.match(rejected.data.error,/confirmado/);
+ }
+ const next={...created.data.data,title:'Confirmed invoice details',payments:[payment,{id:randomUUID(),amount:300,date:'2026-10-05',account:'bank'}]};
+ assert.equal((await req('/records/'+id,'PUT',{version:1,data:next})).status,200);
+ assert.equal((await req('/records/'+id,'PUT',{version:1,data:next})).status,200);
+ assert.equal(tables.finance_records.find(r=>r.id===id).data.payments.length,2);
+});
+
+test('old recurring records cannot recreate a month already included in the opening',async()=>{
+ const id=randomUUID();tables.finance_records.push({id,version:1,voided:false,included_in_opening:true,data:{...doc(),date:'2026-09-05',repeat:'monthly'}});
+ const before=tables.finance_records.length,response=await req('/records/'+id+'/next','POST',{});
+ assert.equal(response.status,409);assert.match(response.data.error,/revisión inicial/);
+ assert.equal(tables.finance_records.length,before);
+});
+
+test('a voided next-month forecast is not returned as a successfully prepared month',async()=>{
+ const id=randomUUID();await req('/records','POST',{id,data:{...doc(),repeat:'monthly'}});
+ const next=await req('/records/'+id+'/next','POST',{});assert.equal(next.status,201);
+ assert.equal((await req('/records/'+next.data.id+'/void','POST',{version:1,reason:'Forecast cancelled'})).status,200);
+ const retry=await req('/records/'+id+'/next','POST',{});assert.equal(retry.status,409);assert.match(retry.data.error,/anulada/);
+});
+
+test('closed historical references accept attachments without changing any opening amount',async()=>{
+ const id=randomUUID();tables.finance_records.push({id,version:1,voided:false,included_in_opening:true,data:{...doc(),history:{status:'paid',account:'santi'}}});
+ const before=clone(tables.finance_records.find(r=>r.id===id));
+ const form=new FormData();form.append('file',new Blob(['%PDF-1.4\n historical evidence'],{type:'application/pdf'}),'history.pdf');
+ const response=await fetch(base+'/records/'+id+'/files',{method:'POST',headers:{Authorization:'Bearer test-session'},body:form});
+ assert.equal(response.status,201);
+ assert.deepEqual(tables.finance_records.find(r=>r.id===id),before);
+});
+
+test('clients cannot forge opening flags, historical assignment status or authenticated actor',async()=>{
+ const id=randomUUID(),response=await req('/records','POST',{id,included_in_opening:true,actor:'forged',data:{...doc(),included_in_opening:true,history:{status:'assigned',account:'santi'}}});
+ assert.equal(response.status,201);
+ assert.notEqual(response.data.included_in_opening,true);
+ assert.equal(response.data.data.included_in_opening,undefined);
+ assert.equal(response.data.data.history,undefined);
+ assert.equal(response.data.actor,'test@example.invalid');
+});
+
+test('every mutation is authenticated before accessing a record',async()=>{
+ const before=tables.finance_records.length;
+ for(const [path,method,body] of [['/records','POST',{id:randomUUID(),data:doc()}],['/records/'+randomUUID(),'PUT',{data:doc()}],['/records/'+randomUUID()+'/next','POST',{}],['/records/'+randomUUID()+'/void','POST',{reason:'Unauthenticated'}]]){
+  assert.equal((await req(path,method,body,false)).status,401);
+ }
+ assert.equal(tables.finance_records.length,before);
+});
+
+test('hiding live V2 does not reopen legacy writes or restart the old recurring copier',async()=>{
+ const guard=require('../middleware/finance-legacy'),{copyRecurringExpenses}=require('../automations/copy-recurring-expenses');
+ let next=false,status;const res={status(value){status=value;return this;},json(){return this;}};
+ process.env.FINANCE_V2='false';process.env.FINANCE_V2_LIVE='true';
+ try{
+  guard({method:'POST'},res,()=>next=true);assert.equal(status,409);assert.equal(next,false);
+  guard({method:'GET'},res,()=>next=true);assert.equal(next,true);
+  const copy=await copyRecurringExpenses({from:'2026-10',to:'2026-11'});
+  assert.equal(copy.disabled,true);assert.equal(copy.copiados,0);
+ }finally{process.env.FINANCE_V2='true';}
+});

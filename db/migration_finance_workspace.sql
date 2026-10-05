@@ -36,9 +36,12 @@ BEGIN
     VALUES (NEW.id, NEW.actor, CASE WHEN TG_OP='UPDATE' THEN to_jsonb(OLD) ELSE NULL END, to_jsonb(NEW));
   RETURN NEW;
 END; $$;
-DROP TRIGGER IF EXISTS finance_audit_trigger ON finance_records;
-CREATE TRIGGER finance_audit_trigger AFTER INSERT OR UPDATE ON finance_records
-FOR EACH ROW EXECUTE FUNCTION finance_audit_change();
+DO $$ BEGIN
+ IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='finance_audit_trigger' AND tgrelid='public.finance_records'::regclass) THEN
+  CREATE TRIGGER finance_audit_trigger AFTER INSERT OR UPDATE ON finance_records
+  FOR EACH ROW EXECUTE FUNCTION finance_audit_change();
+ END IF;
+END $$;
 CREATE TABLE IF NOT EXISTS finance_files (
   id uuid PRIMARY KEY,
   record_id uuid NOT NULL REFERENCES finance_records(id),
@@ -63,10 +66,13 @@ VALUES ('finance-private', 'finance-private', false, 10485760, ARRAY['applicatio
 ON CONFLICT (id) DO NOTHING;
 -- Even if this project has broad existing storage policies, anonymous/browser
 -- tokens cannot access this bucket directly. The server issues short-lived URLs.
-DROP POLICY IF EXISTS finance_private_server_only ON storage.objects;
-CREATE POLICY finance_private_server_only ON storage.objects AS RESTRICTIVE
-FOR ALL TO anon, authenticated
-USING (bucket_id <> 'finance-private') WITH CHECK (bucket_id <> 'finance-private');
+DO $$ BEGIN
+ IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='finance_private_server_only') THEN
+  CREATE POLICY finance_private_server_only ON storage.objects AS RESTRICTIVE
+  FOR ALL TO anon, authenticated
+  USING (bucket_id <> 'finance-private') WITH CHECK (bucket_id <> 'finance-private');
+ END IF;
+END $$;
 -- Refuse to activate with an accidentally public bucket.
 DO $$ BEGIN
  IF EXISTS (SELECT 1 FROM storage.buckets WHERE id='finance-private' AND public) THEN

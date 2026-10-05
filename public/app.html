@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/main.css?v=5">
-  <link rel="stylesheet" href="/css/money.css?v=20261005-dashboard">
-  <link rel="stylesheet" href="/css/finance-dashboard.css?v=2">
-  <link rel="stylesheet" href="/css/finance-balances.css?v=1">
+  <link rel="stylesheet" href="/css/money.css?v=20261005-live">
+  <link rel="stylesheet" href="/css/finance-dashboard.css?v=20261005-live">
+  <link rel="stylesheet" href="/css/finance-balances.css?v=20261005-live">
   <script>
     // Aplica el tema guardado ANTES de pintar (evita el parpadeo oscuro→claro).
     (function () {
@@ -82,8 +82,14 @@
           <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
           Inversión
         </a>
-        <a class="nav-item" data-module="finanzasV2"><span class="nav-icon">↗</span>Finanzas V2</a>
-        <a class="nav-item" data-module="inversionV2"><span class="nav-icon">◎</span>Inversión V2</a>
+        <a class="nav-item" data-module="finanzasV2">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3v18h18M7 14l4-4 4 3 6-7M17 6h4v4"/></svg>
+          Finanzas V2
+        </a>
+        <a class="nav-item" data-module="inversionV2">
+          <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M7 7h7a4 4 0 010 8H7M4 21h16"/></svg>
+          Inversión V2
+        </a>
         <a class="nav-item" data-module="goals">
           <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
           Metas
@@ -245,7 +251,7 @@
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <!-- SCRIPTS — modules -->
-<script src="/js/modules/dashboard.js?v=5"></script>
+<script src="/js/modules/dashboard.js?v=20261005-live"></script>
 <script src="/js/modules/clients.js?v=4"></script>
 <script src="/js/modules/projects.js?v=4"></script>
 <script src="/js/modules/proposals.js?v=4"></script>
@@ -257,8 +263,8 @@
 <script src="/js/modules/money-dashboard.js?v=2"></script>
 <script src="/js/finance-balances.js?v=1"></script>
 <script src="/js/modules/money-balances.js?v=1"></script>
-<script src="/js/modules/money.js?v=20261005-balances"></script>
-<script src="/js/modules/goals.js?v=5"></script>
+<script src="/js/modules/money.js?v=20261005-live"></script>
+<script src="/js/modules/goals.js?v=20261005-live"></script>
 <script src="/js/modules/bookings.js?v=4"></script>
 <script src="/js/modules/episodes.js?v=4"></script>
 <script src="/js/modules/tito.js?v=4"></script>
@@ -283,7 +289,7 @@
 <script src="/js/modules/marketing-web.js?v=4"></script>
 <script src="/js/modules/asistente.js?v=5"></script>
 <script src="/js/modules/chats.js?v=4"></script>
-<script src="/js/app.js?v=8"></script>
+<script src="/js/app.js?v=20261005-live"></script>
 
 </body>
 </html>

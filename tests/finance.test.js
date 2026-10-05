@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { randomUUID } = require('crypto');
-const { validate, summarize, nextDocument } = require('../lib/finance');
+const { validate, summarize, preservePayments, nextDocument } = require('../lib/finance');
 const { baseline, records } = require('./fixtures/finance');
 const cutoff=baseline.cutoff;
 function doc(overrides={}) { return {kind:'expense',title:'Test',amount:3580,date:cutoff,repeat:'none',payments:[],...overrides}; }
@@ -68,4 +68,25 @@ test('closed references can keep their receipt and recurrence without counting t
 test('a full monthly salary period remains a full month when months change length',()=>{
  const next=nextDocument(valid(doc({repeat:'monthly',period_start:'2026-09-01',period_end:'2026-09-30'})));
  assert.equal(next.period_start,'2026-10-01');assert.equal(next.period_end,'2026-10-31');
+});
+
+test('editing a document can append payments but cannot erase or rewrite confirmed money movements',()=>{
+ const original=valid(doc({payments:[payment(1000,'santi')]}));
+ const changed=valid({...original,title:'Invoice details confirmed',payments:[...original.payments,payment(500,'bank')]});
+ assert.doesNotThrow(()=>preservePayments(original,changed));
+ assert.throws(()=>preservePayments(original,{...changed,payments:[]}),/confirmado/);
+ for(const edit of [{amount:900},{date:'2026-10-06'},{account:'bank'}]){
+  assert.throws(()=>preservePayments(original,{...changed,payments:[{...original.payments[0],...edit}]}),/confirmado/);
+ }
+});
+
+test('recurrence clears historical assignments and void metadata without mutating the source',()=>{
+ const original={...valid(doc({kind:'income',repeat:'monthly'})),history:{status:'assigned',account:'santi',sources:[{id:'old'}]},void_reason:'old metadata'};
+ const snapshot=JSON.stringify(original),next=nextDocument(original);
+ assert.equal(next.history,undefined);assert.equal(next.void_reason,undefined);
+ assert.equal(next.stage,'forecast');assert.deepEqual(next.payments,[]);
+ assert.equal(JSON.stringify(original),snapshot);
+ for(const history of [{status:'duplicate'},{status:'review'},{classification:'startup'}]){
+  assert.throws(()=>nextDocument({...original,history}),/revisión/);
+ }
 });
