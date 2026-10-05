@@ -10,6 +10,8 @@ const fixture = process.argv[3] ? JSON.parse(fs.readFileSync(process.argv[3], 'u
 fixture.records = fixture.records.map((r, i) => ({ id:r.id || `a1052026-0000-4000-8000-${String(i+1).padStart(12,'0')}`, version:1, voided:false, ...r }));
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const core = read('lib/finance.js').replace('module.exports =', 'return');
+const historyPath = path.join(root,'config/finance-history.private.json');
+if(process.argv[3] && fs.existsSync(historyPath)) fixture.archive=JSON.parse(fs.readFileSync(historyPath,'utf8'));
 const json = JSON.stringify(fixture).replace(/</g, '\\u003c');
 const helper = String.raw`
 const demo = OPENING_FIXTURE;
@@ -23,8 +25,8 @@ function fail(message,status=400){const e=new Error(message);e.status=status;thr
 const API={
  async get(url){
   if(url==='/finance/status')return {enabled:true};
-  if(url==='/finance')return structuredClone({baseline:demo.baseline,records:demo.records,files:demoFiles,summary:demoFinance.summarize(demo.baseline,demo.records)});
-  if(url==='/finance/archive')return {expenses:[],invoices:[]};
+  if(url==='/finance')return structuredClone({review:true,baseline:demo.baseline,records:demo.records,files:demoFiles,summary:demoFinance.summarize(demo.baseline,demo.records)});
+  if(url==='/finance/archive')return demo.archive || {expenses:[],invoices:[]};
   if(url.includes('/audit'))return demoAudit.filter(x=>x.after_row.id===url.split('/')[3]);
   if(url.startsWith('/finance/files/'))return {url:demoFiles.find(x=>x.id===url.split('/')[3]).url};
   fail('Ruta de demostración no disponible');
@@ -40,7 +42,7 @@ const API={
 const nativeFetch=window.fetch;
 window.fetch=async(url,options)=>{if(String(url).startsWith('/api/finance/records/')&&String(url).endsWith('/files')){const file=options.body.get('file');const saved={id:crypto.randomUUID(),record_id:String(url).split('/')[4],name:file.name,url:URL.createObjectURL(file),mime:file.type,bytes:file.size};demoFiles.push(saved);return {ok:true,json:async()=>saved};}return nativeFetch(url,options);};
 `.replace('OPENING_FIXTURE', json);
-const html = `<!doctype html><html lang="es" data-theme="dark"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>VOCAI · Finanzas · Vista previa</title><style>${read('public/css/main.css')}\n${read('public/css/money.css')}\nbody{margin:0;padding:0}.preview-banner{padding:13px 24px;background:#d3efdf;color:#123e30;font:14px system-ui;display:flex;justify-content:space-between;gap:20px}.preview-banner button{cursor:pointer;border:1px solid #235d44;border-radius:6px;background:transparent;padding:3px 9px}.preview-content{padding:30px 24px}.preview-brand{padding:22px 28px 0;font-size:23px;font-weight:800;letter-spacing:2px}#demoToast{position:fixed;bottom:20px;left:20px;background:#244d40;color:white;padding:10px;border-radius:8px;z-index:9999}#demoToast:empty{display:none}</style><body><div class="preview-banner"><span><strong>Vista previa local.</strong> Puedes probarla. Nada modifica las cuentas reales; al recargar se reinicia.</span><button onclick="location.reload()">Reiniciar prueba</button></div><div class="preview-brand">VOCAI</div><main id="pageContent" class="preview-content"></main><div id="demoToast"></div><script>const demoFinance=(()=>{${core}})();\n${helper}\n${read('public/js/modules/money.js')}\nrenderMoney(document.getElementById('pageContent'));</script></body></html>`;
+const html = `<!doctype html><html lang="es" data-theme="dark"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>VOCAI · Finanzas · Vista previa</title><style>${read('public/css/main.css')}\n${read('public/css/money.css')}\nbody{margin:0;padding:0}.preview-banner{padding:13px 24px;background:#d3efdf;color:#123e30;font:14px system-ui;display:flex;justify-content:space-between;gap:20px}.preview-banner button{cursor:pointer;border:1px solid #235d44;border-radius:6px;background:transparent;padding:3px 9px}.preview-content{padding:30px 24px}.preview-brand{padding:22px 28px 0;font-size:23px;font-weight:800;letter-spacing:2px}#demoToast{position:fixed;bottom:20px;left:20px;background:#244d40;color:white;padding:10px;border-radius:8px;z-index:9999}#demoToast:empty{display:none}</style><body><div class="preview-banner"><span><strong>Vista previa local.</strong> Puedes probarla. Nada modifica las cuentas reales; al recargar se reinicia.</span><button onclick="location.reload()">Reiniciar prueba</button></div><div class="preview-brand">VOCAI</div><nav class="money-tabs" style="padding:16px 24px"><button onclick="renderMoney(document.getElementById('pageContent'),'records')">Finanzas V2</button><button onclick="renderMoney(document.getElementById('pageContent'),'contributions')">Inversión V2</button></nav><main id="pageContent" class="preview-content"></main><div id="demoToast"></div><script>const demoFinance=(()=>{${core}})();\n${helper}\n${read('public/js/modules/money.js')}\nrenderMoney(document.getElementById('pageContent'));</script></body></html>`;
 fs.mkdirSync(path.dirname(path.resolve(output)), {recursive:true});
 fs.writeFileSync(output, html);
 console.log('Preview written: ' + path.resolve(output));

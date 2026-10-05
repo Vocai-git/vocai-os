@@ -31,15 +31,16 @@ async function record(recordId) {
   return data;
 }
 router.use(auth);
-router.get('/status', (req, res) => res.json({ enabled: process.env.FINANCE_V2 === 'true' }));
+router.get('/status', (req, res) => res.json({ enabled: process.env.FINANCE_V2 === 'true', live: process.env.FINANCE_V2_LIVE === 'true' }));
 router.use((req, res, next) => {
   if (process.env.FINANCE_V2 !== 'true') return res.status(503).json({ error: 'La nueva sección está pendiente de activar' });
   if (!process.env.SUPABASE_SERVICE_KEY) return res.status(503).json({ error: 'Configuración privada de Finanzas incompleta' });
+  if (process.env.FINANCE_V2_LIVE !== 'true' && !['GET', 'HEAD'].includes(req.method)) return res.status(409).json({ error: 'V2 está en revisión. Los registros actuales siguen en las secciones originales.' });
   next();
 });
 router.get('/', wrap(async (req, res) => {
   const [baseline, records, files] = await Promise.all([setting(), all('finance_records'), all('finance_files', 'id,record_id,name,mime,bytes')]);
-  res.json({ baseline, records, files, summary: finance.summarize(baseline, records) });
+  res.json({ baseline, records, files, review: process.env.FINANCE_V2_LIVE !== 'true', summary: finance.summarize(baseline, records) });
 }));
 router.get('/archive', wrap(async (req, res) => {
   const [expenses, invoices] = await Promise.all([all('expenses'), all('invoices')]);

@@ -34,9 +34,9 @@ const stub={from,storage:{from:()=>({upload:async()=>({error:null}),remove:async
 require.cache[require.resolve('../config/supabase')]={exports:{supabase:stub}};
 require.cache[require.resolve('../middleware/auth')]={exports:(req,res,next)=>{if(req.headers.authorization!=='Bearer test-session')return res.status(401).json({error:'auth required'});req.user={id:'test-user',email:'test@example.invalid'};next();}};
 const express=require('express');const app=express();app.use(express.json());app.use('/api/finance',require('../routes/finance'));
-let server,base;const oldEnabled=process.env.FINANCE_V2,oldKey=process.env.SUPABASE_SERVICE_KEY;
-test.before(async()=>{process.env.FINANCE_V2='true';process.env.SUPABASE_SERVICE_KEY='test-not-a-secret';server=app.listen(0,'127.0.0.1');await new Promise(r=>server.on('listening',r));base='http://127.0.0.1:'+server.address().port+'/api/finance';});
-test.after(async()=>{await new Promise(r=>server.close(r));if(oldEnabled===undefined)delete process.env.FINANCE_V2;else process.env.FINANCE_V2=oldEnabled;if(oldKey===undefined)delete process.env.SUPABASE_SERVICE_KEY;else process.env.SUPABASE_SERVICE_KEY=oldKey;});
+let server,base;const oldEnabled=process.env.FINANCE_V2,oldLive=process.env.FINANCE_V2_LIVE,oldKey=process.env.SUPABASE_SERVICE_KEY;
+test.before(async()=>{process.env.FINANCE_V2='true';process.env.FINANCE_V2_LIVE='true';process.env.SUPABASE_SERVICE_KEY='test-not-a-secret';server=app.listen(0,'127.0.0.1');await new Promise(r=>server.on('listening',r));base='http://127.0.0.1:'+server.address().port+'/api/finance';});
+test.after(async()=>{if(oldLive===undefined)delete process.env.FINANCE_V2_LIVE;else process.env.FINANCE_V2_LIVE=oldLive;await new Promise(r=>server.close(r));if(oldEnabled===undefined)delete process.env.FINANCE_V2;else process.env.FINANCE_V2=oldEnabled;if(oldKey===undefined)delete process.env.SUPABASE_SERVICE_KEY;else process.env.SUPABASE_SERVICE_KEY=oldKey;});
 async function req(path,method='GET',body,authorized=true){const headers={};if(authorized)headers.Authorization='Bearer test-session';if(body)headers['Content-Type']='application/json';const r=await fetch(base+path,{method,headers,body:body?JSON.stringify(body):undefined});return {status:r.status,data:await r.json()};}
 function doc(){return {kind:'expense',title:'Test receipt',amount:1000,date:'2026-10-05',payments:[]};}
 test('anonymous callers cannot inspect financial records',async()=>{assert.equal((await req('/','GET',null,false)).status,401);});
@@ -81,4 +81,21 @@ test('opening references cannot be edited or voided and can prepare the next mon
  assert.equal((await req('/records/'+id,'PUT',{version:1,data:doc()})).status,409);
  assert.equal((await req('/records/'+id+'/void','POST',{version:1,reason:'Attempt to alter opening'})).status,409);
  const result=await req('/records/'+id+'/next','POST',{});assert.equal(result.status,201);assert.notEqual(result.data.included_in_opening,true);
+});
+
+
+test('review mode exposes the reviewed data but rejects every write route',async()=>{
+ process.env.FINANCE_V2_LIVE='false';
+ try {
+  const status=await req('/status');assert.equal(status.data.enabled,true);assert.equal(status.data.live,false);
+  const snapshot=await req('/');assert.equal(snapshot.status,200);assert.equal(snapshot.data.review,true);
+  for(const [path,method,body] of [['/records','POST',{id:randomUUID(),data:doc()}],['/records/'+randomUUID(),'PUT',{}],['/records/'+randomUUID()+'/next','POST',{}],['/records/'+randomUUID()+'/void','POST',{}],['/records/'+randomUUID()+'/files','POST',{}]]) assert.equal((await req(path,method,body)).status,409);
+ } finally {process.env.FINANCE_V2_LIVE='true';}
+});
+test('legacy writes remain available during review and are blocked only after live cutover',()=>{
+ const guard=require('../middleware/finance-legacy');let next=false,status;
+ const res={status(n){status=n;return this;},json(){return this;}};
+ process.env.FINANCE_V2_LIVE='false';guard({method:'POST'},res,()=>next=true);assert.equal(next,true);
+ process.env.FINANCE_V2_LIVE='true';next=false;guard({method:'POST'},res,()=>next=true);assert.equal(status,409);assert.equal(next,false);
+ guard({method:'GET'},res,()=>next=true);assert.equal(next,true);
 });

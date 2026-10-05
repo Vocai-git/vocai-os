@@ -1,5 +1,5 @@
 /* Finanzas prácticas: a single capture flow, actual payments, separate aportes. */
-window.moneyState = { view: 'home', data: null, filter: 'all', search: '' };
+window.moneyState = { view: 'home', data: null, filter: 'all', search: '', month: '', archiveMonth: '', archiveKind: 'all' };
 const MONEY_ACCOUNTS = { bank: 'Banco VOCAI', cash: 'Efectivo VOCAI', santi: 'Santiago · personal', agus: 'Agustín · personal' };
 const MONEY_GROUPS = { startup: 'Inversión inicial', capital: 'Aporte societario' };
 const moneyEuro = cents => formatMoney(cents / 100);
@@ -14,12 +14,14 @@ function moneyCents(value) {
 }
 function moneyPaid(d) { return (d.payments || []).reduce((s, p) => s + p.amount, 0); }
 function moneyRecord(id) { return moneyState.data.records.find(r => r.id === id); }
-async function moneyEnabled() { const s = await API.get('/finance/status'); return !!s.enabled; }
-async function renderMoney(el, view = 'home') {
+async function moneyEnabled() { const s = await API.get('/finance/status'); return !!s.enabled && !!s.live; }
+async function renderMoney(el, view = 'records') {
   moneyState.view = view;
   el.innerHTML = '<div class="empty-state">Cargando tus cuentas…</div>';
   try {
     moneyState.data = await API.get('/finance');
+    try {moneyState.originals = await API.get('/finance/archive');moneyState.historyError=false;} catch(e){moneyState.originals=null;moneyState.historyError=true;}
+    if (!moneyState.month) moneyState.month = moneyToday().slice(0,7);
     moneyDraw(el);
   } catch (e) {
     el.innerHTML = `<div class="money-notice"><strong>No se pudieron cargar las cuentas</strong><p>${moneyEsc(e.message)}</p><button class="btn btn-secondary" onclick="renderMoney(document.getElementById('pageContent'))">Reintentar</button></div>`;
@@ -33,9 +35,10 @@ function moneyDraw(el) {
   const { baseline, summary: s } = moneyState.data;
   const view = moneyState.view;
   el.innerHTML = `<section class="money-workspace">
-    <header class="money-header"><div><p class="money-eyebrow">VOCAI · TU DINERO, CLARO</p><h2>${view === 'contributions' ? 'Lo que pusimos' : 'Todo en su sitio'}</h2><p>Registra lo que pasó. El resto se calcula.</p></div>
-      <div class="money-actions"><button class="btn btn-secondary" onclick="moneyForm('expense',null,true)">Adjuntar factura</button><button class="btn btn-primary" onclick="moneyForm('expense')">+ Añadir</button></div></header>
-    <nav class="money-tabs" aria-label="Secciones de finanzas">${[['home','Resumen'],['records','Movimientos'],['pending','Por pagar / cobrar'],['contributions','Aportes'],['archive','Histórico']].map(([key,label]) => `<button class="${view===key?'active':''}" onclick="moneyView('${key}')">${label}</button>`).join('')}</nav>
+    <header class="money-header"><div><p class="money-eyebrow">VOCAI · TU DINERO, CLARO</p><h2>${view === 'contributions' ? 'Inversión V2' : 'Finanzas V2'}</h2><p>Movimientos mensuales, pagos y aportes separados.</p></div>
+      <div class="money-actions">${moneyState.data.review ? '<span class="money-chip">Solo consulta · revisión</span>' : '<button class="btn btn-secondary" onclick="moneyForm(\'expense\',null,true)">Adjuntar factura</button><button class="btn btn-primary" onclick="moneyForm(\'expense\')">+ Añadir</button>'}</div></header>
+    ${moneyState.data.review ? '<div class="money-notice"><strong>V2 · en revisión con Agustín</strong><p>Las secciones originales siguen funcionando. Esta vista conserva el cierre revisado; los cambios posteriores en la versión original deberán conciliarse antes de activar V2.</p></div>' : ''}
+    <nav class="money-tabs" aria-label="Secciones de finanzas">${[['home','Resumen'],['records','Movimientos'],['pending','Por pagar / cobrar'],['contributions','Aportes'],['archive','Todos los registros anteriores']].map(([key,label]) => `<button class="${view===key?'active':''}" onclick="moneyView('${key}')">${label}</button>`).join('')}</nav>
     <div id="moneyBody"></div>
     <p class="money-footnote">Punto de partida revisado: ${moneyEsc(baseline.cutoff)}. Los movimientos del histórico no se suman de nuevo. <button onclick="moneyBaseline()">Ver cómo se calculó</button></p>
   </section>`;
@@ -44,6 +47,7 @@ function moneyDraw(el) {
   else if (view === 'contributions') body.innerHTML = moneyContributions(s);
   else if (view === 'archive') moneyArchive(body);
   else moneyList(body, view === 'pending');
+  if(moneyState.data.review) el.querySelectorAll('button[onclick^="moneyForm"]').forEach(button=>{button.disabled=true;button.title='Disponible al activar V2 después de la revisión';});
 }
 function moneyHome(s) {
   return `<div class="money-metrics">
@@ -70,23 +74,27 @@ function moneyContributions(s) {
     <div class="money-panel money-total"><div><strong>Total aportado ${moneyEuro(Object.values(s.groups).reduce((a,g)=>a+g.total,0))}</strong><p>El capital y el arranque se mantienen separados. Sus compensaciones no son gastos de VOCAI.</p></div><button class="btn btn-primary" onclick="moneyForm('contribution')">+ Nuevo aporte</button></div>`;
 }
 function moneyList(el, pending) {
-  el.innerHTML = `<div class="money-toolbar"><input id="moneySearch" class="form-input" type="search" placeholder="Buscar concepto, proveedor o factura…" aria-label="Buscar movimientos" value="${moneyEsc(moneyState.search)}" oninput="moneyState.search=this.value;moneyRows(${pending})"><select class="form-select" aria-label="Filtrar movimientos" onchange="moneyState.filter=this.value;moneyRows(${pending})">${[['all','Todo'],['expense','Compras y gastos'],['income','Ventas y cobros'],['transfer','Transferencias'],['contribution','Aportes'],['settlement','Compensaciones']].map(([v,t])=>`<option value="${v}" ${moneyState.filter===v?'selected':''}>${t}</option>`).join('')}</select></div><div id="moneyRows"></div>`;
+  el.innerHTML = `<div class="money-toolbar"><label>Mes <input class="form-input" type="month" value="${moneyState.month}" onchange="moneyState.month=this.value;moneyRows(${pending})"></label><input id="moneySearch" class="form-input" type="search" placeholder="Buscar concepto, proveedor o factura…" aria-label="Buscar movimientos" value="${moneyEsc(moneyState.search)}" oninput="moneyState.search=this.value;moneyRows(${pending})"><select class="form-select" aria-label="Filtrar movimientos" onchange="moneyState.filter=this.value;moneyRows(${pending})">${[['all','Todo'],['expense','Compras y gastos'],['income','Ventas y cobros'],['transfer','Transferencias'],['contribution','Aportes'],['settlement','Compensaciones']].map(([v,t])=>`<option value="${v}" ${moneyState.filter===v?'selected':''}>${t}</option>`).join('')}</select></div><div id="moneyMonthSummary"></div><div id="moneyRows"></div><div id="moneyOriginalMonth"></div>`;
   moneyRows(pending);
 }
 function moneyRows(pending) {
   const query = moneyState.search.toLowerCase();
+  moneyMonthlySummary();
+  if(!pending)moneyOriginalMonth();else document.getElementById('moneyOriginalMonth').innerHTML='';
   const rows = moneyState.data.records.filter(r=>!r.voided).filter(r=>moneyState.filter==='all'||r.data.kind===moneyState.filter)
+    .filter(r=>!moneyState.month || (pending ? (r.data.due||r.data.date).slice(0,7)<=moneyState.month : r.data.date.startsWith(moneyState.month)||(r.data.payments||[]).some(p=>p.date.startsWith(moneyState.month))))
     .filter(r=>!pending||(!r.included_in_opening&&['expense','income'].includes(r.data.kind)&&moneyPaid(r.data)<r.data.amount))
     .filter(r=>[r.data.title,r.data.party,r.data.number].join(' ').toLowerCase().includes(query)).sort((a,b)=>b.data.date.localeCompare(a.data.date));
   document.getElementById('moneyRows').innerHTML = rows.length ? rows.map(r=>{
     const d=r.data, remaining=d.amount-moneyPaid(d), documentType=['expense','income'].includes(d.kind);
     const files=moneyState.data.files.filter(f=>f.record_id===r.id);
-    return `<article class="money-row"><div class="money-row-main"><strong>${moneyEsc(d.title)}</strong><small>${moneyEsc(d.date)}${d.party?' · '+moneyEsc(d.party):''}${d.period_start?' · Período '+moneyEsc(d.period_start)+' / '+moneyEsc(d.period_end||''):''}</small><span class="money-chip ${!r.included_in_opening&&documentType&&remaining?'pending':'done'}">${r.included_in_opening?'Incluido en el cierre':documentType?(remaining?`Pendiente ${moneyEuro(remaining)}`:'Pagado / cobrado'):'Movimiento confirmado'}</span></div><div class="money-row-end"><b>${moneyEuro(d.amount)}</b><div class="money-actions">${!r.included_in_opening&&documentType&&remaining?`<button class="btn btn-primary btn-sm" onclick="moneyPayment('${r.id}')">${d.kind==='income'?'Cobrar':'Pagar'}</button>`:''}<button class="btn btn-secondary btn-sm" onclick="moneyForm('${d.kind}','${r.id}')">${r.included_in_opening?'Ver justificante':'Ver / editar'}</button>${files.map(f=>`<button class="btn btn-secondary btn-sm" onclick="moneyFile('${f.id}')" title="${moneyEsc(f.name)}">Adjunto</button>`).join('')}</div></div></article>`;
+    return `<article class="money-row"><div class="money-row-main"><strong>${moneyEsc(d.title)}</strong><small>${moneyEsc(d.date)}${d.party?' · '+moneyEsc(d.party):''}${d.period_start?' · Período '+moneyEsc(d.period_start)+' / '+moneyEsc(d.period_end||''):''}</small><span class="money-chip ${!moneyState.data.review&&!r.included_in_opening&&documentType&&remaining?'pending':'done'}">${r.included_in_opening?'Incluido en el cierre':documentType?(remaining?`Pendiente ${moneyEuro(remaining)}`:'Pagado / cobrado'):'Movimiento confirmado'}</span></div><div class="money-row-end"><b>${moneyEuro(d.amount)}</b><div class="money-actions">${!moneyState.data.review&&!r.included_in_opening&&documentType&&remaining?`<button class="btn btn-primary btn-sm" onclick="moneyPayment('${r.id}')">${d.kind==='income'?'Cobrar':'Pagar'}</button>`:''}<button class="btn btn-secondary btn-sm" onclick="moneyForm('${d.kind}','${r.id}')">${moneyState.data.review?'Ver detalle':r.included_in_opening?'Ver justificante':'Ver / editar'}</button>${files.map(f=>`<button class="btn btn-secondary btn-sm" onclick="moneyFile('${f.id}')" title="${moneyEsc(f.name)}">Adjunto</button>`).join('')}</div></div></article>`;
   }).join('') : '<div class="money-empty"><h3>Todo despejado</h3><p>No hay movimientos con estos filtros.</p></div>';
 }
 function moneyOptions(options, selected) { return Object.entries(options).map(([v,label])=>`<option value="${v}" ${selected===v?'selected':''}>${moneyEsc(label)}</option>`).join(''); }
 function moneyForm(kind='expense', recordId=null, focusFile=false, group=null) {
   const record = recordId ? moneyRecord(recordId) : null;
+  if(moneyState.data.review) return moneyReviewDetails(record);
   const d = record?.data || {kind,title:'',amount:0,date:moneyToday(),payments:[],repeat:'none',group:group||'capital'};
   const isDoc=['expense','income'].includes(kind);
   if(record?.included_in_opening){
@@ -137,6 +145,7 @@ async function moneySave() {
   finally{form.busy=false;const button=document.getElementById('mf_save');if(button)button.disabled=false;}
 }
 function moneyPayment(recordId) {
+  if(moneyState.data.review)return moneyReviewDetails(moneyRecord(recordId));
   const r=moneyRecord(recordId),remaining=r.data.amount-moneyPaid(r.data);
   moneyState.payment={record:r,id:crypto.randomUUID(),busy:false};
   createModal('moneyPayment','Confirmar '+(r.data.kind==='income'?'cobro':'pago'),`<div class="money-form"><p>${moneyEsc(r.data.title)} · pendiente ${moneyEuro(remaining)}</p><label>Importe recibido / pagado<input id="mp_amount" class="form-input" inputmode="decimal" value="${(remaining/100).toFixed(2)}"></label><label>Fecha real<input id="mp_date" class="form-input" type="date" max="${moneyToday()}" value="${moneyToday()}"></label><label>${r.data.kind==='income'?'Entró en':'Salió de'}<select id="mp_account" class="form-select">${moneyOptions(MONEY_ACCOUNTS,'bank')}</select></label><p id="mp_error" class="money-error" role="alert"></p></div>`, '<button class="btn btn-secondary" onclick="closeModal(\'moneyPayment\')">Cancelar</button><button id="mp_save" class="btn btn-primary" onclick="moneyPaySave()">Confirmar</button>');
@@ -152,12 +161,43 @@ async function moneyPaySave() {
   finally{p.busy=false;const b=document.getElementById('mp_save');if(b)b.disabled=false;}
 }
 async function moneyFile(id){try{const {url}=await API.get('/finance/files/'+id);const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.click();}catch(e){toast(e.message,'error');}}
-async function moneyNext(id){try{await API.post('/finance/records/'+id+'/next',{});closeModal('moneyModal');closeModal('moneyClosed');toast('Próximo mes preparado como pendiente','success');await renderMoney(document.getElementById('pageContent'),'pending');}catch(e){toast(e.message,'error');}}
+async function moneyNext(id){if(moneyState.data.review)return toast('V2 está en revisión; todavía no crea previsiones.');try{await API.post('/finance/records/'+id+'/next',{});closeModal('moneyModal');closeModal('moneyClosed');toast('Próximo mes preparado como pendiente','success');await renderMoney(document.getElementById('pageContent'),'pending');}catch(e){toast(e.message,'error');}}
 async function moneyVoid(id){const reason=prompt('Motivo de la anulación (se conserva el historial):');if(!reason)return;try{await API.post('/finance/records/'+id+'/void',{version:moneyRecord(id).version,reason});closeModal('moneyModal');await renderMoney(document.getElementById('pageContent'),moneyState.view);}catch(e){toast(e.message,'error');}}
 async function moneyAudit(id){try{const rows=await API.get('/finance/records/'+id+'/audit');createModal('moneyAudit','Historial del registro',rows.map(x=>`<details class="money-panel"><summary>${moneyEsc(x.at)} · ${moneyEsc(x.actor)}</summary><pre class="money-json">${moneyEsc(JSON.stringify({antes:x.before_row?.data,despues:x.after_row.data,anulado:x.after_row.voided},null,2))}</pre></details>`).join(''));}catch(e){toast(e.message,'error');}}
 function moneyBaseline(){const b=moneyState.data.baseline;createModal('moneyBaseline','Punto de partida revisado',`<div class="money-form"><p>${moneyEsc(b.description)}</p>${(b.explanation||[]).map(line=>`<p>${moneyEsc(line)}</p>`).join('')}<p><strong>Saldo corriente de Santiago al cierre:</strong> ${moneyEuro(b.operating.santi)}.</p><p>Compensación interna de Ana asignada a Santiago: ${moneyEuro(b.ana_assigned||0)}. No se presenta como cobro bancario real.</p><p>Banco: ${moneyEuro(b.cash.bank)} · Efectivo: ${moneyEuro(b.cash.cash)} · Pendiente a Agustín: ${moneyEuro(b.operating.agus)}.</p><p>Las aportaciones se muestran por separado. Los documentos y datos originales se conservan en Histórico. No vuelvas a registrar como nuevos los pagos incluidos en este cierre.</p></div>`);}
-async function moneyArchive(el){el.innerHTML='<p>Cargando histórico…</p>';try{const data=await API.get('/finance/archive');if(moneyState.view!=='archive')return;el.innerHTML=`<div class="money-notice"><strong>Histórico original · solo consulta</strong><p>Conserva los registros anteriores, incluidos borradores, previsiones y diferencias detectadas. No representa pagos confirmados ni se suma al saldo actual.</p></div><input class="form-input" type="search" placeholder="Buscar en el histórico…" aria-label="Buscar en histórico" oninput="document.querySelectorAll('[data-history]').forEach(e=>e.hidden=!e.dataset.history.includes(this.value.toLowerCase()))"><div class="money-archive">${[...data.expenses.map(x=>({...x,label:'Gasto original',title:x.nombre})),...data.invoices.map(x=>({...x,label:'Factura original',title:x.concepto}))].sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(x=>`<article class="money-row" data-history="${moneyEsc([x.title,x.fecha,x.numero,x.notas].join(' ').toLowerCase())}"><div><strong>${moneyEsc(x.title)}</strong><small>${moneyEsc(x.fecha)} · ${moneyEsc(x.label)} · ${moneyEsc(x.numero||x.responsable||'')}</small><small>${moneyEsc(x.notas||'')}</small></div><b>${formatMoney(x.total??x.importe)}</b></article>`).join('')}</div>`;}catch(e){el.textContent=e.message;}}
+async function moneyArchive(el){
+ el.innerHTML='<p>Cargando histórico completo…</p>';
+ try{const data=await API.get('/finance/archive');if(moneyState.view!=='archive')return;
+ moneyState.archive=[...data.expenses.map(x=>({...x,kind:'expense',title:x.nombre})),...data.invoices.map(x=>({...x,kind:'income',title:x.concepto}))];
+ el.innerHTML=`<div class="money-notice"><strong>Todos los registros anteriores · ${data.expenses.length} gastos y ${data.invoices.length} facturas</strong><p>Datos originales, incluidos borradores y previsiones. El responsable registrado no demuestra quién pagó. Los pagos revisados se consultan en Movimientos; estas referencias no se suman otra vez ni generan un resultado de caja confirmado.</p></div><div class="money-toolbar"><label>Mes <input id="ma_month" type="month" class="form-input" value="${moneyState.archiveMonth}" onchange="moneyState.archiveMonth=this.value;moneyArchiveRows()"></label><button class="btn btn-secondary" onclick="moneyState.archiveMonth='';document.getElementById('ma_month').value='';moneyArchiveRows()">Todos los meses</button><select id="ma_kind" class="form-select" onchange="moneyState.archiveKind=this.value;moneyArchiveRows()">${moneyOptions({all:'Todos los registros',expense:'Gastos',income:'Facturas',investment:'Inversión original'},moneyState.archiveKind)}</select><input id="ma_search" class="form-input" placeholder="Buscar concepto, cliente o notas…" oninput="moneyArchiveRows()"></div><p id="ma_count"></p><div id="ma_rows"></div>`;moneyArchiveRows();
+ }catch(e){el.textContent=e.message;}
+}
+function moneyArchiveRows(){
+ const query=document.getElementById('ma_search').value.toLowerCase();
+ const rows=moneyState.archive.filter(x=>(!moneyState.archiveMonth||String(x.fecha).startsWith(moneyState.archiveMonth))&&(moneyState.archiveKind==='all'||(moneyState.archiveKind==='investment'?x.kind==='expense'&&x.tipo==='inversion':x.kind===moneyState.archiveKind))&&[x.title,x.numero,x.cliente_nombre,x.notas].join(' ').toLowerCase().includes(query)).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
+ document.getElementById('ma_count').textContent=rows.length+' registros originales · fechas de registro, no necesariamente de pago';
+ document.getElementById('ma_rows').innerHTML=rows.map(x=>`<article class="money-row"><div><strong>${moneyEsc(x.title)}</strong><small>${moneyEsc(x.fecha)} · ${x.kind==='expense'?'Gasto':'Factura'} · ${moneyEsc(x.numero||x.responsable||'')}</small><small>${moneyEsc(x.cliente_nombre||'')} ${moneyEsc(x.notas||'')}</small><span class="money-chip">Original · ${moneyEsc(x.estado||x.tipo||'sin estado de pago')}</span></div><b>${formatMoney(x.total??x.importe)}</b></article>`).join('')||'<p>No hay registros para este filtro.</p>';
+}
+function moneyReviewDetails(record){
+ if(!record)return toast('V2 está en revisión. La carga real sigue en las secciones originales.');
+ const d=record.data;createModal('moneyReview','Movimiento revisado',`<h3>${moneyEsc(d.title)} · ${moneyEuro(d.amount)}</h3><p>${moneyEsc(d.notes)}</p><p>${moneyEsc(d.date)}${d.period_start?' · Período '+moneyEsc(d.period_start)+' / '+moneyEsc(d.period_end):''}</p>${(d.payments||[]).map(p=>`<p>${moneyEsc(p.date)} · ${moneyEsc(MONEY_ACCOUNTS[p.account])} · ${moneyEuro(p.amount)}</p>`).join('')}<p>${!['income','expense'].includes(d.kind)?'Movimiento confirmado · '+moneyEsc(MONEY_ACCOUNTS[d.source])+' → '+moneyEsc(MONEY_ACCOUNTS[d.target]):moneyPaid(d)?'Pagos revisados reflejados arriba.':'Pendiente de pago o cobro.'}</p><p>Solo consulta durante la revisión de V2.</p>`);
+}
+function moneyMonthlySummary(){
+ const month=moneyState.month;let income=0,expense=0;
+ for(const r of moneyState.data.records){if(r.voided||!['expense','income'].includes(r.data.kind))continue;for(const p of r.data.payments||[]){if(!month||p.date.startsWith(month)){if(r.data.kind==='income')income+=p.amount;else expense+=p.amount;}}}
+ const partial=!month||month<=moneyState.data.baseline.cutoff.slice(0,7);
+ document.getElementById('moneyMonthSummary').innerHTML=`<div class="money-metrics">${[['Ingresos cobrados',income],['Gastos pagados',expense],['Resultado neto de caja',income-expense]].map(([label,n])=>`<article class="money-metric"><span>${label}${partial?' · revisados':''}</span><strong>${label==='Resultado neto de caja'&&partial?'Por conciliar':moneyEuro(n)}</strong></article>`).join('')}</div><p class="money-muted">${partial?'Cobertura histórica parcial: estos importes corresponden solo a pagos revisados con fecha conocida. No son todavía el resultado completo del mes. Consulta todos los registros anteriores para revisar lo restante.':'Cobros menos pagos del negocio, incluidas cuentas personales. Aportes y devoluciones se muestran aparte.'}</p>`;
+}
 
 function moneySetPaid(paid){document.getElementById("mf_status").value=paid?"paid":"pending";document.getElementById("mf_paid_fields").hidden=!paid;document.getElementById("mf_pending_btn").classList.toggle("active",!paid);document.getElementById("mf_paid_btn").classList.toggle("active",paid);}
 
 async function moneyClosedFile(id){const input=document.getElementById('mc_file');if(!input.files[0])return toast('Selecciona un archivo','error');const button=document.getElementById('mc_save');button.disabled=true;try{const form=new FormData();form.append('file',input.files[0]);const response=await fetch('/api/finance/records/'+id+'/files',{method:'POST',headers:{Authorization:'Bearer '+localStorage.getItem('vocai_token')},body:form});const result=await response.json();if(!response.ok)throw new Error(result.error);closeModal('moneyClosed');toast('Adjunto guardado','success');await renderMoney(document.getElementById('pageContent'),moneyState.view);}catch(e){toast(e.message,'error');}finally{button.disabled=false;}}
+
+function moneyOriginalMonth(){
+ const el=document.getElementById('moneyOriginalMonth');if(!el)return;
+ if(moneyState.historyError){el.innerHTML='<div class="money-notice">No se pudo cargar el histórico. Recarga la sección para volver a intentarlo.</div>';return;}
+ const originals=moneyState.originals||{expenses:[],invoices:[]};
+ const query=moneyState.search.toLowerCase(),month=moneyState.month;
+ const rows=[...originals.expenses.map(x=>({...x,kind:'expense',title:x.nombre})),...originals.invoices.map(x=>({...x,kind:'income',title:x.concepto}))].filter(x=>(!month||String(x.fecha).startsWith(month))&&(moneyState.filter==='all'||moneyState.filter===x.kind)&&[x.title,x.cliente_nombre,x.numero,x.notas].join(' ').toLowerCase().includes(query)).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
+ el.innerHTML=`<details class="money-panel" ${rows.length?'open':''}><summary><strong>Registros originales del mes · ${rows.length}</strong></summary><p class="money-muted">Referencia completa de la versión anterior. Puede incluir documentos revisados arriba, borradores y previsiones. No se vuelve a sumar a los importes de caja ni acredita quién pagó.</p>${rows.map(x=>`<article class="money-row"><div><strong>${moneyEsc(x.title)}</strong><small>${moneyEsc(x.fecha)} · ${moneyEsc(x.cliente_nombre||x.responsable||'')} · ${moneyEsc(x.estado||x.tipo||'')}</small><small>${moneyEsc(x.notas||'')}</small></div><b>${formatMoney(x.total??x.importe)}</b></article>`).join('')}</details>`;
+}

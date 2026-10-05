@@ -54,21 +54,38 @@ check that it was not already included in the opening snapshot.
    deployed environment; verify summary and pending documents against the opening
    snapshot. These live checks remain required before declaring activation done.
 
-With the flag off the original screens and routes remain active. With it on,
-legacy writes are rejected, the old automatic copier is disabled, and original
-expenses/invoices are available under a clearly labeled read-only history. The
-Dashboard uses the new cash and pending totals; current Goals uses real payment
-dates. Legacy read APIs remain original historical data for backwards
-compatibility, not the current ledger. Any outside consumer must be moved to
-`/api/finance` before it is used for new financial reporting.
+## Parallel review before cutover
 
-After live entries exist, turning the flag off is NOT a data rollback: new records
-remain in the new tables. Freeze writes and reconcile before switching back. Never
-resume the old monthly copier on top of a live new ledger.
+The sidebar preserves Finanzas, Inversión and Facturas, and adds Finanzas V2 and
+Inversión V2. `FINANCE_V2=true` makes V2 available; it defaults to READ ONLY.
+Keep `FINANCE_V2_LIVE` unset/false until Santiago and Agustín approve cutover.
+In this review mode all V2 mutations (including file uploads and recurrence) are
+rejected server-side, while legacy editing and its existing automation continue.
+Dashboard and Goals continue using the original ledger during review.
+
+V2 displays the reviewed snapshot and the full original expenses/invoices via
+an authenticated, paginated API, with month/type/search filters. The local demo
+embeds a private snapshot from ignored `config/finance-history.private.json`.
+Original records include forecasts and incorrect payer/payment labels: they are
+not confirmed cash flows. Monthly cards show known reviewed payment dates, with
+an explicit partial-history warning through the opening month. This is NOT a
+complete reconciled monthly income statement for the historical period.
+Changes in legacy after the opening snapshot are not silently synchronized into
+V2 balances. Reconcile the delta and complete payment evidence before cutover.
+
+Only after approval and reconciliation set `FINANCE_V2_LIVE=true`. That freezes
+legacy writes and its recurring copier and activates V2 financial reporting.
+The old screens and data remain available for reference; removal is a separate
+user decision. Never run two writable financial ledgers independently.
+Switching off flags after live entries is not a rollback: preserve V2 records,
+freeze writes and reconcile before any return to legacy.
+
+Monthly batch preparation, statement import, a persisted monthly close, invoice
+OCR, email and messaging intake are future steps, not implemented features.
 
 ## Validation
 
-`node --test tests/finance.test.js tests/finance-api.test.js`
+`node --test tests/finance.test.js tests/finance-api.test.js tests/finance-monthly.test.js`
 
 Tests cover integer-cent balances, partial payments, personal/company accounts,
 reimbursements, contributions, private settlements, ignored closed references,
