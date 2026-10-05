@@ -18,5 +18,5 @@ test('monthly cash view counts actual dates and partial payments, excludes capit
 });
 test('opening references appear in historical month but incomplete net is not presented as final',()=>{
  const html=view([{included_in_opening:true,data:{kind:'expense',payments:[{date:'2026-09-29',amount:2600}]}}],'2026-09');
- assert.match(html,/26\.00/);assert.match(html,/Por conciliar/);assert.match(html,/Cobertura histórica parcial/);
+ assert.match(html,/26\.00/);assert.match(html,/Por conciliar/);assert.match(html,/Mes pendiente de revisión/);
 });
