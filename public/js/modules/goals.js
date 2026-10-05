@@ -4,7 +4,13 @@ async function renderGoals(el) {
   const data = await API.get(`/goals?mes=${mesActual}`);
 
   const objetivo = data.goal?.objetivo || 0;
-  const actual = data.actual || 0;
+  const financeActive = await moneyEnabled();
+  let actual = data.actual || 0;
+  if (financeActive) {
+    const money = await API.get('/finance');
+    actual = money.records.filter(r => !r.voided && r.data.kind === 'income')
+      .reduce((sum, r) => sum + r.data.payments.filter(p => p.date.startsWith(mesActual)).reduce((s,p) => s+p.amount,0),0) / 100;
+  }
   const pct = objetivo > 0 ? Math.min(100, Math.round((actual / objetivo) * 100)) : 0;
 
   el.innerHTML = `

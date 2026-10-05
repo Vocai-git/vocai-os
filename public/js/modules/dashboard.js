@@ -13,6 +13,12 @@ async function renderDashboard(el) {
     API.get(`/marketing-planning?mes=${dashObjMes}`).catch(() => ({ plan: null }))
   ]);
   const { kpis, tasks, todayBookings } = data;
+  const financeActive = await moneyEnabled();
+  const financeData = financeActive ? await API.get('/finance') : null;
+  if (financeData) {
+    kpis.pendingInvoices = financeData.records.filter(r => !r.voided && r.data.kind === 'income' && moneyPaid(r.data) < r.data.amount).length;
+    kpis.pendingAmount = financeData.summary.pending_income / 100;
+  }
   dashObjPlan = planning.plan || null;
 
   // Build last 6 months revenue data
@@ -50,7 +56,7 @@ async function renderDashboard(el) {
 
     <!-- Chart + Tareas -->
     <div class="grid-2" style="margin-bottom:24px;">
-      <div class="chart-card">
+      ${financeData ? `<div class="money-panel"><p class="money-eyebrow">DINERO DISPONIBLE</p><h3>Banco y efectivo de VOCAI</h3><div class="money-big">${moneyEuro(financeData.summary.cash.bank + financeData.summary.cash.cash)}</div><p class="money-muted">Banco ${moneyEuro(financeData.summary.cash.bank)} · Efectivo ${moneyEuro(financeData.summary.cash.cash)}</p><button class="btn btn-primary" onclick="navigate('finanzas')">Abrir Finanzas</button></div>` : `<div class="chart-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
           <div>
             <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;">Ingresos últimos 6 meses</div>
@@ -61,7 +67,7 @@ async function renderDashboard(el) {
           </div>
         </div>
         <canvas id="revenueChart"></canvas>
-      </div>
+      </div>`}
 
       <div class="card" style="display:flex;flex-direction:column;">
         <div class="card-header">
@@ -107,7 +113,7 @@ async function renderDashboard(el) {
         }
       </div>
 
-      <div class="card" style="display:flex;flex-direction:column;justify-content:center;">
+      ${financeData ? `<div class="money-panel"><p class="money-eyebrow">POR PAGAR</p><h3>Previsiones pendientes</h3><div class="money-big">${moneyEuro(financeData.summary.pending_expense)}</div><p class="money-muted">Se descuentan del banco o de caja solo cuando confirmas el pago.</p><button class="btn btn-secondary" onclick="navigate('finanzas')">Revisar movimientos</button></div>` : `<div class="card" style="display:flex;flex-direction:column;justify-content:center;">
         <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Facturado este mes</div>
         <div style="font-family:'Syne',sans-serif;font-size:52px;font-weight:800;color:var(--text);line-height:1;margin-bottom:8px;">
           ${formatMoney(kpis.monthlyRevenue)}
@@ -116,11 +122,11 @@ async function renderDashboard(el) {
         <div style="margin-top:20px;">
           <button class="btn btn-primary btn-sm" onclick="navigate('invoices')">Ver facturas →</button>
         </div>
-      </div>
+      </div>`}
     </div>`;
 
   // Init chart after DOM render
-  requestAnimationFrame(() => initRevenueChart(monthlyRevenue));
+  if (!financeData) requestAnimationFrame(() => initRevenueChart(monthlyRevenue));
 }
 
 // ── Objetivos del mes (bloque del Dashboard) ────────────────
