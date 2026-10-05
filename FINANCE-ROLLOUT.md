@@ -152,7 +152,31 @@ the cash table shows only payments in that month, rather than the full invoice.
 Forecasts have a separate filter and do not appear as confirmed unpaid invoices.
 Source duplicates, drafts and review exceptions remain consultable in All.
 
-The overview has three figures with links to their exact breakdown, short
-explanations and a separate forecast section. Saldos is the last navigation item;
+The overview separates the business result, actual cash movements and forecasts,
+with links to each exact breakdown. Saldos is the last navigation item;
 its detailed review remains a later step requested by Santiago. The original
 VOCAI fonts, surfaces and coral controls are retained.
+
+## Finance dashboard
+
+The redesigned overview adds available company money, a six-month comparison,
+current receivables/payables, confirmed expense categories and direct record
+access. Its renderer/styles are isolated in `money-dashboard.js` and
+`finance-dashboard.css`, retaining the original VOCAI theme.
+
+The operating result stays provisional for an open month, review exceptions or
+outstanding forecasts. A conditional result subtracting those forecasts is
+explicitly labelled as conditional, rather than presenting expected costs as
+actual payments. The dashboard never claims a monthly close has been completed.
+
+Company cash and outstanding documents describe the current reviewed snapshot,
+with its date displayed independently of the selected reporting month. Forecasts
+are not confirmed payables, and customer income assigned to a partner is excluded
+from company receivables. The chart and categories use the same monthly engine
+as the drill-down lists. Original categories may be reused only when source
+categories agree; explicit reviewed categories take priority. Unknown/conflicting
+categories stay unclassified. A category filter retains the exact contributing
+record IDs and can be cleared without changing data.
+
+Desktop, narrow-panel and mobile layouts were inspected. No production data,
+schema, activation flag or deployment was changed by this dashboard redesign.

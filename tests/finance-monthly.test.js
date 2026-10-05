@@ -3,7 +3,7 @@ const test=require('node:test');const assert=require('node:assert/strict');const
 function view(records,month='2026-11',integrated=false,mode='cash'){
  const nodes={moneyMonthSummary:{innerHTML:''}};
  const ctx={FinanceReport:require('../public/js/finance-report'),window:{},document:{getElementById:id=>nodes[id]},formatMoney:n=>n.toFixed(2),escHtml:String,Intl,Date};
- vm.createContext(ctx);vm.runInContext(fs.readFileSync(require.resolve('../public/js/modules/money.js'),'utf8'),ctx);
+ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require.resolve('../public/js/modules/money-dashboard.js'),'utf8'),ctx);vm.runInContext(fs.readFileSync(require.resolve('../public/js/modules/money.js'),'utf8'),ctx);
  ctx.moneyState=ctx.window.moneyState;ctx.moneyState.month=month;ctx.moneyState.reportMode=mode;ctx.moneyState.data={baseline:{cutoff:'2026-10-05',history_import:integrated?{count:5}:null},records};ctx.moneyMonthlySummary();return nodes.moneyMonthSummary.innerHTML;
 }
 test('monthly cash view counts actual dates and partial payments, excludes capital and voids',()=>{

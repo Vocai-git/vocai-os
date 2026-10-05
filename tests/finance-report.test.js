@@ -109,3 +109,93 @@ test('voided records never appear and blank month reports the full history',()=>
  assert.equal(report.entry({...expense,voided:true},'','all').included,false);
  assert.equal(report.monthly([{...expense,voided:true}],'').paid,0);
 });
+
+const dashboard=(records,month='2026-10')=>report.dashboard(records,{cutoff:'2026-10-05'},{cash:{bank:12500,cash:3400}},month,'2026-10-05');
+
+test('dashboard separates confirmed payables from forecasts and uses outstanding amounts',()=>{
+ const data=dashboard([
+  row({title:'Confirmed',amount:15000,payments:[payment(2500,'2026-10-03')]}),
+  row({title:'Forecast',amount:20000,stage:'forecast',payments:[payment(3000,'2026-10-04')]}),
+  row({title:'Earlier forecast',amount:8000,date:'2026-09-01',stage:'forecast'}),
+  row({title:'Forecast sale',kind:'income',amount:9000,stage:'forecast'}),
+ ]);
+ assert.equal(data.pending.expenseTotal,12500);
+ assert.deepEqual(data.pending.expense.map(r=>[r.title,r.amount]),[['Confirmed',12500]]);
+ assert.equal(data.pending.incomeTotal,0);
+ assert.equal(data.forecastExpense.amount,17000);
+ assert.deepEqual(data.forecastExpense.items.map(r=>[r.title,r.amount,r.date]),[['Forecast',17000,'2026-10-05']]);
+ assert.equal(data.current.expense,18000);
+});
+
+test('dashboard excludes assigned, opening and invalid documents from company receivables',()=>{
+ const data=dashboard([
+  row({kind:'income',title:'Assigned',history:{status:'assigned'}}),
+  row({kind:'income',title:'Opening'},{included_in_opening:true}),
+  ...['draft','duplicate','review'].map(status=>row({kind:'income',history:{status}})),
+  row({kind:'income',title:'Paid historical',history:{status:'paid'}}),
+  row({kind:'income',title:'Voided'},{voided:true}),
+  row({kind:'income',title:'Prior month outstanding',date:'2026-09-01',amount:18000,payments:[payment(4000,'2026-09-09')]}),
+ ]);
+ assert.equal(data.pending.incomeTotal,14000);
+ assert.deepEqual(data.pending.income.map(r=>r.title),['Prior month outstanding']);
+ assert.equal(data.current.assigned,10000);
+ assert.equal(data.current.collected,10000);
+});
+
+test('dashboard expense categories sum exactly to the monthly confirmed expenses without title inference',()=>{
+ const data=dashboard([
+  row({amount:2500,category:'Software'}),
+  row({amount:3500,category:' software '}),
+  row({amount:5000,category:'oficina',stage:'forecast',payments:[payment(1200,'2026-10-05')]}),
+  row({title:'Software provider without category',amount:3000,category:''}),
+  row({amount:900,category:'gestión_externa'}),
+  row({amount:99900,category:'oficina',history:{classification:'startup'}}),
+  row({amount:8500,category:'personal',period_start:'2026-09-01',period_end:'2026-09-30'}),
+ ]);
+ assert.equal(data.categories.reduce((n,c)=>n+c.amount,0),data.current.expense);
+ assert.deepEqual(data.categories.map(c=>[c.label,c.amount]),[['Software',6000],['Sin categoría',3000],['Oficina',1200],['Gestión externa',900]]);
+ assert.equal(data.categories[0].count,2);
+ assert.equal(data.categories[0].ids.length,2);
+});
+
+test('dashboard six-month trend crosses year boundaries and uses the same monthly engine',()=>{
+ const records=[row({date:'2025-12-01',kind:'income',amount:6500}),row({date:'2026-01-01',amount:700})];
+ const data=dashboard(records,'2026-02');
+ assert.equal(data.previousMonth,'2026-01');
+ assert.deepEqual(data.previous,report.monthly(records,'2026-01'));
+ assert.deepEqual(data.trend.map(m=>m.month),['2025-09','2025-10','2025-11','2025-12','2026-01','2026-02']);
+ for(const {month,...monthly} of data.trend)assert.deepEqual(monthly,report.monthly(records,month));
+});
+
+test('dashboard does not invent due dates, overdue states or historical bank balances',()=>{
+ const records=[
+  row({title:'No due date',date:'2026-08-01'}),
+  row({title:'Due today',due:'2026-10-05'}),
+  row({title:'Due tomorrow',due:'2026-10-06'}),
+  row({title:'Overdue',due:'2026-10-04'}),
+ ];
+ const before=JSON.stringify(records),data=dashboard(records,'2026-08');
+ assert.deepEqual(data.pending.expense.map(r=>[r.title,r.due,r.overdue]),[['Overdue','2026-10-04',true],['Due today','2026-10-05',false],['Due tomorrow','2026-10-06',false],['No due date',null,false]]);
+ assert.deepEqual(data.cash,{bank:12500,cash:3400,total:15900,asOf:'2026-10-05',snapshotMonth:'2026-10',selectedMonthIsSnapshot:false,isMonthEnd:false});
+ assert.equal(dashboard(records).cash.selectedMonthIsSnapshot,true);
+ assert.equal(JSON.stringify(records),before);
+});
+
+test('reviewed category takes priority and unanimous original categories are a safe fallback',()=>{
+ const sources=values=>values.map(categoria=>({original:{categoria}}));
+ assert.deepEqual(report.category(row({category:'Oficina',history:{sources:sources(['software','personal'])}})),{key:'oficina',label:'Oficina'});
+ const reviewed=row({amount:5200,category:' ',history:{sources:sources(['Software',' software ',null])}});
+ assert.deepEqual(report.category(reviewed),{key:'software',label:'Software'});
+ const data=dashboard([reviewed]);
+ assert.deepEqual(data.categories.map(c=>[c.label,c.amount]),[['Software',5200]]);
+ assert.equal(data.categories.reduce((sum,c)=>sum+c.amount,0),data.current.expense);
+ assert.deepEqual(report.category(row({history:{sources:sources(['gestión_externa','Gestión externa'])}})),{key:'gestion-externa',label:'Gestión externa'});
+});
+
+test('conflicting or missing source categories remain unclassified without inferring a title',()=>{
+ const sources=values=>values.map(categoria=>({original:{categoria}}));
+ for(const values of [['Software','Oficina'],[null,'',undefined],[]]){
+  const record=row({title:'Software subscription',history:{sources:sources(values)}});
+  assert.deepEqual(report.category(record),{key:'sin-categoria',label:'Sin categoría'});
+ }
+});
