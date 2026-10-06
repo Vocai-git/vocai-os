@@ -22,13 +22,25 @@ function moneyDashboardCategory(key) {
 function moneyDashboardDues(kind) {
   moneyState.dueTab=kind;moneyMonthlySummary();
 }
+function moneyDashboardDueRows(model,kind) {
+  if(kind==='income')return model.pending.income;
+  // A presentation queue, not a new liability or a payment: forecasts remain
+  // separate in the monthly engine and only cover the selected month.
+  return [...model.pending.expense.map(row=>({...row,forecast:false})),...model.forecastExpense.items.map(row=>({...row,forecast:true,forecastMonth:model.month}))]
+    .sort((a,b)=>(a.due||'9999-12-31').localeCompare(b.due||'9999-12-31')||Number(a.forecast)-Number(b.forecast)||(a.date||'').localeCompare(b.date||''));
+}
+function moneyDashboardPayableBreakdown(model) {
+  return `Confirmado: <b>${moneyEuro(model.pending.expenseTotal)}</b> · Previsto en ${moneyMonthName(model.month)}: <b>${moneyEuro(model.forecastExpense.amount)}</b>`;
+}
 function moneyDashboardDueList(kind) {
-  const m=moneyDashboardModel(),rows=m.pending[kind];
-  createModal('moneyDues',kind==='income'?'Clientes pendientes de cobro':'Gastos pendientes de pago',`<div class="fin-due-modal">${rows.length?rows.map(row=>moneyDashboardDueRow(row,kind)).join(''):'<p>No hay pendientes confirmados.</p>'}</div>`);
+  const m=moneyDashboardModel(),rows=moneyDashboardDueRows(m,kind);
+  createModal('moneyDues',kind==='income'?'Clientes pendientes de cobro':'Pagos por atender',`<div class="fin-due-modal">${kind==='expense'?`<p>${moneyDashboardPayableBreakdown(m)}</p><p>Los previstos necesitan confirmación antes de registrarlos como pagados.</p>`:''}${rows.length?rows.map(row=>moneyDashboardDueRow(row,kind)).join(''):`<p>${kind==='income'?'No hay pendientes confirmados.':'No hay pagos confirmados ni previstos para mostrar.'}</p>`}</div>`);
 }
 function moneyDashboardDueRow(row,kind) {
   const title=row.party||row.title||'Sin concepto';
-  return `<button class="fin-due-row" onclick="moneyForm('${kind}','${row.id}')"><span class="fin-avatar">${moneyEsc(title.slice(0,1).toUpperCase())}</span><span class="fin-due-name"><strong>${moneyEsc(title)}</strong><small>${row.party?moneyEsc(row.title)+' · ':''}${row.due?(row.overdue?'Venció ':'Vence ')+moneyBriefDate(row.due):'Sin vencimiento indicado'}</small></span><span class="fin-due-amount">${moneyEuro(row.amount)}<small>${row.overdue?'Vencido':kind==='income'?'Por cobrar':'Por pagar'}</small></span></button>`;
+  const when=row.forecast?(row.due?'Fecha prevista: '+moneyBriefDate(row.due):'Previsión de '+moneyMonthName(row.forecastMonth)):(row.due?(row.overdue?'Venció ':'Vence ')+moneyBriefDate(row.due):'Sin vencimiento indicado');
+  const status=row.forecast?'Previsto · por confirmar':row.overdue?(kind==='income'?'Vencido':'Confirmado · vencido'):kind==='income'?'Por cobrar':'Confirmado · por pagar';
+  return `<button class="fin-due-row" onclick="moneyForm('${kind}','${row.id}')"><span class="fin-avatar">${moneyEsc(title.slice(0,1).toUpperCase())}</span><span class="fin-due-name"><strong>${moneyEsc(title)}</strong><small>${row.party?moneyEsc(row.title)+' · ':''}${moneyEsc(when)}</small></span><span class="fin-due-amount">${moneyEuro(row.amount)}<small>${status}</small></span></button>`;
 }
 function moneyDashboardChart(m,cashView) {
   const keys=cashView?['collected','paid']:['revenue','expense'];
@@ -40,7 +52,7 @@ function moneyDashboardHTML() {
   const baseline=moneyState.data.baseline,partial=!baseline.history_import&&m.month<=baseline.cutoff.slice(0,7);
   const open=m.month>=moneyToday().slice(0,7),uncertain=partial||r.forecast>0||r.issues.length>0;
   const income=cashView?r.collected:r.revenue,expense=cashView?r.paid:r.expense,result=income-expense;
-  const dueKind=moneyState.dueTab||'income',dues=m.pending[dueKind],dueTotal=m.pending[dueKind+'Total'];
+  const dueKind=moneyState.dueTab||'income',dues=moneyDashboardDueRows(m,dueKind),payables=moneyDashboardDueRows(m,'expense'),dueTotal=dues.reduce((sum,row)=>sum+row.amount,0);
   const currentCashDate=moneyState.data.review?m.cash.asOf:moneyToday();
   const otherMonthsPaid=moneyState.data.records.reduce((sum,row)=>{
     if(row.data.kind!=='expense'||FinanceReport.accountingDate(row).startsWith(m.month))return sum;
@@ -60,7 +72,7 @@ function moneyDashboardHTML() {
     ${r.forecast?`<div class="fin-forecast-strip">${moneyIcon('clock')}<span><strong>${m.forecastExpense.items.length} gastos por confirmar</strong> · ${moneyEuro(r.forecast)} previstos. El resultado del mes aún puede cambiar.</span><button onclick="moneyInspect('forecast','expense')">Revisar ${moneyIcon('arrow')}</button></div>`:''}
     <div class="fin-main-grid">
       <article class="fin-card fin-evolution"><header class="fin-card-heading"><div><h3>Evolución del negocio</h3><p>Últimos seis meses · pulsa un mes para abrirlo</p></div><div class="fin-chart-legend"><span><i></i>${cashView?'Cobros':'Ingresos'}</span><span><i></i>${cashView?'Pagos':'Gastos'}</span></div></header>${moneyDashboardChart(m,cashView)}<footer>${open?'El mes en curso muestra sólo lo registrado hasta ahora.':'Importes de cada mes según los registros revisados.'}</footer></article>
-      <article class="fin-card fin-dues"><header class="fin-card-heading"><div><h3>Cobros y pagos pendientes</h3><p>Situación ${moneyState.data.review?'revisada':'actual'} · ${moneyBriefDate(currentCashDate)}</p></div>${moneyIcon('clock')}</header><div class="fin-due-tabs"><button class="${dueKind==='income'?'active':''}" onclick="moneyDashboardDues('income')">Por cobrar <span>${m.pending.income.length}</span></button><button class="${dueKind==='expense'?'active':''}" onclick="moneyDashboardDues('expense')">Por pagar <span>${m.pending.expense.length}</span></button></div><div class="fin-due-total">${moneyEuro(dueTotal)}<span>${dueKind==='income'?'Pendiente de clientes':'Facturas confirmadas sin pagar'}</span></div><div class="fin-due-list">${dues.length?dues.slice(0,3).map(row=>moneyDashboardDueRow(row,dueKind)).join(''):`<div class="fin-empty">${moneyIcon('check')}<span>${dueKind==='income'?'Sin cobros pendientes de VOCAI':'Sin facturas confirmadas por pagar'}</span></div>`}</div><footer><button onclick="moneyDashboardDueList('${dueKind}')">Ver detalle ${moneyIcon('arrow')}</button>${dueKind==='expense'&&r.forecast?`<span>Previsiones aparte: ${moneyEuro(r.forecast)}</span>`:''}</footer></article>
+      <article class="fin-card fin-dues"><header class="fin-card-heading"><div><h3>Cobros y pagos pendientes</h3><p>Situación ${moneyState.data.review?'revisada':'actual'} · ${moneyBriefDate(currentCashDate)}</p></div>${moneyIcon('clock')}</header><div class="fin-due-tabs"><button class="${dueKind==='income'?'active':''}" onclick="moneyDashboardDues('income')">Por cobrar <span>${m.pending.income.length}</span></button><button class="${dueKind==='expense'?'active':''}" onclick="moneyDashboardDues('expense')">Por pagar <span>${payables.length}</span></button></div><div class="fin-due-total">${moneyEuro(dueTotal)}<span>${dueKind==='income'?'Pendiente de clientes':'Confirmado + previsto'}</span>${dueKind==='expense'?`<span>${moneyDashboardPayableBreakdown(m)}</span>`:''}</div><div class="fin-due-list">${dues.length?dues.slice(0,3).map(row=>moneyDashboardDueRow(row,dueKind)).join(''):`<div class="fin-empty">${moneyIcon('check')}<span>${dueKind==='income'?'Sin cobros pendientes de VOCAI':'Sin pagos confirmados ni previstos para mostrar'}</span></div>`}</div><footer><button onclick="moneyDashboardDueList('${dueKind}')">Ver detalle ${moneyIcon('arrow')}</button>${dueKind==='expense'&&m.forecastExpense.amount?'<span>Los previstos requieren confirmación.</span>':''}</footer></article>
     </div>
     <div class="fin-bottom-grid">
       <article class="fin-card fin-categories"><header class="fin-card-heading"><div><h3>En qué se gasta</h3><p>Gastos confirmados del período</p></div><strong>${moneyEuro(r.expense)}</strong></header><div class="fin-category-list">${m.categories.length?m.categories.map((c,i)=>`<button class="fin-category" onclick="moneyDashboardCategory(decodeURIComponent('${encodeURIComponent(c.key).replace(/'/g,'%27')}'))"><span><span class="fin-category-dot" style="opacity:${Math.max(.4,1-i*.12)}"></span><b>${moneyEsc(c.label)}</b><strong>${moneyEuro(c.amount)}</strong><small>${Math.round(c.amount/r.expense*100)}%</small></span><i class="fin-category-track"><i style="width:${c.amount/r.expense*100}%;opacity:${Math.max(.4,1-i*.12)}"></i></i></button>`).join(''):'<p class="fin-empty-text">No hay gastos confirmados en este mes.</p>'}</div></article>
