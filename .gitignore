@@ -17,3 +17,10 @@ automations/comparador.js
 
 # Claude Code — configuración local de la máquina
 .claude/
+
+# Private financial opening position: never publish with source code.
+lib/finance-seed.js
+db/finance_opening_*.sql
+config/finance-opening.private.json
+config/finance-history.private.json
+config/finance-*.private.json

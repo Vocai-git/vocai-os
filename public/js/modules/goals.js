@@ -4,7 +4,13 @@ async function renderGoals(el) {
   const data = await API.get(`/goals?mes=${mesActual}`);
 
   const objetivo = data.goal?.objetivo || 0;
-  const actual = data.actual || 0;
+  const financeActive = await moneyEnabled();
+  let actual = data.actual || 0;
+  if (financeActive) {
+    const money = await API.get('/finance');
+    actual = FinanceReport.monthly(money.records, mesActual).revenue / 100;
+  }
+  const actualLabel = financeActive ? 'Ingresos del mes' : 'Facturado y cobrado';
   const pct = objetivo > 0 ? Math.min(100, Math.round((actual / objetivo) * 100)) : 0;
 
   el.innerHTML = `
@@ -20,7 +26,7 @@ async function renderGoals(el) {
       <div class="goal-numbers">
         <div>
           <div class="goal-current">${formatMoney(actual)}</div>
-          <div style="font-size:13px;color:var(--text-muted);">facturado y cobrado</div>
+          <div style="font-size:13px;color:var(--text-muted);">${actualLabel}</div>
         </div>
         <div style="text-align:right;">
           <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;">${formatMoney(objetivo)}</div>
@@ -31,6 +37,7 @@ async function renderGoals(el) {
         <div class="goal-bar-fill" style="width:${pct}%;"></div>
       </div>
       <div class="goal-pct">${pct}% conseguido</div>
+      ${financeActive ? '<p class="text-sm text-muted" style="margin-top:12px;">Según el mes del servicio, aunque se cobre en otra fecha. Incluye ingresos asignados a un socio; excluye aportes y previsiones.</p>' : ''}
     </div>
 
     <div class="grid-2">
@@ -38,7 +45,7 @@ async function renderGoals(el) {
         <div class="card-title" style="margin-bottom:16px;">📊 Resumen del mes</div>
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div style="display:flex;justify-content:space-between;padding:12px;background:var(--bg);border-radius:8px;">
-            <span style="font-size:14px;">Facturado y cobrado</span>
+            <span style="font-size:14px;">${actualLabel}</span>
             <strong style="color:var(--teal);">${formatMoney(actual)}</strong>
           </div>
           <div style="display:flex;justify-content:space-between;padding:12px;background:var(--bg);border-radius:8px;">

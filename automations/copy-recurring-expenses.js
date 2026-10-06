@@ -29,6 +29,9 @@ function mesActual() {
 }
 
 async function copyRecurringExpenses({ from, to, ids } = {}) {
+  if (process.env.FINANCE_V2_LIVE === 'true') {
+    return { from, to, copiados: 0, omitidos: 0, total: 0, disabled: true };
+  }
   const mesTo = to || mesActual();
   const mesFrom = from || mesAnterior(mesTo);
 
