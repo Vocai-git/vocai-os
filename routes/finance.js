@@ -38,6 +38,7 @@ router.use((req, res, next) => {
   if (process.env.FINANCE_V2_LIVE !== 'true' && !['GET', 'HEAD'].includes(req.method)) return res.status(409).json({ error: 'V2 está en revisión. Los registros actuales siguen en las secciones originales.' });
   next();
 });
+router.use('/bank-reviews', require('./finance-bank'));
 router.get('/', wrap(async (req, res) => {
   const [baseline, records, files] = await Promise.all([setting(), all('finance_records'), all('finance_files', 'id,record_id,name,mime,bytes')]);
   res.json({ baseline, records, files, review: process.env.FINANCE_V2_LIVE !== 'true', summary: finance.summarize(baseline, records) });
