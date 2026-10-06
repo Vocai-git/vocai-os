@@ -61,13 +61,14 @@ function moneyDraw(el) {
     <header class="section-header money-header"><div><p class="money-eyebrow">VOCAI / ADMINISTRACIÓN</p><h2>${view === 'contributions' ? 'Inversión y aportes' : 'Finanzas'}</h2><p>Control económico de VOCAI</p></div>
       <div class="money-actions">${moneyState.data.review ? '<span class="money-chip">Solo consulta · revisión</span>' : '<button class="btn btn-secondary" onclick="moneyForm(\'expense\',null,true)">Adjuntar factura</button><button class="btn btn-primary" onclick="moneyForm(\'expense\')">+ Añadir</button>'}</div></header>
 
-    <nav class="money-tabs" aria-label="Secciones de finanzas">${[['summary','Resumen del mes'],['records','Movimientos'],['contributions','Inversión y aportes'],['home','Saldos']].map(([key,label]) => `<button class="${view===key?'active':''}" onclick="${key==='records'?"moneyOpenRecords()":"moneyView('"+key+"')"}">${label}</button>`).join('')}</nav>
+    <nav class="money-tabs" aria-label="Secciones de finanzas">${[['summary','Resumen del mes'],['records','Movimientos'],['contributions','Inversión y aportes'],['bank','Revisar banco'],['home','Saldos']].map(([key,label]) => `<button class="${view===key?'active':''}" onclick="${key==='records'?"moneyOpenRecords()":"moneyView('"+key+"')"}">${label}</button>`).join('')}</nav>
     <div id="moneyBody"></div>
     <details class="money-footnote"><summary>${moneyState.data.review?'Datos de esta revisión':'Origen de los saldos'}</summary><p>${moneyState.data.review?'V2 en revisión; la versión original sigue activa. ':'Las altas, pagos y adjuntos se gestionan en V2. Las secciones anteriores quedan para consulta. '}Punto de partida revisado hasta ${moneyEsc(baseline.cutoff)}. ${baseline.history_import?baseline.history_import.count+' registros originales incorporados.':'Importación histórica en revisión.'}</p><button onclick="moneyBaseline()">Ver punto de partida</button> · <button onclick="moneyView('archive')">Consultar registros originales</button></details>
   </section>`;
   const body = document.getElementById('moneyBody');
   if (view === 'summary') moneyOverview(body);
   else if (view === 'home') body.innerHTML = moneyHome(s);
+  else if (view === 'bank') moneyBankRender(body);
   else if (view === 'contributions') body.innerHTML = moneyContributions(s)+moneyStartupDetails();
   else if (view === 'archive') moneyArchive(body);
   else moneyList(body, view === 'pending');
@@ -153,7 +154,8 @@ function moneyForm(kind='expense', recordId=null, focusFile=false, group=null) {
     ${!record&&isDoc?`<div class="money-switch"><button class="${kind==='expense'?'active':''}" onclick="moneyForm('expense')">Compra / gasto</button><button class="${kind==='income'?'active':''}" onclick="moneyForm('income')">Venta / ingreso</button></div>`:''}
     ${isDoc?`<label class="money-upload">${focusFile?'Empieza adjuntando tu factura':'Factura o justificante (opcional)'}<input id="mf_file" type="file" accept="application/pdf,image/jpeg,image/png"><small>PDF, JPG o PNG · hasta 10 MB · adjunto privado. Completa los datos debajo.</small></label>`:''}
     <label>¿Qué es?<input id="mf_title" class="form-input" maxlength="180" value="${moneyEsc(d.title)}" placeholder="Ej. Café oficina o mensualidad de Fabi"></label>
-    <div class="form-row"><label>Total (€)<input id="mf_amount" class="form-input" inputmode="decimal" value="${d.amount?(d.amount/100).toFixed(2):''}" placeholder="0,00"></label><label>${isDoc?'Fecha del documento':'Fecha del movimiento'}<input id="mf_date" class="form-input" type="date" value="${moneyEsc(d.date)}"></label></div>
+    <div class="form-row"><label><span id="mf_amount_label">${isDoc&&d.vat?.mode==='added'?'Base (€)':'Total (€)'}</span><input id="mf_amount" class="form-input" inputmode="decimal" value="${(isDoc?moneyTaxInput(d):d.amount)?((isDoc?moneyTaxInput(d):d.amount)/100).toFixed(2):''}" placeholder="0,00" ${isDoc?'oninput="moneyTaxUpdate()"':''}></label><label>${isDoc?'Fecha del documento':'Fecha del movimiento'}<input id="mf_date" class="form-input" type="date" value="${moneyEsc(d.date)}"></label></div>
+    ${isDoc?moneyTaxFields(d,!!record):''}
     ${isDoc?`
       ${d.period_start?`<div class="money-ledger-note"><p><strong>Corresponde a: ${moneyEsc(moneyServicePeriod(d))}</strong></p><p>El resultado usa este período. Los cobros y pagos usan la fecha en que se movió el dinero.</p></div>`:''}
       ${!record?`<div><p>¿Ya se pagó o cobró?</p><input id="mf_status" type="hidden" value="pending"><div class="money-switch"><button id="mf_pending_btn" class="active" onclick="moneySetPaid(false)">Todavía pendiente</button><button id="mf_paid_btn" class="" onclick="moneySetPaid(true)">Sí, ya se pagó / cobró</button></div></div><div id="mf_paid_fields" class="form-row" hidden><label>${kind==='expense'?'¿De dónde salió?':'¿Dónde entró?'}<select id="mf_account" class="form-select">${moneyOptions(MONEY_ACCOUNTS,'santi')}</select></label><label>Fecha real de ${kind==='income'?'cobro':'pago'}<input id="mf_payment_date" class="form-input" type="date" min="${moneyEsc(moneyState.data.baseline.cutoff)}" max="${moneyToday()}" value="${moneyToday()}"></label></div>`:
@@ -163,6 +165,7 @@ function moneyForm(kind='expense', recordId=null, focusFile=false, group=null) {
     <label>Notas<textarea id="mf_notes" class="form-textarea" maxlength="4000">${moneyEsc(d.notes)}</textarea></label><p id="mf_error" class="money-error" role="alert"></p>
     ${record?`<div class="money-actions"><button class="btn btn-secondary btn-sm" onclick="moneyAudit('${record.id}')">Historial</button>${isDoc&&d.repeat==='monthly'?`<button class="btn btn-secondary btn-sm" onclick="moneyNext('${record.id}')">Preparar próximo mes</button>`:''}<button class="btn btn-danger btn-sm" onclick="moneyVoid('${record.id}')">Anular</button></div>`:''}
   </div>`, '<button class="btn btn-secondary" onclick="closeModal(\'moneyModal\')">Cancelar</button><button id="mf_save" class="btn btn-primary" onclick="moneySave()">Guardar</button>');
+  if(isDoc)moneyTaxUpdate();
 }
 async function moneySave() {
   const form=moneyState.form; if(form.busy)return;
@@ -172,14 +175,15 @@ async function moneySave() {
   try {
     moneyValidateFile(file);
     const isDoc=['expense','income'].includes(form.kind);
-    const amount=moneyCents(val('mf_amount'));
+    const calculated=isDoc?moneyTaxRead():{amount:moneyCents(val('mf_amount'))};
+    const amount=calculated.amount;
     const payments=(form.record?.data.payments||[]).map(p=>({...p}));
     if(!form.record&&isDoc&&val('mf_status')==='paid') payments.push({id:form.retryPayload?.payments[0]?.id||crypto.randomUUID(),amount,date:moneyPaymentDate(val('mf_payment_date')),account:val('mf_account')});
     const data={kind:form.kind,title:val('mf_title'),amount,date:val('mf_date'),notes:val('mf_notes'),
       party:val('mf_party'),number:val('mf_number'),category:val('mf_category'),
       period_start:val('mf_start')||null,period_end:val('mf_end')||null,due:val('mf_due')||null,
       stage:val('mf_stage')||form.record?.data.stage||'document',repeat:val('mf_repeat')||'none',source:val('mf_source')||null,target:val('mf_target')||null,
-      group:val('mf_group')||null,payments};
+      group:val('mf_group')||null,payments,...(calculated.vat?{vat:calculated.vat}:{})};
     // Keep the exact payload on a network retry: same id, payment UUIDs, and body.
     if(form.retryPayload&&JSON.stringify(data)!==JSON.stringify(form.retryPayload))throw new Error('Hay un guardado sin confirmar. Reintenta sin cambiar los campos o recarga para comprobarlo.');
     if(form.savedPayload!==JSON.stringify(data)){
@@ -247,7 +251,7 @@ function moneyArchiveRows(){
 function moneyRecordDetailHTML(record){
  const d=record.data,h=d.history||{},files=(moneyState.data.files||[]).filter(f=>f.record_id===record.id),isDoc=['income','expense'].includes(d.kind);
  const status={paid:d.kind==='income'?'Cobro histórico confirmado.':'Pago histórico confirmado.',assigned:'Ingreso asignado a Santiago para compensar adelantos. Su liquidación personal no es otro cobro de VOCAI.',duplicate:'Duplicado conservado como referencia; no se suma.',draft:'Borrador original; no se suma.',review:'Registro pendiente de revisar; no se suma.'}[h.status]||(!isDoc?'Movimiento confirmado.':d.stage==='forecast'?'Previsión: importe por confirmar.':moneyPaid(d)>=d.amount?'Pago o cobro confirmado.':moneyPaid(d)?'Pago o cobro parcial.':'Pendiente de pago o cobro.');
- return `<h3>${moneyEsc(d.title)} · ${moneyEuro(d.amount)}</h3><p>${moneyEsc(d.notes)}</p>${d.period_start?`<div class="money-ledger-note"><p><strong>Corresponde a: ${moneyEsc(moneyServicePeriod(d))}</strong></p><p>Se cuenta como ingreso o gasto de ese período. Los pagos se muestran en su fecha real.</p></div>`:''}<p>Documento: ${moneyEsc(d.date)}${d.period_start?' · Período '+moneyEsc(d.period_start)+' / '+moneyEsc(d.period_end):''}</p>${(d.payments||[]).map(p=>`<p>${h.payment_date_basis==='registered_month'?'Mes registrado: '+moneyEsc(p.date.slice(0,7)):moneyEsc(p.date)} · ${moneyEsc(MONEY_ACCOUNTS[p.account])} · ${moneyEuro(p.amount)}</p>`).join('')}<p>${moneyEsc(h.reason||status)}</p>${h.basis==='registered_month'||h.payment_date_basis==='registered_month'?'<p class="money-muted">Se conserva el mes original. No consta el día efectivo del pago.</p>':''}${files.length?'<div class="money-actions">'+files.map(f=>`<button class="btn btn-secondary btn-sm" onclick="moneyFile('${f.id}')">${moneyEsc(f.name||'Abrir adjunto')}</button>`).join('')+'</div>':''}${(h.sources||[]).map(src=>`<details><summary>Ver registro original</summary><pre class="money-json">${moneyEsc(JSON.stringify(src.original,null,2))}</pre></details>`).join('')}`;
+ return `<h3>${moneyEsc(d.title)} · ${moneyEuro(d.amount)}</h3>${d.vat?moneyTaxSummaryHTML(d.vat):''}<p>${moneyEsc(d.notes)}</p>${d.period_start?`<div class="money-ledger-note"><p><strong>Corresponde a: ${moneyEsc(moneyServicePeriod(d))}</strong></p><p>Se cuenta como ingreso o gasto de ese período. Los pagos se muestran en su fecha real.</p></div>`:''}<p>Documento: ${moneyEsc(d.date)}${d.period_start?' · Período '+moneyEsc(d.period_start)+' / '+moneyEsc(d.period_end):''}</p>${(d.payments||[]).map(p=>`<p>${h.payment_date_basis==='registered_month'?'Mes registrado: '+moneyEsc(p.date.slice(0,7)):moneyEsc(p.date)} · ${moneyEsc(MONEY_ACCOUNTS[p.account])} · ${moneyEuro(p.amount)}</p>`).join('')}<p>${moneyEsc(h.reason||status)}</p>${h.basis==='registered_month'||h.payment_date_basis==='registered_month'?'<p class="money-muted">Se conserva el mes original. No consta el día efectivo del pago.</p>':''}${files.length?'<div class="money-actions">'+files.map(f=>`<button class="btn btn-secondary btn-sm" onclick="moneyFile('${f.id}')">${moneyEsc(f.name||'Abrir adjunto')}</button>`).join('')+'</div>':''}${(h.sources||[]).map(src=>`<details><summary>Ver registro original</summary><pre class="money-json">${moneyEsc(JSON.stringify(src.original,null,2))}</pre></details>`).join('')}`;
 }
 function moneyClosedDetails(record){
  const d=record.data,canNext=!record.voided&&['income','expense'].includes(d.kind)&&d.repeat==='monthly'&&!['draft','duplicate','review','assigned'].includes(d.history?.status);

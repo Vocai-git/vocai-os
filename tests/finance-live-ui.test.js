@@ -5,13 +5,13 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 function harness(records=[],review=false){
  const nodes={},calls={modals:[],toasts:[],closed:[],renders:[],post:[],put:[],uploads:[]};let serial=0;
- const ctx={window:{},document:{getElementById:id=>nodes[id]},Intl,Date,JSON,Number,FormData:class{append(){}},
+ const ctx={window:{},FinanceTax:require('../public/js/finance-tax'),document:{getElementById:id=>nodes[id]},Intl,Date,JSON,Number,FormData:class{append(){}},
   crypto:{randomUUID:()=>`fixture-${++serial}`},localStorage:{getItem:()=>''},formatMoney:n=>n.toFixed(2),escHtml:value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
   createModal:(...args)=>calls.modals.push(args),closeModal:id=>calls.closed.push(id),toast:(...args)=>calls.toasts.push(args),
   API:{post:async(path,payload)=>{calls.post.push({path,payload});return {id:payload.id,version:1,data:payload.data};},put:async(path,payload)=>{calls.put.push({path,payload});return {id:path.split('/').pop(),version:payload.version+1,data:payload.data};}},
   fetch:async(...args)=>{calls.uploads.push(args);return {ok:true,json:async()=>({id:'file'})};},
  };
- vm.createContext(ctx);vm.runInContext(fs.readFileSync(require.resolve('../public/js/modules/money.js'),'utf8'),ctx);
+ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require.resolve('../public/js/modules/money-tax.js'),'utf8'),ctx);vm.runInContext(fs.readFileSync(require.resolve('../public/js/modules/money.js'),'utf8'),ctx);
  ctx.moneyState=ctx.window.moneyState;ctx.moneyState.data={review,baseline:{cutoff:'2026-10-05'},records,files:[]};ctx.moneyState.view='summary';
  ctx.moneyToday=()=> '2026-10-05';ctx.renderMoney=async(el,view)=>calls.renders.push(view);
  const fields=values=>Object.entries(values).forEach(([id,value])=>{nodes[id]={value,disabled:false,textContent:''};});

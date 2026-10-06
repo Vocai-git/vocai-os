@@ -27,7 +27,7 @@ function harness(){
  const node=id=>nodes[id]||(nodes[id]={innerHTML:'',textContent:'',value:'',querySelectorAll:()=>[]});
  const ctx={window:{},document:{getElementById:node},Intl,Date,JSON,Number,FinanceReport,formatMoney:n=>n.toFixed(2)+' €',escHtml:value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),createModal:(...args)=>modals.push(args),toast:()=>{}};
  vm.createContext(ctx);
- for(const path of ['../public/js/modules/money-dashboard.js','../public/js/modules/money.js'])vm.runInContext(fs.readFileSync(require.resolve(path),'utf8'),ctx);
+ for(const path of ['../public/js/finance-tax.js','../public/js/modules/money-tax.js','../public/js/modules/money-dashboard.js','../public/js/modules/money.js'])vm.runInContext(fs.readFileSync(require.resolve(path),'utf8'),ctx);
  ctx.moneyState=ctx.window.moneyState;
  ctx.moneyState.month='2026-10';ctx.moneyState.data={review:false,records,files:[],baseline:{cutoff:'2026-10-05',history_import:{count:records.length}},summary:{cash:{bank:400000,cash:15000},operating:{santi:0,agus:0},groups:{}}};
  ctx.moneyToday=()=> '2026-10-06';

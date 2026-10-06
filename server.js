@@ -6,6 +6,9 @@ const path = require('path');
 const app = express();
 
 app.use(cors());
+// Statement comparisons are larger than normal forms; keep the higher limit
+// scoped and require the existing user session before parsing their JSON.
+app.use('/api/finance/bank-reviews', require('./middleware/auth'), express.json({ limit: '6mb' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
