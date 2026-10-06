@@ -9,11 +9,22 @@
   return d.date||'';
  }
  function matches(date,month){return !month||String(date||'').startsWith(month);}
+ // Documents retain their gross business amount. Only an explicitly recorded
+ // withholding reduces what the customer or supplier actually settles.
+ function payable(d){return Math.max(0,d.amount-(d.irpf?.tax||0));}
+ function forecastPaid(d,paid){
+  if(!d.irpf?.tax)return Math.min(d.amount,paid);
+  if(!paid)return 0;
+  const net=payable(d);if(paid>=net)return d.amount;
+  // Round the proportional gross once, to a cent, without floating-point
+  // multiplication losing precision on larger documents.
+  return Number((BigInt(paid)*BigInt(d.amount)+BigInt(net)/2n)/BigInt(net));
+ }
  function paymentRows(row){
   const d=row.data,h=d.history||{},payments=(d.payments||[]).map(p=>({...p,estimated:!!row.included_in_opening&&h.payment_date_basis==='registered_month'}));
   // A historical paid record is confirmed paid, but its registered month is
   // only a fallback: do not invent a payment row or an exact payment date.
-  if(h.status==='paid'&&!payments.length)payments.push({date:d.date,amount:d.amount,account:h.account,estimated:true});
+  if(h.status==='paid'&&!payments.length)payments.push({date:d.date,amount:payable(d),account:h.account,estimated:true});
   return payments;
  }
  function entry(row,month,mode='business'){
@@ -41,7 +52,7 @@
    return result;
   }
   if(!matches(accountDate,month)){result.excludedReason='outside_month';return result;}
-  result.amount=d.stage==='forecast'?Math.min(d.amount,payments.reduce((sum,p)=>sum+p.amount,0)):d.amount;
+  result.amount=d.stage==='forecast'?forecastPaid(d,payments.reduce((sum,p)=>sum+p.amount,0)):d.amount;
   result.forecastAmount=d.stage==='forecast'?Math.max(0,d.amount-result.amount):0;
   result.included=result.amount>0;
   result.excludedReason=result.included?null:result.forecastAmount?'forecast':null;
@@ -100,7 +111,7 @@
   baseline=baseline||{};summary=summary||{};
   today=today||new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   const current=monthly(records,month),previousMonth=offsetMonth(month,-1),categories=new Map();
-  const pending={income:[],expense:[],incomeTotal:0,expenseTotal:0},forecastExpense={amount:0,items:[]};
+  const pending={income:[],expense:[],incomeTotal:0,expenseTotal:0},forecastExpense={amount:0,payableAmount:0,items:[]};
   const item=(row,amount)=>({id:row.id,title:row.data.title||'',party:row.data.party||'',amount,remaining:amount,due:row.data.due||null,date:row.data.date||null,overdue:!!row.data.due&&row.data.due<today});
   for(const row of records){
    if(row.voided)continue;
@@ -111,13 +122,15 @@
    }
    if(d.kind==='expense'&&business.forecastAmount>0){
     forecastExpense.amount+=business.forecastAmount;
-    forecastExpense.items.push(item(row,business.forecastAmount));
+    const remaining=Math.max(0,payable(d)-paymentRows(row).reduce((sum,p)=>sum+p.amount,0));
+    forecastExpense.payableAmount+=remaining;
+    if(remaining)forecastExpense.items.push(item(row,remaining));
    }
    // Opening documents were already settled in the agreed starting balance.
    // Assigned income is also settled for VOCAI; its personal collection stays
    // outside this company's list. Forecasts are not confirmed liabilities.
    if(row.included_in_opening||!['income','expense'].includes(d.kind)||d.stage==='forecast'||['draft','duplicate','review','assigned'].includes(h.status)||h.classification==='startup')continue;
-   const remaining=Math.max(0,d.amount-paymentRows(row).reduce((sum,p)=>sum+p.amount,0));
+   const remaining=Math.max(0,payable(d)-paymentRows(row).reduce((sum,p)=>sum+p.amount,0));
    if(!remaining)continue;
    pending[d.kind].push(item(row,remaining));pending[d.kind+'Total']+=remaining;
   }

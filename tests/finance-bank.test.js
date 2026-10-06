@@ -53,6 +53,17 @@ test('bank extraction uses individual bank payments, includes opening references
  assert.ok(result.items.every(i=>i.inMonth&&i.estimated===false));assert.deepEqual(result.warnings,[]);assert.equal(JSON.stringify(records),before);
 });
 
+test('IRPF gross documents reconcile only their actual net bank payments, without a withholding movement',()=>{
+ for(const kind of ['expense','income']){
+  const sign=kind==='expense'?-1:1,records=[record('withholding',{kind,amount:121000,vat:{base:100000,tax:21000,total:121000},irpf:{rate:1500,base:100000,tax:15000},payments:[payment('net',106000)]})],before=JSON.stringify(records);
+  const rows=[row('row-2','2026-10-05',sign*106000)],items=Bank.extract(records,month).items;
+  assert.equal(items.length,1);assert.equal(items[0].amount,sign*106000);
+  const compared=Bank.compare(rows,records,config({openingBalance:200000,closingBalance:200000+sign*106000}),[decision(rows[0],items[0])]);
+  assert.equal(compared.ready,true);assert.equal(compared.totals.ledgerNet,sign*106000);assert.equal(compared.totals.bankNet,sign*106000);
+  assert.equal(Bank.compare([{...rows[0],amount:sign*121000}],records,config()).ready,false);assert.equal(JSON.stringify(records),before);
+ }
+});
+
 test('capital and bank transfers are bank movements; personal settlements and assigned income are not',()=>{
  const transfer=(id,kind,source,target,amount)=>record(id,{kind,source,target,amount,payments:[]});
  const records=[transfer('capital','contribution','santi','bank',7000),transfer('refund','transfer','bank','santi',500),transfer('cash-withdrawal','transfer','bank','cash',1000),transfer('cash-deposit','transfer','cash','bank',2000),transfer('personal','settlement','agus','santi',4000),record('assigned',{kind:'income',history:{status:'assigned',account:'santi'},payments:[]}),record('duplicate',{history:{status:'duplicate'}}),record('void',{}, {voided:true})];
