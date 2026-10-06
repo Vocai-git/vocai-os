@@ -39,6 +39,7 @@ router.use((req, res, next) => {
   next();
 });
 router.use('/bank-reviews', require('./finance-bank'));
+router.use('/documents', require('./finance-documents'));
 router.get('/', wrap(async (req, res) => {
   const [baseline, records, files] = await Promise.all([setting(), all('finance_records'), all('finance_files', 'id,record_id,name,mime,bytes')]);
   res.json({ baseline, records, files, review: process.env.FINANCE_V2_LIVE !== 'true', summary: finance.summarize(baseline, records) });

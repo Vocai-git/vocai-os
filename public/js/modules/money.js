@@ -59,15 +59,16 @@ function moneyDraw(el) {
   const view = moneyState.view;
   el.innerHTML = `<section class="money-workspace ${view==='summary'?'money-dashboard-active':''}">
     <header class="section-header money-header"><div><p class="money-eyebrow">VOCAI / ADMINISTRACIÓN</p><h2>${view === 'contributions' ? 'Inversión y aportes' : 'Finanzas'}</h2><p>Control económico de VOCAI</p></div>
-      <div class="money-actions">${moneyState.data.review ? '<span class="money-chip">Solo consulta · revisión</span>' : '<button class="btn btn-secondary" onclick="moneyForm(\'expense\',null,true)">Adjuntar factura</button><button class="btn btn-primary" onclick="moneyForm(\'expense\')">+ Añadir</button>'}</div></header>
+      <div class="money-actions">${moneyState.data.review ? '<span class="money-chip">Solo consulta · revisión</span>' : '<button class="btn btn-secondary" onclick="moneyDocumentsAttach()">Adjuntar factura</button><button class="btn btn-primary" onclick="moneyForm(\'expense\')">+ Añadir</button>'}</div></header>
 
-    <nav class="money-tabs" aria-label="Secciones de finanzas">${[['summary','Resumen del mes'],['records','Movimientos'],['contributions','Inversión y aportes'],['bank','Revisar banco'],['home','Saldos']].map(([key,label]) => `<button class="${view===key?'active':''}" onclick="${key==='records'?"moneyOpenRecords()":"moneyView('"+key+"')"}">${label}</button>`).join('')}</nav>
+    <nav class="money-tabs" aria-label="Secciones de finanzas">${[['summary','Resumen del mes'],['records','Movimientos'],['contributions','Inversión y aportes'],['documents','Documentos'],['bank','Revisar banco'],['home','Saldos']].map(([key,label]) => `<button class="${view===key?'active':''}" onclick="${key==='records'?"moneyOpenRecords()":"moneyView('"+key+"')"}">${label}</button>`).join('')}</nav>
     <div id="moneyBody"></div>
     <details class="money-footnote"><summary>${moneyState.data.review?'Datos de esta revisión':'Origen de los saldos'}</summary><p>${moneyState.data.review?'V2 en revisión; la versión original sigue activa. ':'Las altas, pagos y adjuntos se gestionan en V2. Las secciones anteriores quedan para consulta. '}Punto de partida revisado hasta ${moneyEsc(baseline.cutoff)}. ${baseline.history_import?baseline.history_import.count+' registros originales incorporados.':'Importación histórica en revisión.'}</p><button onclick="moneyBaseline()">Ver punto de partida</button> · <button onclick="moneyView('archive')">Consultar registros originales</button></details>
   </section>`;
   const body = document.getElementById('moneyBody');
   if (view === 'summary') moneyOverview(body);
   else if (view === 'home') body.innerHTML = moneyHome(s);
+  else if (view === 'documents') moneyDocumentsRender(body);
   else if (view === 'bank') moneyBankRender(body);
   else if (view === 'contributions') body.innerHTML = moneyContributions(s)+moneyStartupDetails();
   else if (view === 'archive') moneyArchive(body);
@@ -142,17 +143,17 @@ function moneyRows(pending) {
 }
 
 function moneyOptions(options, selected) { return Object.entries(options).map(([v,label])=>`<option value="${v}" ${selected===v?'selected':''}>${moneyEsc(label)}</option>`).join(''); }
-function moneyForm(kind='expense', recordId=null, focusFile=false, group=null) {
+function moneyForm(kind='expense', recordId=null, focusFile=false, group=null, documentSource=null) {
   const record = recordId ? moneyRecord(recordId) : null;
   if(moneyState.data.review) return moneyReviewDetails(record);
   const d = record?.data || {kind,title:'',amount:0,date:moneyToday(),payments:[],repeat:'none',group:group||'capital'};
   const isDoc=['expense','income'].includes(kind);
   if(record?.included_in_opening)return moneyClosedDetails(record);
-  moneyState.form = { id:recordId||crypto.randomUUID(), record, kind, busy:false };
+  moneyState.form = { id:recordId||documentSource?.draft_record_id||crypto.randomUUID(), record, kind, busy:false, ...(documentSource?{document:documentSource}:{}) };
   const labels={expense:'Compra o gasto',income:'Venta o ingreso',transfer:'Devolución o transferencia',contribution:'Nuevo aporte',settlement:'Compensación entre socios'};
   createModal('moneyModal', record?'Detalle del movimiento':labels[kind], `<div class="money-form">
-    ${!record&&isDoc?`<div class="money-switch"><button class="${kind==='expense'?'active':''}" onclick="moneyForm('expense')">Compra / gasto</button><button class="${kind==='income'?'active':''}" onclick="moneyForm('income')">Venta / ingreso</button></div>`:''}
-    ${isDoc?`<label class="money-upload">${focusFile?'Empieza adjuntando tu factura':'Factura o justificante (opcional)'}<input id="mf_file" type="file" accept="application/pdf,image/jpeg,image/png"><small>PDF, JPG o PNG · hasta 10 MB · adjunto privado. Completa los datos debajo.</small></label>`:''}
+    ${!record&&isDoc?`<div class="money-switch"><button class="${kind==='expense'?'active':''}" onclick="moneyForm('expense',null,false,null,moneyState.form.document)">Compra / gasto</button><button class="${kind==='income'?'active':''}" onclick="moneyForm('income',null,false,null,moneyState.form.document)">Venta / ingreso</button></div>`:''}
+    ${documentSource?moneyDocumentSourceHTML(documentSource):isDoc?`<label class="money-upload">${focusFile?'Empieza adjuntando tu factura':'Factura o justificante (opcional)'}<input id="mf_file" type="file" accept="application/pdf,image/jpeg,image/png"><small>PDF, JPG o PNG · hasta 10 MB · adjunto privado. Completa los datos debajo.</small></label>`:''}
     <label>¿Qué es?<input id="mf_title" class="form-input" maxlength="180" value="${moneyEsc(d.title)}" placeholder="Ej. Café oficina o mensualidad de Fabi"></label>
     <div class="form-row"><label><span id="mf_amount_label">${isDoc&&d.vat?.mode==='added'?'Base (€)':'Total (€)'}</span><input id="mf_amount" class="form-input" inputmode="decimal" value="${(isDoc?moneyTaxInput(d):d.amount)?((isDoc?moneyTaxInput(d):d.amount)/100).toFixed(2):''}" placeholder="0,00" ${isDoc?'oninput="moneyTaxUpdate()"':''}></label><label>${isDoc?'Fecha del documento':'Fecha del movimiento'}<input id="mf_date" class="form-input" type="date" value="${moneyEsc(d.date)}"></label></div>
     ${isDoc?moneyTaxFields(d,!!record):''}
@@ -189,11 +190,12 @@ async function moneySave() {
     if(form.retryPayload&&JSON.stringify(data)!==JSON.stringify(form.retryPayload))throw new Error('Hay un guardado sin confirmar. Reintenta sin cambiar los campos o recarga para comprobarlo.');
     if(form.savedPayload!==JSON.stringify(data)){
       form.retryPayload=data;
-      const saved=form.record?await API.put('/finance/records/'+form.id,{version:form.record.version,data}):await API.post('/finance/records',{id:form.id,data});
+      const saved=form.record?await API.put('/finance/records/'+form.id,{version:form.record.version,data}):form.document?await moneyDocumentSaveRecord(form,data):await API.post('/finance/records',{id:form.id,data});
       form.record=saved;form.savedPayload=JSON.stringify(data);form.retryPayload=null;
     }
     // A failed attachment must not create a duplicate purchase on retry.
     if(file)try{await moneyUploadFile(form.id,file);}catch(e){throw new Error('Movimiento guardado; el adjunto falló: '+e.message);}
+    if(form.document)await moneyDocumentLinkSaved(form);
     closeModal('moneyModal');toast('Guardado. Tus cuentas están actualizadas.','success');await renderMoney(document.getElementById('pageContent'),moneyState.view);
   }catch(e){document.getElementById('mf_error').textContent=e.message;form.retryPayload=e.status&&e.status<500?null:form.retryPayload;}
   finally{form.busy=false;const button=document.getElementById('mf_save');if(button)button.disabled=false;}
