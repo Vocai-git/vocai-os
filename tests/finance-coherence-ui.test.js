@@ -45,6 +45,7 @@ function kpi(html,kind){
  assert.ok(article,`Missing KPI: ${kind}`);
  return text(article[2].match(/<strong\b[^>]*>([\s\S]*?)<\/strong>/)[1]);
 }
+function duesCard(html){return [...html.matchAll(/<article\b([^>]*)>([\s\S]*?)<\/article>/g)].find(m=>m[1].includes('fin-dues'))[2];}
 function rows(html){return [...html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/g)].map(m=>m[1]).filter(row=>row.includes('<td'));}
 function ledgerAmount(html,title){
  const row=rows(html).find(row=>text(row).includes(title));
@@ -162,4 +163,66 @@ test('cash drilldown keeps two payment dates and accounts visible instead of mer
  const detail=text(h.ctx.moneyRecordDetailHTML(h.records.find(r=>r.id==='rent')));
  assertOctoberDate(detail,1);assertOctoberDate(detail,3);
  assert.match(detail,/500\.00 €/);assert.match(detail,/400\.00 €/);
+});
+
+test('payables queue combines confirmed balances and selected-month forecasts without changing the ledger',()=>{
+ const h=harness(),doc=(id,data)=>({id,version:1,included_in_opening:false,data:{kind:'expense',title:id,date:'2026-10-05',amount:0,payments:[],...data}}),payment=amount=>({id:'payment-'+amount,amount,date:'2026-10-05',account:'bank'});
+ h.ctx.moneyState.data.records=[
+  doc('confirmed-test',{title:'Factura confirmada de prueba',amount:48000,payments:[payment(12000)],due:'2026-10-07'}),
+  doc('forecast-test',{title:'Gasto previsto de prueba',stage:'forecast',amount:92000,payments:[payment(12000)],due:'2026-10-02'}),
+  doc('other-month',{title:'Previsión del mes siguiente',stage:'forecast',amount:50000,date:'2026-11-01'}),
+  doc('forecast-paid',{title:'Previsión ya pagada',stage:'forecast',amount:9000,payments:[payment(9000)]}),
+  doc('forecast-income',{kind:'income',title:'Ingreso previsto de prueba',stage:'forecast',amount:8000}),
+  doc('confirmed-income',{kind:'income',title:'Cliente pendiente de prueba',amount:30000,payments:[payment(5000)]}),
+ ];
+ const before=JSON.stringify(h.ctx.moneyState.data.records),modelBefore=h.ctx.moneyDashboardModel();
+ click(h.ctx,h.ctx.moneyDashboardHTML(),'Por pagar');
+ const card=duesCard(h.node('moneyMonthSummary').innerHTML),visible=text(card),total=text(card.match(/class="fin-due-total">([\s\S]*?)<\/div>/)[1]);
+ assert.match(visible,/Por pagar 2/);
+ assert.match(total,/1160\.00 € Confirmado \+ previsto/);
+ assert.match(total,/Confirmado: 360\.00 €/);
+ assert.match(total,/Previsto en octubre de 2026: 800\.00 €/);
+ assert.match(visible,/Factura confirmada de prueba/);
+ assert.match(visible,/Gasto previsto de prueba/);
+ assert.match(visible,/Previsto · por confirmar/);
+ assert.doesNotMatch(visible,/Sin facturas confirmadas|Sin pagos confirmados|Previsión del mes siguiente|Previsión ya pagada/);
+ const forecastButton=[...card.matchAll(/<button\b[^>]*>[\s\S]*?<\/button>/g)].find(m=>text(m[0]).includes('Gasto previsto de prueba'))[0];
+ assert.doesNotMatch(text(forecastButton),/Vencido|Venció/i);
+ click(h.ctx,card,'Ver detalle');
+ const modal=h.modals.at(-1);
+ assert.equal(modal[0],'moneyDues');
+ assert.match(text(modal[2]),/Factura confirmada de prueba/);
+ assert.match(text(modal[2]),/Gasto previsto de prueba/);
+ assert.doesNotMatch(text(modal[2]),/Previsión del mes siguiente|Previsión ya pagada/);
+ click(h.ctx,modal[2],'G Gasto previsto de prueba');
+ assert.equal(h.modals.at(-1)[0],'moneyModal');
+ assert.equal(h.ctx.moneyState.form.record.id,'forecast-test');
+ assert.equal(h.ctx.moneyState.form.record.data.stage,'forecast');
+ assert.equal(h.ctx.moneyDashboardModel().pending.expenseTotal,36000);
+ assert.equal(h.ctx.moneyDashboardModel().current.expense,69000);
+ assert.equal(h.ctx.moneyDashboardModel().current.paid,33000);
+ assert.deepEqual(h.ctx.moneyDashboardModel(),modelBefore);
+ assert.equal(JSON.stringify(h.ctx.moneyState.data.records),before);
+ h.ctx.moneyDashboardDues('income');
+ const income=text(duesCard(h.node('moneyMonthSummary').innerHTML));
+ assert.match(income,/Por cobrar 1/);assert.match(income,/250\.00 € Pendiente de clientes/);
+ assert.doesNotMatch(income,/Ingreso previsto de prueba|Confirmado \+ previsto/);
+});
+
+test('forecast-only months show work to review instead of a zero payable empty state',()=>{
+ const h=harness();h.ctx.moneyState.data.records=[{id:'forecast-only',version:1,included_in_opening:false,data:{kind:'expense',title:'Revisión de consumo ficticia',date:'2026-10-01',amount:18500,stage:'forecast',payments:[]}}];
+ h.ctx.moneyDashboardDues('expense');
+ const card=duesCard(h.node('moneyMonthSummary').innerHTML),visible=text(card);
+ assert.match(visible,/Por pagar 1/);
+ assert.match(visible,/185\.00 € Confirmado \+ previsto/);
+ assert.match(visible,/Confirmado: 0\.00 €/);
+ assert.match(visible,/Previsto en octubre de 2026: 185\.00 €/);
+ assert.match(visible,/Revisión de consumo ficticia/);
+ assert.doesNotMatch(card,/class="fin-empty"/);
+ const model=h.ctx.moneyDashboardModel();
+ assert.equal(model.pending.expenseTotal,0);
+ assert.equal(model.current.expense,0);
+ assert.equal(model.current.paid,0);
+ assert.equal(model.current.revenue,0);
+ assert.equal(model.forecastExpense.amount,18500);
 });
