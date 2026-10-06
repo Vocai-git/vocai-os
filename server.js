@@ -6,6 +6,8 @@ const path = require('path');
 const app = express();
 
 app.use(cors());
+// Telegram authenticates its webhook before parsing the incoming payload.
+app.use('/api/telegram/documents', require('./routes/telegram-documents'));
 // Statement comparisons are larger than normal forms; keep the higher limit
 // scoped and require the existing user session before parsing their JSON.
 app.use('/api/finance/bank-reviews', require('./middleware/auth'), express.json({ limit: '6mb' }));
