@@ -123,6 +123,7 @@ test('dashboard separates confirmed payables from forecasts and uses outstanding
  assert.deepEqual(data.pending.expense.map(r=>[r.title,r.amount]),[['Confirmed',12500]]);
  assert.equal(data.pending.incomeTotal,0);
  assert.equal(data.forecastExpense.amount,17000);
+ assert.equal(data.forecastExpense.payableAmount,17000);
  assert.deepEqual(data.forecastExpense.items.map(r=>[r.title,r.amount,r.date]),[['Forecast',17000,'2026-10-05']]);
  assert.equal(data.current.expense,18000);
 });
@@ -205,4 +206,56 @@ test('an explicit opening payment with uncertain day retains the registered-mont
  const report=require('../public/js/finance-report'),result=report.entry(row,'2026-10','cash');
  assert.equal(result.amount,2000);assert.equal(result.basis,'registered_month');
  assert.equal(report.monthly([row],'2026-10').registered_dates,1);
+});
+
+const withheld=(kind='expense',payments=[],extra={})=>row({kind,amount:121000,vat:{mode:'added',input:100000,rate:2100,base:100000,tax:21000,total:121000},irpf:{rate:1500,base:100000,tax:15000},payments,...extra});
+
+test('explicit IRPF keeps business gross, pending net, and actual payments separate for sales and purchases',()=>{
+ for(const kind of ['income','expense']){
+  for(const paid of [0,40000,106000]){
+   const record=withheld(kind,paid?[payment(paid,'2026-10-05')]:[]),before=JSON.stringify(record),data=dashboard([record]);
+   assert.equal(data.current[kind==='income'?'revenue':'expense'],121000);
+   assert.equal(data.current[kind==='income'?'collected':'paid'],paid);
+   assert.equal(data.pending[kind+'Total'],106000-paid);
+   assert.deepEqual(data.pending[kind].map(item=>item.remaining),paid===106000?[]:[106000-paid]);
+   assert.equal(report.entry(record,'2026-10','all').amount,121000);
+   assert.equal(JSON.stringify(record),before);
+  }
+ }
+});
+
+test('IRPF forecasts retain a gross result forecast and expose only the net amount still to settle',()=>{
+ for(const [paid,grossConfirmed,grossForecast,netRemaining] of [[0,0,121000,106000],[53000,60500,60500,53000],[106000,121000,0,0]]){
+  for(const kind of ['income','expense']){
+   const record=withheld(kind,paid?[payment(paid,'2026-10-05')]:[],{stage:'forecast'}),data=dashboard([record]);
+   assert.equal(data.current[kind==='income'?'revenue':'expense'],grossConfirmed);
+   assert.equal(data.current[kind==='income'?'forecast_income':'forecast'],grossForecast);
+   assert.equal(data.current[kind==='income'?'collected':'paid'],paid);
+   assert.equal(data.pending.incomeTotal,0);assert.equal(data.pending.expenseTotal,0);
+   if(kind==='expense'){
+    assert.equal(data.forecastExpense.amount,grossForecast);
+    assert.equal(data.forecastExpense.payableAmount,netRemaining);
+    assert.deepEqual(data.forecastExpense.items.map(item=>[item.amount,item.remaining]),netRemaining?[[netRemaining,netRemaining]]:[]);
+    assert.equal(data.categories.reduce((total,c)=>total+c.amount,0),grossConfirmed);
+   }
+  }
+ }
+});
+
+test('IRPF forecast recognition rounds to cents and leaves no withholding behind after the net is settled',()=>{
+ const make=paid=>withheld('expense',[payment(paid,'2026-10-05')],{stage:'forecast',amount:121,irpf:{rate:1500,base:100,tax:15},vat:{base:100,tax:21,total:121}});
+ const partial=dashboard([make(53)]);
+ assert.equal(partial.current.expense,61);assert.equal(partial.current.forecast,60);assert.equal(partial.forecastExpense.payableAmount,53);
+ const paid=dashboard([make(106)]);
+ assert.equal(paid.current.expense,121);assert.equal(paid.current.forecast,0);assert.equal(paid.current.paid,106);assert.equal(paid.forecastExpense.payableAmount,0);assert.deepEqual(paid.forecastExpense.items,[]);
+});
+
+test('reports never infer IRPF from historic labels or VAT and keep the existing paid-date basis',()=>{
+ const old=row({title:'Factura profesional IRPF',amount:121000,vat:{base:100000,tax:21000,total:121000}});
+ assert.equal(dashboard([old]).pending.expenseTotal,121000);
+ const historic=row({...old.data,history:{status:'paid',account:'bank'}});
+ assert.equal(report.entry(historic,'2026-10','cash').amount,121000);assert.equal(report.entry(historic,'2026-10','cash').basis,'registered_month');
+ const explicit=withheld('expense',[],{history:{status:'paid',account:'bank'}});
+ assert.equal(report.entry(explicit,'2026-10','cash').amount,106000);assert.equal(report.entry(explicit,'2026-10','cash').basis,'registered_month');
+ assert.equal(dashboard([explicit]).pending.expenseTotal,0);
 });

@@ -6,7 +6,7 @@
 })(typeof window==='undefined'?this:window,function(){
  'use strict';
  const MAX_AMOUNT=1000000000;
- function check(ok,message){if(!ok){const error=new Error(message);error.status=400;error.code='INVALID_VAT';throw error;}}
+ function check(ok,message,code='INVALID_VAT'){if(!ok){const error=new Error(message);error.status=400;error.code=code;throw error;}}
  function round(numerator,denominator){return (numerator+denominator/2n)/denominator;}
  function calculate(inputCents,mode,rateBps){
   check(['none','included','added'].includes(mode),'Selecciona cómo se aplica el IVA');
@@ -20,5 +20,16 @@
   check(total<=BigInt(MAX_AMOUNT),'El total con IVA supera el importe máximo permitido');
   return {mode,input:inputCents,rate:rateBps,base:Number(base),tax:Number(tax),total:Number(total)};
  }
- return {calculate};
+ function withholding(vat,rateBps){
+  check(vat&&typeof vat==='object'&&!Array.isArray(vat),'Indica el desglose de IVA antes de aplicar IRPF','INVALID_IRPF');
+  const canonical=calculate(vat.input,vat.mode,vat.rate);
+  check(Number.isSafeInteger(rateBps)&&rateBps>0&&rateBps<=10000,'El porcentaje de IRPF debe ser mayor que 0 y como máximo 100, con hasta dos decimales','INVALID_IRPF');
+  const tax=Number(round(BigInt(canonical.base)*BigInt(rateBps),10000n));
+  check(canonical.total-tax>0,'El importe neto tras la retención de IRPF debe ser positivo','INVALID_IRPF');
+  return {rate:rateBps,base:canonical.base,tax};
+ }
+ // The document keeps its gross amount. Only the explicit withholding reduces
+ // what the customer pays or what is paid to the supplier.
+ function payable(doc){return doc.amount-(doc.irpf?.tax||0);}
+ return {calculate,withholding,payable};
 });

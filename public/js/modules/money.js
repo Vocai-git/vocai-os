@@ -120,7 +120,7 @@ function moneyRows(pending) {
    if(mode==='forecast'){entry.included=entry.forecastAmount>0;entry.amount=entry.forecastAmount;}
    return {record,entry};
  }).filter(({record:r,entry:e})=>e.included&&!r.voided&&(moneyState.filter==='all'||r.data.kind===moneyState.filter))
- .filter(({record:r})=>!pending||(!r.included_in_opening&&['expense','income'].includes(r.data.kind)&&moneyPaid(r.data)<r.data.amount))
+ .filter(({record:r})=>!pending||(!r.included_in_opening&&['expense','income'].includes(r.data.kind)&&moneyPaid(r.data)<FinanceTax.payable(r.data)))
  .filter(({record:r})=>!moneyState.focusIds||moneyState.focusIds.includes(r.id))
  .filter(({record:r})=>[r.data.title,r.data.party,r.data.number].join(' ').toLowerCase().includes(query))
  .sort((a,b)=>String(b.entry.date).localeCompare(String(a.entry.date)));
@@ -129,7 +129,7 @@ function moneyRows(pending) {
  const excluded=moneyState.data.records.filter(r=>!r.voided&&['draft','duplicate','review'].includes(r.data.history?.status)&&FinanceReport.entry(r,month,'all').included&&(moneyState.filter==='all'||r.data.kind===moneyState.filter)).length;
  const excludedNote=mode!=='all'&&excluded?`<div class="money-excluded-note">${excluded} ${excluded===1?'registro original excluido':'registros originales excluidos'} del resultado (borradores o registros por revisar). <button onclick="moneyInspect('all',moneyState.filter)">Consultar archivo completo</button></div>`:'';
  document.getElementById('moneyRows').innerHTML=totals+excludedNote+`<div class="table-wrapper money-sheet-wrap"><table class="money-sheet"><thead><tr><th>${mode==='business'?'Corresponde a':mode==='cash'?'Cobro / pago':'Fecha / período'}</th><th>Concepto</th><th>${mode==='cash'?'Detalle del cobro / pago':'Pago o compensación'}</th><th>Estado</th><th class="num">${mode==='cash'?'Movido este mes':mode==='business'?'Importe del mes':mode==='forecast'?'Previsto':'Importe'}</th><th></th></tr></thead><tbody>${rows.length?rows.map(({record:r,entry:e})=>{
- const d=r.data,history=d.history||{},remaining=d.amount-moneyPaid(d),isDoc=['expense','income'].includes(d.kind),files=moneyState.data.files.filter(f=>f.record_id===r.id),pendingDoc=isDoc&&remaining>0&&!r.included_in_opening&&!['assigned','draft','duplicate','review'].includes(history.status);
+ const d=r.data,history=d.history||{},remaining=FinanceTax.payable(d)-moneyPaid(d),isDoc=['expense','income'].includes(d.kind),files=moneyState.data.files.filter(f=>f.record_id===r.id),pendingDoc=isDoc&&remaining>0&&!r.included_in_opening&&!['assigned','draft','duplicate','review'].includes(history.status);
  const historyLabel={duplicate:'Duplicado · no suma',draft:'Borrador · no suma',assigned:'Compensado con Santiago',review:'Por revisar · no suma'}[history.status];
  const payments=(d.payments||[]).filter(p=>mode!=='cash'||!month||p.date.startsWith(month));
  const accounts=history.status==='assigned'?'Santiago · compensación':[...new Set(payments.map(p=>MONEY_ACCOUNTS[p.account]))].join(', ')||MONEY_ACCOUNTS[history.account]||(!isDoc?`${MONEY_ACCOUNTS[d.source]||'—'} → ${MONEY_ACCOUNTS[d.target]||'—'}`:'—');
@@ -178,12 +178,13 @@ async function moneySave() {
     const calculated=isDoc?moneyTaxRead():{amount:moneyCents(val('mf_amount'))};
     const amount=calculated.amount;
     const payments=(form.record?.data.payments||[]).map(p=>({...p}));
-    if(!form.record&&isDoc&&val('mf_status')==='paid') payments.push({id:form.retryPayload?.payments[0]?.id||crypto.randomUUID(),amount,date:moneyPaymentDate(val('mf_payment_date')),account:val('mf_account')});
+    if(isDoc&&moneyPaid({payments})>calculated.payable)throw new Error('El total a cobrar o pagar es menor que los pagos ya registrados. Revisa esos pagos antes de cambiar el importe o la retención.');
+    if(!form.record&&isDoc&&val('mf_status')==='paid') payments.push({id:form.retryPayload?.payments[0]?.id||crypto.randomUUID(),amount:calculated.payable,date:moneyPaymentDate(val('mf_payment_date')),account:val('mf_account')});
     const data={kind:form.kind,title:val('mf_title'),amount,date:val('mf_date'),notes:val('mf_notes'),
       party:val('mf_party'),number:val('mf_number'),category:val('mf_category'),
       period_start:val('mf_start')||null,period_end:val('mf_end')||null,due:val('mf_due')||null,
       stage:val('mf_stage')||form.record?.data.stage||'document',repeat:val('mf_repeat')||'none',source:val('mf_source')||null,target:val('mf_target')||null,
-      group:val('mf_group')||null,payments,...(calculated.vat?{vat:calculated.vat}:{})};
+      group:val('mf_group')||null,payments,...(calculated.vat?{vat:calculated.vat}:{}),...(calculated.irpf?{irpf:calculated.irpf}:{})};
     // Keep the exact payload on a network retry: same id, payment UUIDs, and body.
     if(form.retryPayload&&JSON.stringify(data)!==JSON.stringify(form.retryPayload))throw new Error('Hay un guardado sin confirmar. Reintenta sin cambiar los campos o recarga para comprobarlo.');
     if(form.savedPayload!==JSON.stringify(data)){
@@ -202,7 +203,7 @@ function moneyPayment(recordId) {
   const r=moneyRecord(recordId);if(!r||r.voided)return toast('El movimiento no está disponible','error');
   if(r.included_in_opening)return moneyClosedDetails(r);
   if(['assigned','draft','duplicate','review'].includes(r.data.history?.status))return moneyReviewDetails(r);
-  const remaining=r.data.amount-moneyPaid(r.data);if(remaining<=0)return toast('Este movimiento ya está pagado o cobrado.','info');
+  const remaining=FinanceTax.payable(r.data)-moneyPaid(r.data);if(remaining<=0)return toast('Este movimiento ya está pagado o cobrado.','info');
   moneyState.payment={record:r,id:crypto.randomUUID(),busy:false};
   createModal('moneyPayment','Confirmar '+(r.data.kind==='income'?'cobro':'pago'),`<div class="money-form"><p>${moneyEsc(r.data.title)} · pendiente ${moneyEuro(remaining)}</p><label>Importe recibido / pagado<input id="mp_amount" class="form-input" inputmode="decimal" value="${(remaining/100).toFixed(2)}"></label><label>Fecha real<input id="mp_date" class="form-input" type="date" min="${moneyEsc(moneyState.data.baseline.cutoff)}" max="${moneyToday()}" value="${moneyToday()}"></label><label>${r.data.kind==='income'?'Entró en':'Salió de'}<select id="mp_account" class="form-select">${moneyOptions(MONEY_ACCOUNTS,'bank')}</select></label><p id="mp_error" class="money-error" role="alert"></p></div>`, '<button class="btn btn-secondary" onclick="closeModal(\'moneyPayment\')">Cancelar</button><button id="mp_save" class="btn btn-primary" onclick="moneyPaySave()">Confirmar</button>');
 }
@@ -210,7 +211,7 @@ async function moneyPaySave() {
   const p=moneyState.payment;if(p.busy)return;p.busy=true;document.getElementById('mp_save').disabled=true;
   try{
     const payment={id:p.id,amount:moneyCents(document.getElementById('mp_amount').value),date:moneyPaymentDate(document.getElementById('mp_date').value),account:document.getElementById('mp_account').value};
-    if(payment.amount>p.record.data.amount-moneyPaid(p.record.data))throw new Error('El pago supera el importe pendiente');
+    if(payment.amount>FinanceTax.payable(p.record.data)-moneyPaid(p.record.data))throw new Error('El pago supera el importe pendiente');
     const data={...p.record.data,payments:[...p.record.data.payments,payment]};
     await API.put('/finance/records/'+p.record.id,{version:p.record.version,data});
     closeModal('moneyPayment');toast('Pago confirmado','success');await renderMoney(document.getElementById('pageContent'),moneyState.view);
@@ -250,8 +251,8 @@ function moneyArchiveRows(){
 }
 function moneyRecordDetailHTML(record){
  const d=record.data,h=d.history||{},files=(moneyState.data.files||[]).filter(f=>f.record_id===record.id),isDoc=['income','expense'].includes(d.kind);
- const status={paid:d.kind==='income'?'Cobro histórico confirmado.':'Pago histórico confirmado.',assigned:'Ingreso asignado a Santiago para compensar adelantos. Su liquidación personal no es otro cobro de VOCAI.',duplicate:'Duplicado conservado como referencia; no se suma.',draft:'Borrador original; no se suma.',review:'Registro pendiente de revisar; no se suma.'}[h.status]||(!isDoc?'Movimiento confirmado.':d.stage==='forecast'?'Previsión: importe por confirmar.':moneyPaid(d)>=d.amount?'Pago o cobro confirmado.':moneyPaid(d)?'Pago o cobro parcial.':'Pendiente de pago o cobro.');
- return `<h3>${moneyEsc(d.title)} · ${moneyEuro(d.amount)}</h3>${d.vat?moneyTaxSummaryHTML(d.vat):''}<p>${moneyEsc(d.notes)}</p>${d.period_start?`<div class="money-ledger-note"><p><strong>Corresponde a: ${moneyEsc(moneyServicePeriod(d))}</strong></p><p>Se cuenta como ingreso o gasto de ese período. Los pagos se muestran en su fecha real.</p></div>`:''}<p>Documento: ${moneyEsc(d.date)}${d.period_start?' · Período '+moneyEsc(d.period_start)+' / '+moneyEsc(d.period_end):''}</p>${(d.payments||[]).map(p=>`<p>${h.payment_date_basis==='registered_month'?'Mes registrado: '+moneyEsc(p.date.slice(0,7)):moneyEsc(p.date)} · ${moneyEsc(MONEY_ACCOUNTS[p.account])} · ${moneyEuro(p.amount)}</p>`).join('')}<p>${moneyEsc(h.reason||status)}</p>${h.basis==='registered_month'||h.payment_date_basis==='registered_month'?'<p class="money-muted">Se conserva el mes original. No consta el día efectivo del pago.</p>':''}${files.length?'<div class="money-actions">'+files.map(f=>`<button class="btn btn-secondary btn-sm" onclick="moneyFile('${f.id}')">${moneyEsc(f.name||'Abrir adjunto')}</button>`).join('')+'</div>':''}${(h.sources||[]).map(src=>`<details><summary>Ver registro original</summary><pre class="money-json">${moneyEsc(JSON.stringify(src.original,null,2))}</pre></details>`).join('')}`;
+ const status={paid:d.kind==='income'?'Cobro histórico confirmado.':'Pago histórico confirmado.',assigned:'Ingreso asignado a Santiago para compensar adelantos. Su liquidación personal no es otro cobro de VOCAI.',duplicate:'Duplicado conservado como referencia; no se suma.',draft:'Borrador original; no se suma.',review:'Registro pendiente de revisar; no se suma.'}[h.status]||(!isDoc?'Movimiento confirmado.':d.stage==='forecast'?'Previsión: importe por confirmar.':moneyPaid(d)>=FinanceTax.payable(d)?'Pago o cobro confirmado.':moneyPaid(d)?'Pago o cobro parcial.':'Pendiente de pago o cobro.');
+ return `<h3>${moneyEsc(d.title)} · ${d.irpf?'Base + IVA: ':''}${moneyEuro(d.amount)}</h3>${d.vat?moneyTaxSummaryHTML(d.vat,d.irpf,d.kind):''}<p>${moneyEsc(d.notes)}</p>${d.period_start?`<div class="money-ledger-note"><p><strong>Corresponde a: ${moneyEsc(moneyServicePeriod(d))}</strong></p><p>Se cuenta como ingreso o gasto de ese período. Los pagos se muestran en su fecha real.</p></div>`:''}<p>Documento: ${moneyEsc(d.date)}${d.period_start?' · Período '+moneyEsc(d.period_start)+' / '+moneyEsc(d.period_end):''}</p>${(d.payments||[]).map(p=>`<p>${h.payment_date_basis==='registered_month'?'Mes registrado: '+moneyEsc(p.date.slice(0,7)):moneyEsc(p.date)} · ${moneyEsc(MONEY_ACCOUNTS[p.account])} · ${moneyEuro(p.amount)}</p>`).join('')}<p>${moneyEsc(h.reason||status)}</p>${h.basis==='registered_month'||h.payment_date_basis==='registered_month'?'<p class="money-muted">Se conserva el mes original. No consta el día efectivo del pago.</p>':''}${files.length?'<div class="money-actions">'+files.map(f=>`<button class="btn btn-secondary btn-sm" onclick="moneyFile('${f.id}')">${moneyEsc(f.name||'Abrir adjunto')}</button>`).join('')+'</div>':''}${(h.sources||[]).map(src=>`<details><summary>Ver registro original</summary><pre class="money-json">${moneyEsc(JSON.stringify(src.original,null,2))}</pre></details>`).join('')}`;
 }
 function moneyClosedDetails(record){
  const d=record.data,canNext=!record.voided&&['income','expense'].includes(d.kind)&&d.repeat==='monthly'&&!['draft','duplicate','review','assigned'].includes(d.history?.status);

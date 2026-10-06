@@ -30,7 +30,7 @@ function moneyDashboardDueRows(model,kind) {
     .sort((a,b)=>(a.due||'9999-12-31').localeCompare(b.due||'9999-12-31')||Number(a.forecast)-Number(b.forecast)||(a.date||'').localeCompare(b.date||''));
 }
 function moneyDashboardPayableBreakdown(model) {
-  return `Confirmado: <b>${moneyEuro(model.pending.expenseTotal)}</b> · Previsto en ${moneyMonthName(model.month)}: <b>${moneyEuro(model.forecastExpense.amount)}</b>`;
+  return `Confirmado: <b>${moneyEuro(model.pending.expenseTotal)}</b> · Previsto en ${moneyMonthName(model.month)}: <b>${moneyEuro(model.forecastExpense.payableAmount??model.forecastExpense.amount)}</b>`;
 }
 function moneyDashboardDueList(kind) {
   const m=moneyDashboardModel(),rows=moneyDashboardDueRows(m,kind);

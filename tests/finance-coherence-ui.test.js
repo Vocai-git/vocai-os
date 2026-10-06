@@ -25,7 +25,7 @@ function fixture(){
 function harness(){
  const records=fixture(),nodes={},modals=[];
  const node=id=>nodes[id]||(nodes[id]={innerHTML:'',textContent:'',value:'',querySelectorAll:()=>[]});
- const ctx={window:{},document:{getElementById:node},Intl,Date,JSON,Number,FinanceReport,formatMoney:n=>n.toFixed(2)+' €',escHtml:value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),createModal:(...args)=>modals.push(args),toast:()=>{}};
+ const ctx={window:{},document:{getElementById:node},Intl,Date,JSON,Number,FinanceReport,FinanceTax:require('../public/js/finance-tax'),formatMoney:n=>n.toFixed(2)+' €',escHtml:value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),createModal:(...args)=>modals.push(args),toast:()=>{}};
  vm.createContext(ctx);
  for(const path of ['../public/js/finance-tax.js','../public/js/modules/money-tax.js','../public/js/modules/money-dashboard.js','../public/js/modules/money.js'])vm.runInContext(fs.readFileSync(require.resolve(path),'utf8'),ctx);
  ctx.moneyState=ctx.window.moneyState;
@@ -225,4 +225,19 @@ test('forecast-only months show work to review instead of a zero payable empty s
  assert.equal(model.current.paid,0);
  assert.equal(model.current.revenue,0);
  assert.equal(model.forecastExpense.amount,18500);
+});
+
+test('IRPF payables show net cash amounts while the business report preserves the invoice total',()=>{
+ const h=harness(),vat={mode:'added',input:100000,rate:2100,base:100000,tax:21000,total:121000},irpf={rate:1500,base:100000,tax:15000};
+ const make=(id,data)=>({id,version:1,included_in_opening:false,data:{kind:'expense',title:id,date:'2026-10-06',amount:121000,vat,irpf,payments:[],...data}});
+ h.ctx.moneyState.data.records=[make('Factura pendiente con retención',{}),make('Previsión con retención',{stage:'forecast'}),make('Ingreso cobrado con retención',{kind:'income',payments:[{id:'net-payment',date:'2026-10-06',amount:106000,account:'bank'}]})];
+ h.ctx.moneyDashboardDues('expense');
+ const card=text(duesCard(h.node('moneyMonthSummary').innerHTML));
+ assert.match(card,/2120\.00 € Confirmado \+ previsto/);
+ assert.match(card,/Confirmado: 1060\.00 €/);
+ assert.match(card,/Previsto en octubre de 2026: 1060\.00 €/);
+ const model=h.ctx.moneyDashboardModel();
+ assert.equal(model.current.expense,121000);assert.equal(model.current.revenue,121000);assert.equal(model.current.collected,106000);
+ assert.equal(model.current.forecast,121000);assert.equal(model.pending.incomeTotal,0);
+ assert.equal(model.forecastExpense.payableAmount,106000);
 });
