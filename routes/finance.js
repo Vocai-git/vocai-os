@@ -40,6 +40,7 @@ router.use((req, res, next) => {
 });
 router.use('/bank-reviews', require('./finance-bank'));
 router.use('/documents', require('./finance-documents'));
+router.use('/invoices', require('./finance-invoices'));
 router.get('/', wrap(async (req, res) => {
   const [baseline, records, files] = await Promise.all([setting(), all('finance_records'), all('finance_files', 'id,record_id,name,mime,bytes')]);
   res.json({ baseline, records, files, review: process.env.FINANCE_V2_LIVE !== 'true', summary: finance.summarize(baseline, records) });
@@ -81,6 +82,7 @@ router.put('/records/:id', wrap(async (req, res) => {
     .update({ data: body, version: existing.version + 1, actor: req.user.email || req.user.id, updated_at: new Date().toISOString() })
     .eq('id', existing.id).eq('version', existing.version).select('*').maybeSingle();
   if (error?.code === '23505') fail('Ya existe una factura con ese proveedor o cliente y número', 409);
+  if (error?.code === 'P0001' && error.message?.startsWith('La factura emitida')) fail('La factura emitida conserva sus datos. Puedes registrar el cobro; para corregir la factura hace falta una rectificación.', 409);
   if (error) fail('No se pudo guardar el cambio', 503);
   if (!data) fail('Otra persona modificó el registro. Recarga antes de continuar.', 409);
   res.json(data);
@@ -95,6 +97,7 @@ router.post('/records/:id/void', wrap(async (req, res) => {
     voided: true, version: existing.version + 1, actor: req.user.email || req.user.id,
     data: { ...existing.data, void_reason: reason }, updated_at: new Date().toISOString(),
   }).eq('id', existing.id).eq('version', existing.version).select('*').maybeSingle();
+  if (error?.code === 'P0001' && error.message?.startsWith('La factura emitida')) fail('La factura emitida conserva su historial y no se puede anular como un movimiento. Su corrección requiere una rectificación.', 409);
   if (error) fail('No se pudo anular el registro', 503);
   if (!data) fail('Otra persona modificó el registro', 409);
   res.json(data);

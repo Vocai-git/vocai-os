@@ -100,6 +100,10 @@ test('legacy routes remain distinct and guide all authenticated sessions to live
   assert.doesNotMatch(nodes.pageContent.innerHTML, /Versión anterior/);
   await ctx.navigate('inversionV2');
   assert.equal(calls.at(-1), 'contributions');
+  await ctx.navigate('facturasV2');
+  assert.equal(calls.at(-1), 'renderPracticalInvoices');
+  assert.equal(ctx.window.location.hash, 'facturasV2');
+  assert.doesNotMatch(nodes.pageContent.innerHTML, /Versión anterior/);
 });
 
 test('original finance stays usable before activation without a misleading read-only notice', async () => {

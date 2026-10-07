@@ -265,6 +265,7 @@ const MODULES = {
   expenses:  { title: 'Inversión', render: renderExpenses },
   finanzas:  { title: 'Finanzas',  render: renderFinanzas },
   finanzasV2: { title: 'Finanzas V2', render: el => renderMoney(el, 'summary') },
+  facturasV2: { title: 'Facturas emitidas', render: renderPracticalInvoices },
   inversionV2: { title: 'Inversión V2', render: el => renderMoney(el, 'contributions') },
   goals:     { title: 'Metas',     render: renderGoals },
   bookings:  { title: 'Reservas de Estudio', render: renderBookings },
@@ -325,7 +326,7 @@ async function navigate(module) {
   try {
     await MODULES[module].render(content);
     if (['finanzas', 'expenses', 'invoices'].includes(module) && await moneyEnabled().catch(() => false) && currentModule === module) {
-      content.insertAdjacentHTML('afterbegin', `<div class="money-notice" role="note"><strong>Versión anterior · consulta</strong><p>Los nuevos registros y cambios se guardan en Finanzas V2.</p><button class="btn btn-primary btn-sm" onclick="navigate('${module === 'expenses' ? 'inversionV2' : 'finanzasV2'}')">Abrir ${module === 'expenses' ? 'Inversión' : 'Finanzas'} V2</button></div>`);
+      content.insertAdjacentHTML('afterbegin', `<div class="money-notice" role="note"><strong>Versión anterior · consulta</strong><p>Los nuevos registros y cambios se guardan en Finanzas V2.</p><button class="btn btn-primary btn-sm" onclick="navigate('${module === 'expenses' ? 'inversionV2' : module === 'invoices' ? 'facturasV2' : 'finanzasV2'}')">${module === 'invoices' ? 'Crear y descargar facturas' : 'Abrir '+(module === 'expenses' ? 'Inversión' : 'Finanzas')+' V2'}</button></div>`);
     }
   } catch (err) {
     content.innerHTML = `<div class="alert alert-error">Error al cargar: ${escHtml(err.message)}</div>`;
