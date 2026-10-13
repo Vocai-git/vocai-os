@@ -39,6 +39,32 @@ test('issued documents use the immutable issuer snapshot and validated gross, wi
  for(const expected of ['150,00 €','31,50 €','181,50 €','-22,50 €','159,00 €','IRPF 15 %'])assert.ok(result.includes(expected),expected);
 });
 
+test('cash instructions omit the bank account and absent due date without claiming payment',{skip:!parser},async()=>{
+ const source=invoice({status:'issued',number:'2026-010',issuer_snapshot:issuer});
+ Object.assign(source.document,{payment_method:'cash',due:null});
+ const before=structuredClone(source),result=normalized(extract(await renderInvoice(source,issuer)));
+ assert.match(result,/Método de pago/);assert.match(result,/Efectivo/);assert.match(result,/TOTAL A PAGAR/);
+ assert.doesNotMatch(result,/Cuenta bancaria|CUENTA DE PRUEBA|Transferencia bancaria|Vencimiento|Por completar|Pagad[oa]|Cobrad[oa]/i);
+ assert.deepEqual(source,before);
+});
+
+test('explicit bank transfer uses the invoice choice and stored issuer bank account',{skip:!parser},async()=>{
+ const source=invoice({status:'issued',number:'2026-011',issuer_snapshot:{...issuer,payment_method:'Método anterior'}});
+ source.document.payment_method='bank_transfer';
+ const result=normalized(extract(await renderInvoice(source,{...issuer,iban:'CUENTA ACTUAL'})));
+ assert.match(result,/Transferencia bancaria/);assert.match(result,/Cuenta bancaria/);assert.match(result,/CUENTA DE PRUEBA/);
+ assert.match(result,/Vencimiento/);assert.match(result,/06\/11\/2026/);assert.doesNotMatch(result,/Método anterior|CUENTA ACTUAL/);
+});
+
+test('legacy documents retain issuer payment instructions and omit only an unset due date',{skip:!parser},async()=>{
+ const source=invoice({status:'issued',number:'2026-012',issuer_snapshot:{...issuer,payment_method:'Instrucciones históricas'}});
+ delete source.document.due;
+ const result=normalized(extract(await renderInvoice(source,issuer)));
+ assert.match(result,/Instrucciones históricas/);assert.match(result,/Cuenta bancaria/);assert.match(result,/CUENTA DE PRUEBA/);
+ assert.doesNotMatch(result,/Vencimiento|Por completar/);
+ assert.equal(Object.hasOwn(source.document,'payment_method'),false);
+});
+
 test('missing line bases use exact thousandths rounding and user markup remains literal text',{skip:!parser},async()=>{
  const source=invoice();source.document.lines=[{description:'<script>NO_EJECUTAR</script>',detail:'https://example.invalid/recurso',quantity:1001,unit_price:1500}];
  source.document.totals={base:1502,vat:315,irpf:0,gross:1817,net:1817};
@@ -63,4 +89,5 @@ test('renderer rejects invalid inputs and bounded limits before generating an in
  const huge=invoice();huge.document.notes='x'.repeat(LIMITS.field+1);await assert.rejects(renderInvoice(huge,issuer),/texto/);
  const fractional=invoice();fractional.document.lines[0].quantity=1.5;await assert.rejects(renderInvoice(fractional,issuer),/Cantidad/);
  const amount=invoice();amount.document.totals.net=-1;await assert.rejects(renderInvoice(amount,issuer),/net/);
+ for(const payment_method of ['card','',null]){const invalid=invoice();invalid.document.payment_method=payment_method;await assert.rejects(renderInvoice(invalid,issuer),/Método de pago/);}
 });
