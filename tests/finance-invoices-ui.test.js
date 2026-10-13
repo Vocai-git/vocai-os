@@ -184,6 +184,34 @@ test('issued editor is read-only and untrusted invoice/customer text is escaped'
   ctx.moneyInvoiceEdit('notes', 'attempt'); assert.equal(ctx.mi().editor.fields.notes, '');
 });
 
+test('invoice payment method survives save and issue without receiving cash or changing issuer settings', async () => {
+  const { ctx, calls, complete, nodes, records, settings } = setup();
+  const issuerBefore = JSON.stringify(settings.issuer);
+  ctx.moneyInvoiceNew(); complete();
+  assert.equal(Object.hasOwn(ctx.moneyInvoiceRead(), 'payment_method'), false);
+  ctx.moneyInvoiceEdit('payment_method', 'cash');
+  assert.match(ctx.moneyInvoiceEditorHTML(), /id="mi_payment_method"/);
+  await ctx.moneyInvoiceSave();
+  assert.equal(calls.post[0].payload.document.payment_method, 'cash');
+  assert.equal(ctx.mi().editor.fields.payment_method, 'cash');
+  await ctx.moneyInvoiceIssueDialog(); nodes.mi_issue_confirm = {}; nodes.mi_issue_error = {};
+  await ctx.moneyInvoiceIssue();
+  assert.equal(ctx.mi().editor.invoice.document.payment_method, 'cash');
+  assert.equal(records.length, 1); assert.equal(records[0].data.payments.length, 0);
+  assert.equal(calls.pay.length, 0); assert.equal(JSON.stringify(settings.issuer), issuerBefore);
+  assert.match(ctx.moneyInvoiceEditorHTML(), /fieldset disabled/);
+});
+
+test('invoice payment method can be cleared to legacy settings and rejects unsupported values', () => {
+  const { ctx } = setup(); ctx.moneyInvoiceNew();
+  ctx.moneyInvoiceEdit('payment_method', 'bank_transfer');
+  assert.equal(ctx.moneyInvoiceRead().payment_method, 'bank_transfer');
+  ctx.moneyInvoiceEdit('payment_method', '');
+  assert.equal(Object.hasOwn(ctx.moneyInvoiceRead(), 'payment_method'), false);
+  ctx.moneyInvoiceEdit('payment_method', 'unrecognized');
+  assert.throws(() => ctx.moneyInvoiceRead(), /forma de pago válida/);
+});
+
 test('income form guard disables issued fields while retaining notes and separate payment handling', async () => {
   const invoice = invoiceFixture({ status: 'issued', record_id: 'income-one' }), record = recordFixture(), { ctx, nodes } = setup([invoice], [record]);
   ctx.moneyState.form = { id: record.id }; nodes.mf_amount = { disabled: false }; nodes.mf_irpf_rate = { disabled: false }; nodes.mf_repeat = { disabled: false }; nodes.mf_notes = { disabled: false };

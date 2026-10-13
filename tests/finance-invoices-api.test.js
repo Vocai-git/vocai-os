@@ -33,6 +33,16 @@ test.beforeEach(async()=>{
  await h.db.query('UPDATE finance_invoice_settings SET issuer=$1,version=1,actor=$2 WHERE id=true',[JSON.stringify(issuer()),'synthetic-user']);h.stored.clear();h.calls.length=0;renders=[];
 });
 
+run('cash method survives real issuance and PDF download while leaving payment and issuer untouched',async()=>{
+ await initialize();const settings=(await request()).data.settings;
+ const created=await draft({document:doc({payment_method:'cash'})});assert.equal(created.status,201);
+ const issued=await issue(created.data);assert.equal(issued.status,200);assert.equal(issued.data.document.payment_method,'cash');
+ const result=await request('/'+issued.data.id+'/pdf');assert.equal(result.status,200);assert.equal(renders[0].invoice.document.payment_method,'cash');
+ const row=(await h.db.query('SELECT * FROM finance_records')).rows[0];assert.deepEqual(row.data.payments,[]);
+ assert.deepEqual((await request()).data.settings.issuer,settings.issuer);
+ const retry=await issue(created.data);assert.equal(retry.data.id,issued.data.id);assert.deepEqual(await counts(),{records:1,issued:1,last:3});
+});
+
 run('auth and live-mode gates protect drafts, settings, issuance and PDFs',async()=>{
  assert.equal((await request('','GET',undefined,false)).status,401);assert.equal((await request('','POST',{id:randomUUID(),document:doc()},false)).status,401);
  const created=await draft();assert.equal(created.status,201);assert.equal((await request('/'+created.data.id+'/pdf','GET',undefined,false)).status,401);

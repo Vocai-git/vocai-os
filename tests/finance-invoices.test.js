@@ -29,6 +29,17 @@ test('drafts allow incomplete customer and zero amounts without being issuable',
  assert.equal(invoices.validateDocument(input({lines:[]})).lines.length,0);
  assert.throws(()=>invoices.validateDocument(input({lines:[]}),{issue:true,today:'2026-10-07'}),/positivo/);
 });
+
+test('optional invoice payment instructions survive validation without creating collections',()=>{
+ const legacy=invoices.validateDocument(input());assert.equal(Object.hasOwn(legacy,'payment_method'),false);
+ assert.deepEqual(invoices.validateDocument(legacy),legacy);
+ for(const payment_method of ['cash','bank_transfer']){
+  const doc=invoices.validateDocument(input({payment_method}),{issue:true,today:'2026-10-13'});
+  assert.equal(doc.payment_method,payment_method);assert.deepEqual(invoices.validateDocument(doc),doc);
+  const financial=invoices.financialData(doc,'2026-003');assert.deepEqual(financial.payments,[]);assert.equal(financial.stage,'document');assert.equal(financial.target,null);
+ }
+ for(const payment_method of ['card','Efectivo','',null,undefined,0,{}])assert.throws(()=>invoices.validateDocument(input({payment_method})),/método de pago/);
+});
 test('issue requires fiscal identity, positive net and nonfuture dates',()=>{
  assert.doesNotThrow(()=>invoices.validateDocument(input(),{issue:true,today:'2026-10-07'}));
  for(const field of invoices.FISCAL_FIELDS)assert.throws(()=>invoices.validateDocument(input({customer:{...fiscal(),[field]:''}}),{issue:true,today:'2026-10-07'}),/fiscales/);

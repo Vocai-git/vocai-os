@@ -7,6 +7,7 @@ La sección `facturasV2`, también disponible como pestaña en Finanzas V2, perm
 - Los borradores no tienen número definitivo ni modifican Finanzas.
 - La emisión explícita asigna `YYYY-NNN` y crea un único ingreso o vincula uno existente. No crea cobros.
 - Los importes se recalculan en el servidor: base por concepto, IVA opcional, retención IRPF opcional y neto a cobrar. Cantidades en milésimas; dinero en céntimos.
+- Cada factura puede indicar efectivo o transferencia bancaria mediante `document.payment_method` (`cash` o `bank_transfer`). Si se omite, conserva la configuración habitual del emisor. El PDF de efectivo no muestra una cuenta bancaria y seleccionar la forma de pago nunca registra un cobro. No se muestra un vencimiento si no se indicó fecha.
 - La emisión, numeración, vínculo y auditoría se guardan en una misma transacción. Reintentar la misma emisión no consume otro número.
 - Un ingreso vinculado debe estar confirmado y coincidir en importes, impuestos, fecha, período y vencimiento. Se conservan sus cobros, histórico e inclusión en el saldo inicial.
 - Las referencias antiguas `VOCAI-YYYY-NNN` solo se sustituyen cuando el histórico demuestra que proceden de la tabla original de ingresos. No se vuelven a emitir documentos con numeración oficial ya existente.
