@@ -20,11 +20,12 @@ const MAX_PAGINAS = 12;
 
 // La Graph API rechaza la request entera si un metric no aplica al
 // tipo de media, así que se prueban sets de mayor a menor detalle.
+// Meta dio de baja `plays` en 2025: las reproducciones ahora son `views`.
 const SETS_REELS = [
-  'reach,plays,likes,comments,saved,shares,total_interactions,ig_reels_avg_watch_time,ig_reels_video_view_total_time',
-  'reach,plays,likes,comments,saved,shares,ig_reels_avg_watch_time,ig_reels_video_view_total_time',
-  'reach,plays,ig_reels_avg_watch_time',
-  'reach,plays',
+  'reach,views,likes,comments,saved,shares,total_interactions,ig_reels_avg_watch_time,ig_reels_video_view_total_time',
+  'reach,views,likes,comments,saved,shares,ig_reels_avg_watch_time,ig_reels_video_view_total_time',
+  'reach,views,ig_reels_avg_watch_time',
+  'reach,views',
   'reach',
 ];
 const SETS_FEED = [
@@ -59,7 +60,8 @@ async function traerMedias(token, igUser) {
   let after = null;
   for (let p = 0; p < MAX_PAGINAS; p++) {
     const params = {
-      fields: 'id,caption,media_type,media_product_type,timestamp,permalink,thumbnail_url',
+      // like_count y comments_count no necesitan el permiso de insights: quedan aunque los insights fallen.
+      fields: 'id,caption,media_type,media_product_type,timestamp,permalink,thumbnail_url,like_count,comments_count',
       limit: '50', access_token: token,
     };
     if (after) params.after = after;
@@ -72,8 +74,8 @@ async function traerMedias(token, igUser) {
 }
 
 // Mapea las métricas crudas de la API a las columnas de la tabla.
-function filaMetricas(ins) {
-  const likes = ins.likes || 0, comments = ins.comments || 0;
+function filaMetricas(ins, media = {}) {
+  const likes = ins.likes ?? media.like_count ?? 0, comments = ins.comments ?? media.comments_count ?? 0;
   const saved = ins.saved || 0, shares = ins.shares || 0;
   const interacciones = ins.total_interactions || (likes + comments + saved + shares);
   return {
@@ -125,7 +127,7 @@ async function runInventario() {
       permalink: m.permalink || null,
       thumbnail_url: m.thumbnail_url || null,
       published_at: m.timestamp || null,
-      ...filaMetricas(ins),
+      ...filaMetricas(ins, m),
       fetched_at: new Date().toISOString(),
     };
     const { error } = await supabase
