@@ -27,8 +27,11 @@ encenderlo.
    - Crear una app de tipo "Business".
    - Agregar los productos *Instagram Graph API* y *Facebook Login*.
    - Permisos necesarios: `instagram_basic`, `instagram_content_publish`,
-     `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`,
-     `business_management`.
+     `instagram_manage_insights`, `pages_show_list`, `pages_read_engagement`,
+     `pages_manage_posts`, `business_management`.
+   - Sin `instagram_manage_insights` el inventario (`inventario-ig.js`) solo
+     trae me gusta y comentarios: alcance, reproducciones, guardados,
+     compartidos y tiempo visto quedan en 0 (Graph API error #10).
    - Para publicar fuera del modo desarrollo hace falta pasar la
      **App Review** de Meta. Es un trámite, puede tardar días.
 
