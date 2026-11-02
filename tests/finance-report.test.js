@@ -5,6 +5,32 @@ const report=require('../public/js/finance-report');
 const row=(data,extra={})=>({id:'test',data:{kind:'expense',date:'2026-10-05',amount:10000,payments:[],...data},...extra});
 const payment=(amount,date,account='bank')=>({amount,date,account});
 
+test('month sheet keeps service-month obligations apart from actual payment dates',()=>{
+ const records=[row({title:'October salary',amount:110000,date:'2026-11-02',period_start:'2026-10-01',period_end:'2026-10-31'}),row({title:'September salary',amount:90000,period_start:'2026-09-01',period_end:'2026-09-30',payments:[payment(90000,'2026-10-05','santi')]})];
+ let sheet=report.monthSheet(records,'2026-10','2026-11-02');
+ assert.equal(sheet.totals.expense.amount,110000);assert.equal(sheet.totals.expense.pending,110000);assert.equal(sheet.cashTotals.expense,90000);
+ records[0].data.payments=[payment(110000,'2026-11-05')];
+ sheet=report.monthSheet(records,'2026-10','2026-11-05');assert.equal(sheet.totals.expense.paid,110000);assert.equal(sheet.totals.expense.pending,0);assert.equal(sheet.cashTotals.expense,90000);
+ assert.equal(report.monthSheet(records,'2026-11','2026-11-05').cashTotals.expense,110000);
+ assert.equal(report.monthSheet(records,'2026-10','2026-11-02').totals.expense.pending,110000);
+});
+
+test('month sheet separates refunds, partial collections, compensations, and forecasts without mutating records',()=>{
+ const records=[row({kind:'income',amount:100000,payments:[payment(20000,'2026-10-15','cash')]}),row({kind:'income',category:'Reembolsos de gastos',amount:5000,payments:[payment(5000,'2026-10-20')]}),row({kind:'income',amount:30000,history:{status:'assigned',account:'santi'}}),row({amount:40000,stage:'forecast'}),row({kind:'income',amount:80000,history:{status:'draft'}}),row({amount:50000,history:{classification:'startup'}}),row({amount:20000},{voided:true})];
+ const before=JSON.stringify(records),s=report.monthSheet(records,'2026-10','2026-11-02');
+ assert.equal(s.totals.income.amount,130000);assert.equal(s.totals.income.paid,20000);assert.equal(s.totals.income.pending,80000);assert.equal(s.totals.income.adjustment,30000);
+ assert.equal(s.cashTotals.income,20000);assert.equal(s.cashTotals.refund,5000);assert.equal(s.totals.refund.amount,5000);assert.equal(s.result,135000);assert.equal(s.cashResult,25000);
+ assert.equal(s.totals.expense.amount,0);assert.equal(s.forecasts.length,1);assert.equal(s.forecasts[0].amount,40000);assert.equal(JSON.stringify(records),before);
+});
+
+test('month sheet reconciles gross, withholding, settlement and remaining cents',()=>{
+ const records=[row({amount:121000,irpf:{tax:15000},payments:[payment(50000,'2026-10-05')]}),row({amount:10000,stage:'forecast',payments:[payment(2500,'2026-10-05')]}),row({kind:'income',history:{status:'paid',payment_date_basis:'registered_month'}},{included_in_opening:true}),row({amount:13000},{included_in_opening:true})];
+ const s=report.monthSheet(records,'2026-10','2026-11-02');
+ assert.equal(s.totals.expense.amount,136500);assert.equal(s.totals.expense.pending,56000);assert.equal(s.totals.expense.adjustment,13000);
+ assert.equal(s.totals.expense.amount,s.totals.expense.paid+s.totals.expense.pending+s.totals.expense.adjustment+s.totals.expense.withholding);
+ assert.equal(s.totals.income.pending,0);assert.equal(s.groups.income[0].payments[0].estimated,true);assert.equal(s.forecasts[0].amount,7500);
+});
+
 test('business rows use the service period while cash rows use payments',()=>{
  const payroll=row({period_start:'2026-09-01',period_end:'2026-09-30',payments:[payment(10000,'2026-10-05','santi')]});
  assert.equal(report.entry(payroll,'2026-09','business').amount,10000);

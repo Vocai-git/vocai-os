@@ -1,4 +1,102 @@
 /* VOCAI finance dashboard: original dark surfaces, coral accents, readable type. */
+/* Monthly sheet: the line items are the primary view, not a secondary modal. */
+.fin-month-sheet .money-period h3 { font-size: 28px; }
+.fin-month-sheet .fin-month-kpis { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.fin-month-sheet .fin-kpi { min-height: 145px; padding: 18px 22px; }
+.fin-month-sheet .fin-kpi > strong { font-size: clamp(27px,3vw,34px); margin: 10px 0 5px; }
+.fin-sheet-toolbar { display:flex; align-items:center; justify-content:space-between; gap:20px; margin:26px 0 16px; }
+.fin-sheet-toolbar p,.fin-sheet-note { font-size:14px; line-height:1.6; color:var(--text-muted); }
+.fin-sheet-toolbar .fin-segment { flex-shrink:0; }
+.fin-sheet { margin:0 0 24px; border:1px solid var(--border); border-top:3px solid var(--fin-income); border-radius:14px; overflow:hidden; background:var(--surface); }
+.fin-sheet-expense { border-top-color:var(--fin-expense); }
+.fin-sheet-refund { border-top-color:var(--text-muted); }
+.fin-sheet-heading { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:22px 24px; }
+.fin-sheet-heading h3 { font-family:var(--font-heading,'Syne',sans-serif); font-size:22px; margin:0 0 6px; }
+.fin-sheet-heading h3 span,.fin-sheet-extra summary>span { display:inline-flex; font:500 13px var(--font-body,'Outfit',sans-serif); border:1px solid var(--border); border-radius:6px; padding:3px 7px; vertical-align:middle; margin-left:6px; color:var(--text-muted); }
+.fin-sheet-heading p,.fin-sheet-current p { margin:0; font-size:14px; color:var(--text-muted); line-height:1.5; }
+.fin-sheet-due { text-align:right; flex-shrink:0; }
+.fin-sheet-due span { display:block; font-size:13px; color:var(--text-muted); margin-bottom:4px; }
+.fin-sheet-due strong { font-size:22px; font-variant-numeric:tabular-nums; }
+.fin-sheet-scroll { overflow-x:auto; }
+.fin-sheet table { width:100%; border-collapse:collapse; text-align:left; font-size:15px; }
+.fin-sheet th { color:var(--text-muted); font-size:12px; letter-spacing:.025em; font-weight:500; background:var(--surface-hover); }
+.fin-sheet th,.fin-sheet td { padding:15px 20px; border-top:1px solid var(--border); }
+.fin-sheet th:first-child,.fin-sheet td:first-child { padding-left:24px; }
+.fin-sheet th:last-child,.fin-sheet td:last-child { padding-right:24px; }
+.fin-sheet th:first-child { width:35%; }
+.fin-sheet th:last-child { width:180px; }
+.fin-sheet .num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.fin-sheet td small,.fin-sheet tfoot small { display:block; color:var(--text-muted); font-size:12px; font-weight:400; margin-top:4px; }
+.fin-sheet-name { display:block; color:var(--text); text-align:left; padding:0; background:none; border:0; cursor:pointer; font:inherit; }
+.fin-sheet-name strong { font-size:16px; font-weight:600; }
+.fin-sheet-name strong::after { content:'⌄'; display:inline-block; margin-left:10px; color:var(--text-muted); }
+.fin-sheet-name[aria-expanded=true] strong::after { transform:rotate(180deg); }
+.fin-sheet-name span { display:block; color:var(--text-muted); margin-top:4px; font-size:13px; }
+.fin-sheet-name:hover strong { text-decoration:underline; text-underline-offset:4px; }
+.fin-sheet-name:focus-visible,.fin-sheet-pay:focus-visible { outline:2px solid var(--coral); outline-offset:5px; }
+.fin-sheet-row:hover { background:var(--surface-hover); }
+.fin-sheet-status { display:inline-flex; gap:6px; align-items:center; font-size:12px; padding:4px 8px; border:1px solid var(--border); border-radius:6px; }
+.fin-sheet-status::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--text-muted); flex-shrink:0; }
+.fin-sheet-status.settled::before { background:var(--fin-income); }
+.fin-sheet-status.pending::before { background:var(--fin-expense); }
+.fin-pending-number { font-weight:600; }
+.fin-sheet-pay { display:block; margin-top:8px; background:none; border:0; color:var(--text); font-family:inherit; font-size:12px; font-weight:500; cursor:pointer; padding:0; text-align:left; }
+.fin-sheet-pay:hover { color:var(--coral); }
+.fin-sheet tfoot th,.fin-sheet tfoot td { font-weight:600; font-size:15px; background:var(--surface-hover); color:var(--text); }
+.fin-sheet-detail[hidden] { display:none; }
+.fin-sheet-detail td { background:var(--bg); padding-top:20px; padding-bottom:20px; }
+.fin-sheet-detail-inner { display:grid; grid-template-columns:1fr 1fr; gap:36px; font-size:14px; }
+.fin-sheet-detail-inner h4 { font-size:14px; margin:0 0 12px; }
+.fin-sheet-detail-inner p { line-height:1.6; margin:0 0 12px; color:var(--text-muted); }
+.fin-payment-list { list-style:none; padding:0; margin:0 0 12px; }
+.fin-payment-list li { display:flex; gap:12px; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--border); }
+.fin-payment-list li span:nth-child(2) { color:var(--text-muted); }
+.fin-sheet-empty { padding:30px!important; color:var(--text-muted); text-align:center; }
+.fin-sheet-footnote { padding:14px 24px; color:var(--text-muted); font-size:13px; border-top:1px solid var(--border); }
+.fin-sheet-equation { display:flex; flex-wrap:wrap; gap:24px; padding:22px 24px; background:var(--surface); border:1px solid var(--border); border-radius:12px; align-items:center; }
+.fin-sheet-equation span { font-size:14px; color:var(--text-muted); }
+.fin-sheet-equation b { color:var(--text); margin-left:6px; white-space:nowrap; }
+.fin-sheet-equation>strong { margin-left:auto; font-size:24px; white-space:nowrap; }
+.fin-sheet-note { margin:10px 0 26px; }
+.fin-sheet-extra { padding:18px 22px; border:1px solid var(--border); border-radius:12px; margin:18px 0; background:var(--surface); }
+.fin-sheet-extra summary { cursor:pointer; font-size:15px; font-weight:500; }
+.fin-sheet-extra summary>b { float:right; margin-left:12px; font-variant-numeric:tabular-nums; }
+.fin-sheet-extra>p { color:var(--text-muted); font-size:14px; line-height:1.6; }
+.fin-forecast-item { display:flex; width:100%; text-align:left; justify-content:space-between; gap:16px; padding:12px 0; background:none; border:0; border-top:1px solid var(--border); color:var(--text); font:inherit; font-size:14px; cursor:pointer; }
+.fin-forecast-item b { white-space:nowrap; }
+.fin-sheet-current { display:flex; align-items:center; gap:24px; flex-wrap:wrap; padding:22px 0; border-top:1px solid var(--border); margin-top:26px; }
+.fin-sheet-current>div { margin-right:auto; }
+.fin-sheet-current h3 { font-size:16px; margin:0 0 6px; }
+.fin-sheet-current>span { color:var(--text-muted); font-size:14px; }
+.fin-sheet-current b { display:block; color:var(--text); margin-top:4px; font-size:20px; }
+@media(max-width:800px) {
+ .fin-month-sheet .fin-month-kpis { gap:10px; }
+ .fin-month-sheet .fin-kpi { padding:16px; min-height:160px; }
+ .fin-month-sheet .fin-kpi > strong { font-size:25px; }
+ .fin-sheet-toolbar { align-items:flex-start; flex-direction:column; gap:8px; }
+ .fin-sheet table { min-width:690px; }
+ .fin-sheet-heading { padding:18px; }
+ .fin-sheet-heading h3 { font-size:20px; }
+ .fin-sheet-heading p { font-size:13px; }
+ .fin-sheet-due strong { font-size:20px; }
+ .fin-sheet-equation { gap:14px; }
+ .fin-sheet-equation>strong { margin-left:0; }
+}
+@media(max-width:520px) {
+ .fin-month-sheet .fin-month-kpis { grid-template-columns:1fr; }
+ .fin-month-sheet .fin-kpi { min-height:0; display:grid; grid-template-columns:1fr auto; column-gap:12px; padding:16px 18px; }
+ .fin-month-sheet .fin-kpi-label { font-size:14px; grid-column:1; }
+ .fin-month-sheet .fin-kpi-label svg { display:none; }
+ .fin-month-sheet .fin-kpi>strong { grid-column:2; grid-row:1 / span 2; align-self:center; margin:0; }
+ .fin-month-sheet .fin-kpi p { grid-column:1; font-size:12px; min-height:0; margin:5px 0; }
+ .fin-month-sheet .fin-kpi button { grid-column:1 / -1; padding-top:6px; margin:0; }
+ .fin-sheet-extra summary>b { float:none; display:block; margin:8px 0 0; }
+ .fin-sheet-current>div { width:100%; }
+ .fin-month-sheet .fin-mode-row .fin-segment { width:100%; }
+ .fin-month-sheet .fin-mode-row button { flex:1; white-space:normal; font-size:13px; }
+}
+.fin-month-sheet .fin-kpi > p { margin-bottom:10px; }
+.fin-month-sheet .money-period h3::first-letter { text-transform:uppercase; }
 /* Every finance view shares the same header, palette and navigation. */
 .money-workspace {
   --fin-muted: var(--text-muted);
@@ -92,4 +190,30 @@ html[data-theme="light"] .money-workspace{--fin-muted:var(--text-muted)}html[dat
   .money-workspace .money-filter-pills { flex-wrap: wrap; }
   .money-workspace .money-filter-pills button { max-width: 100%; }
   .money-ledger-note, .money-excluded-note { font-size: 13px; }
+}
+
+/* Stack each ledger line into a small card on phones: no hidden amount columns. */
+@media(max-width:600px) {
+ .fin-month-sheet .fin-sheet table { min-width:0; display:block; }
+ .fin-sheet thead { display:none; }
+ .fin-sheet tbody,.fin-sheet tfoot { display:block; }
+ .fin-sheet .fin-sheet-row,.fin-sheet tfoot tr { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:18px; border-top:1px solid var(--border); }
+ .fin-sheet .fin-sheet-row td,.fin-sheet tfoot td,.fin-sheet tfoot th { display:block; padding:0; border:0; background:none; width:auto; }
+ .fin-sheet .fin-sheet-row td:first-child { grid-column:1 / -1; }
+ .fin-sheet .fin-sheet-row td:last-child { grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+ .fin-sheet .num { text-align:left; font-size:14px; white-space:normal; overflow-wrap:anywhere; }
+ .fin-sheet [data-label]::before { content:attr(data-label); display:block; color:var(--text-muted); font-size:11px; font-weight:400; margin-bottom:5px; }
+ .fin-sheet-name strong { font-size:17px; }
+ .fin-sheet-name span,.fin-sheet-name small { font-size:12px; }
+ .fin-sheet-pay { margin:0; }
+ .fin-sheet tfoot tr { background:var(--surface-hover); }
+ .fin-sheet tfoot th { grid-column:1 / -1; }
+ .fin-sheet tfoot td:last-child { display:none; }
+ .fin-sheet .fin-sheet-detail:not([hidden]) { display:block; }
+ .fin-sheet .fin-sheet-detail td { display:block; padding:18px; }
+ .fin-sheet-detail-inner { display:block; }
+ .fin-sheet-detail-inner>div+div { margin-top:16px; }
+ .fin-payment-list li { flex-wrap:wrap; gap:4px 10px; }
+ .fin-payment-list li>span:first-child { width:100%; }
+ .fin-sheet-footnote { padding:14px 18px; }
 }
