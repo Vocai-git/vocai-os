@@ -142,5 +142,36 @@
   cash.selectedMonthIsSnapshot=month===cash.snapshotMonth;
   return {month,current,previousMonth,previous:monthly(records,previousMonth),trend:Array.from({length:6},(_,i)=>{const m=offsetMonth(month,i-5);return {month:m,...monthly(records,m)};}),categories:[...categories.values()].sort((a,b)=>b.amount-a.amount||a.label.localeCompare(b.label,'es')),pending,forecastExpense,cash};
  }
- return {monthly,entry,accountingDate,dashboard,category};
+ // A service-month sheet with settlement progress as of the supplied date.
+ // Payments in other months settle the document but never move its service month.
+ // Refunds are identified by the explicit ledger category, not a title guess.
+ function monthSheet(records,month,today){
+  const groups={income:[],expense:[],refund:[]},forecasts=[],cash={income:[],expense:[],refund:[]};
+  for(const row of records){
+   const d=row.data,h=d.history||{},business=entry(row,month,'business'),cashEntry=entry(row,month,'cash');
+   const group=d.kind==='income'&&category(row).key==='reembolsos-de-gastos'?'refund':d.kind;
+   if(!Object.hasOwn(groups,group))continue;
+   const payments=paymentRows(row).filter(p=>!today||p.date<=today);
+   if(cashEntry.included){
+    const selected=payments.filter(p=>matches(p.date,month));
+    if(selected.length)cash[group].push({row,payments:selected,amount:selected.reduce((s,p)=>s+p.amount,0),serviceMonth:accountingDate(row).slice(0,7)});
+   }
+   if(business.forecastAmount)forecasts.push({row,amount:business.forecastAmount});
+   if(!business.included)continue;
+   const realPaid=payments.reduce((s,p)=>s+p.amount,0);
+   const target=d.stage==='forecast'?Math.min(payable(d),realPaid):payable(d);
+   const paid=Math.min(target,realPaid),settled=h.status==='assigned'||row.included_in_opening;
+   const adjustment=settled?Math.max(0,target-paid):0,pending=Math.max(0,target-paid-adjustment);
+   groups[group].push({row,amount:business.amount,target,paid,pending,adjustment,payments,paidOutsideMonth:payments.filter(p=>!matches(p.date,month)).reduce((s,p)=>s+p.amount,0),
+    adjustmentLabel:h.status==='assigned'?'Compensado con Santiago':'Liquidado en cierre inicial',
+    withholding:d.stage==='forecast'?business.amount-target:(d.irpf?.tax||0)});
+  }
+  for(const rows of Object.values(groups))rows.sort((a,b)=>Number(b.pending>0)-Number(a.pending>0)||b.amount-a.amount||String(a.row.data.title).localeCompare(b.row.data.title,'es'));
+  for(const rows of Object.values(cash))rows.sort((a,b)=>a.payments[0].date.localeCompare(b.payments[0].date)||String(a.row.data.title).localeCompare(b.row.data.title,'es'));
+  const totals=rows=>rows.reduce((t,r)=>{for(const key of ['amount','target','paid','pending','adjustment','withholding'])t[key]+=r[key]||0;return t;},{amount:0,target:0,paid:0,pending:0,adjustment:0,withholding:0});
+  const sum=Object.fromEntries(Object.entries(groups).map(([k,rows])=>[k,totals(rows)]));
+  const cashTotals=Object.fromEntries(Object.entries(cash).map(([k,rows])=>[k,rows.reduce((s,r)=>s+r.amount,0)]));
+  return {month,groups,totals:sum,forecasts,cash,cashTotals,result:sum.income.amount+sum.refund.amount-sum.expense.amount,cashResult:cashTotals.income+cashTotals.refund-cashTotals.expense};
+ }
+ return {monthly,entry,accountingDate,dashboard,category,monthSheet};
 });
