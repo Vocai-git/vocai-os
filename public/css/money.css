@@ -28,3 +28,11 @@ html[data-theme="light"] .money-month-control input{color-scheme:light}
 .money-form .form-input,.money-form .form-select,.money-form .form-textarea{background:var(--bg);color:var(--text);border-color:var(--border)}
 .money-form .form-select option{background:var(--surface);color:var(--text)}
 .money-form .btn-secondary:hover{background:var(--surface-hover);color:var(--text)}
+
+/* Keep the movement controls in one compact toolbar, rather than another tab row. */
+.money-toolbar.money-record-toolbar { display:grid; grid-template-columns:minmax(200px,1fr) minmax(220px,270px) minmax(160px,200px); gap:14px; align-items:end; margin:18px 0; }
+.money-record-toolbar label { display:grid; gap:6px; min-width:0; }
+.money-record-toolbar label>span { color:var(--text-muted); font-size:12px; }
+.money-record-toolbar .form-select,.money-record-toolbar .form-input { width:100%; max-width:none; min-width:0; }
+@media(max-width:800px) { .money-toolbar.money-record-toolbar { grid-template-columns:minmax(0,1fr) minmax(0,1fr); } .money-record-toolbar .money-record-search { grid-column:1 / -1; } }
+@media(max-width:400px) { .money-toolbar.money-record-toolbar { grid-template-columns:minmax(0,1fr); } }
