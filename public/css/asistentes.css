@@ -1,0 +1,17 @@
+/* Asistentes de clientes (public/js/modules/asistentes-clientes.js) */
+.ac-kpis { grid-template-columns: repeat(3, 1fr); margin-bottom: 24px; }
+.ac-card { display: flex; flex-direction: column; gap: 14px; }
+.ac-cabecera { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.ac-cliente { font-weight: 600; font-size: 16px; }
+.ac-nombre { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+.ac-etiqueta { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 6px; }
+.ac-bloque { flex: 1; }
+.ac-conectores { display: flex; flex-wrap: wrap; gap: 6px; }
+.ac-importes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 14px; border-top: 1px solid var(--border); }
+.ac-importe { font-size: 20px; font-weight: 600; white-space: nowrap; }
+.ac-vacio { font-size: 12px; color: var(--text-muted); }
+.ac-acciones { display: flex; gap: 6px; justify-content: flex-end; margin-top: auto; }
+
+@media (max-width: 768px) {
+  .ac-kpis { grid-template-columns: 1fr; }
+}
