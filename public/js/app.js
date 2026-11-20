@@ -264,9 +264,9 @@ const MODULES = {
   invoices:  { title: 'Facturas',  render: renderInvoices },
   expenses:  { title: 'Inversión', render: renderExpenses },
   finanzas:  { title: 'Finanzas',  render: renderFinanzas },
-  finanzasV2: { title: 'Finanzas', render: el => renderMoney(el, 'summary') },
+  finanzasV2: { title: 'Finanzas V2', render: el => renderMoney(el, 'summary') },
   facturasV2: { title: 'Facturas emitidas', render: renderPracticalInvoices },
-  inversionV2: { title: 'Inversión', render: el => renderMoney(el, 'contributions') },
+  inversionV2: { title: 'Inversión V2', render: el => renderMoney(el, 'contributions') },
   goals:     { title: 'Metas',     render: renderGoals },
   bookings:  { title: 'Reservas de Estudio', render: renderBookings },
   episodes:  { title: 'Episodios', render: renderEpisodes },
@@ -278,7 +278,6 @@ const MODULES = {
   files:     { title: 'Archivos',  render: renderFiles },
   notes:     { title: 'Notas',     render: renderNotes },
   agents:    { title: 'Agentes n8n', render: renderAgents },
-  asistentes: { title: 'Asistentes', render: renderAsistentesClientes },
   mytasks:   { title: 'Mis tareas', render: renderMytasks },
   myagenda:  { title: 'Mi agenda', render: renderMyagenda },
   agenda:    { title: 'Agenda', render: renderAgenda },
@@ -286,7 +285,7 @@ const MODULES = {
   'marketing-calendar': { title: 'Calendario', render: renderMarketingCalendar },
   'marketing-planning': { title: 'Planificación', render: renderMarketingPlanning },
   'marketing-intelligence': { title: 'Inteligencia', render: renderMarketingIntelligence },
-  'marketing-analytics': { title: 'Estadísticas', render: renderMarketingAnalytics },
+  'marketing-analytics': { title: 'Analítica', render: renderMarketingAnalytics },
   'analisis-contenido': { title: 'Análisis de contenido', render: renderAnalisisContenido },
   'reels-a-fondo': { title: 'Reels a fondo', render: renderReelsAFondo },
   'marketing-generator': { title: 'Generador', render: renderMarketingGenerator },
@@ -387,7 +386,7 @@ function init() {
 
   // Initial route
   const hash = window.location.hash.slice(1);
-  navigate(hash && MODULES[hash] ? hash : 'asistentes');
+  navigate(hash && MODULES[hash] ? hash : 'dashboard');
 
   // Copiloto contextual — visible únicamente dentro de Marketing.
   if (typeof initAsistenteWidget === 'function') initAsistenteWidget();

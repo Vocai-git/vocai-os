@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOCAI — Panel</title>
+  <link rel="icon" href="/img/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/panel.css?v=1">
+</head>
+<body>
+
+  <!-- Panel nuevo (20/11/2026). El panel anterior sigue completo en /app; las secciones que
+       todavía no se pasaron a este diseño abren allí. -->
+  <header class="cima">
+    <a class="logo" href="/panel">VOCAI</a>
+    <nav class="nav">
+      <a class="on" href="/panel">Asistentes</a>
+      <a href="/app#clients">Clientes</a>
+      <a href="/app#finanzasV2">Finanzas</a>
+      <a href="/app#inversionV2">Inversión</a>
+      <a href="/app#marketing-analytics">Estadísticas</a>
+    </nav>
+    <div class="usuario">
+      <span id="usuarioNombre"></span>
+      <button class="avatar" id="btnSalir" title="Cerrar sesión" aria-label="Cerrar sesión"></button>
+    </div>
+  </header>
+
+  <main>
+    <div class="titulo">
+      <div>
+        <h1>Asistentes</h1>
+        <div class="sub" id="periodo"></div>
+      </div>
+      <button class="boton" id="btnNuevo">+ Nuevo asistente</button>
+    </div>
+
+    <section class="totales">
+      <div class="total"><div class="rotulo">Asistentes activos</div><div class="cifra" id="totalActivos">–</div></div>
+      <div class="total"><div class="rotulo">Gasto de IA del mes</div><div class="cifra" id="totalGasto">–</div></div>
+      <div class="total"><div class="rotulo">Cuotas fijas al mes</div><div class="cifra" id="totalCuotas">–</div></div>
+    </section>
+
+    <section class="tabla" id="tabla"></section>
+  </main>
+
+  <div class="velo" id="velo" hidden>
+    <form class="ficha" id="ficha" novalidate>
+      <h2 id="fichaTitulo">Nuevo asistente</h2>
+      <div class="campos">
+        <label>Cliente *<input name="cliente" placeholder="ej. Luis Gestoría" required></label>
+        <label>Nombre del asistente *<input name="nombre" placeholder="ej. Asistente de Luis" required></label>
+        <label>Estado
+          <select name="estado">
+            <option value="activo">Activo</option>
+            <option value="pausado">Pausado</option>
+            <option value="baja">Baja</option>
+          </select>
+        </label>
+        <label>Dónde corre<input name="equipo" placeholder="ej. PC del cliente"></label>
+        <label class="ancho">Conectores (separados por coma)<input name="conectores" placeholder="ej. WhatsApp, Gmail, Calendar, ElevenLabs"></label>
+        <label>Gasto de IA del mes (USD)<input name="gasto_mes_usd" type="number" min="0" step="0.01" inputmode="decimal"></label>
+        <label>Gasto actualizado el<input name="gasto_actualizado" type="date"></label>
+        <label>Cuota fija al mes (€)<input name="cuota_fija_eur" type="number" min="0" step="0.01" inputmode="decimal"></label>
+        <label>Nombre de la clave de API<input name="clave_api" placeholder="solo el nombre, nunca la clave"></label>
+        <label class="ancho">Notas<textarea name="notas" rows="2"></textarea></label>
+      </div>
+      <div class="aviso" id="fichaAviso" hidden></div>
+      <div class="ficha-pie">
+        <button type="button" class="boton peligro" id="btnEliminar" hidden>Eliminar</button>
+        <span class="hueco"></span>
+        <button type="button" class="boton suave" id="btnCancelar">Cancelar</button>
+        <button type="submit" class="boton">Guardar</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="/js/panel.js?v=1"></script>
+</body>
+</html>

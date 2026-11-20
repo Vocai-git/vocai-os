@@ -60,6 +60,10 @@ app.use('/auth/google', googleAuthRouter);
 app.get('/app', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'app.html'));
 });
+// Panel nuevo (asistentes de clientes). El anterior sigue en /app.
+app.get('/panel', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'panel.html'));
+});
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
