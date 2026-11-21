@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOCAI — Clientes</title>
+  <link rel="icon" href="/img/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/panel.css?v=2">
+</head>
+<body>
+
+  <!-- Clientes en el panel nuevo. Usa los mismos datos que la sección Clientes de /app (/api/clients). -->
+  <header class="cima">
+    <a class="logo" href="/panel">VOCAI</a>
+    <nav class="nav">
+      <a href="/panel">Asistentes</a>
+      <a class="on" href="/panel/clientes">Clientes</a>
+      <a href="/app#finanzasV2">Finanzas</a>
+      <a href="/app#inversionV2">Inversión</a>
+      <a href="/app#marketing-analytics">Estadísticas</a>
+    </nav>
+    <div class="usuario">
+      <span id="usuarioNombre"></span>
+      <button class="avatar" id="btnSalir" title="Cerrar sesión" aria-label="Cerrar sesión"></button>
+    </div>
+  </header>
+
+  <main>
+    <div class="titulo">
+      <div>
+        <h1>Clientes</h1>
+        <div class="sub" id="resumen"></div>
+      </div>
+      <button class="boton" id="btnNuevo">+ Nuevo cliente</button>
+    </div>
+
+    <section class="totales">
+      <div class="total"><div class="rotulo">Clientes activos</div><div class="cifra" id="totalActivos">–</div></div>
+      <div class="total"><div class="rotulo">Ingreso mensual de activos</div><div class="cifra" id="totalMrr">–</div></div>
+      <div class="total"><div class="rotulo">Prospectos</div><div class="cifra" id="totalProspectos">–</div></div>
+    </section>
+
+    <div class="filtros">
+      <input id="buscar" type="search" placeholder="Buscar por nombre, empresa o email" aria-label="Buscar cliente">
+      <select id="filtroEstado" aria-label="Filtrar por estado">
+        <option value="">Todos los estados</option>
+        <option value="activo">Activos</option>
+        <option value="prospecto">Prospectos</option>
+        <option value="pausado">Pausados</option>
+        <option value="inactivo">Inactivos</option>
+      </select>
+    </div>
+
+    <section class="tabla" id="tabla"></section>
+  </main>
+
+  <div class="velo" id="velo" hidden>
+    <form class="ficha" id="ficha" novalidate>
+      <h2 id="fichaTitulo">Nuevo cliente</h2>
+      <div class="campos">
+        <label>Nombre *<input name="nombre" placeholder="Nombre del cliente" required></label>
+        <label>Empresa<input name="empresa" placeholder="Nombre de la empresa"></label>
+        <label>Email<input name="email" type="email" placeholder="email@empresa.com"></label>
+        <label>Teléfono<input name="telefono" placeholder="+34 600 000 000"></label>
+        <label>Servicio
+          <select name="tipo_servicio">
+            <option value="">Sin definir</option>
+            <option value="estudio">Estudio y contenido</option>
+            <option value="marketing">Marketing digital</option>
+            <option value="ia">Inteligencia artificial</option>
+            <option value="full">Servicio completo</option>
+          </select>
+        </label>
+        <label>Estado
+          <select name="estado">
+            <option value="prospecto">Prospecto</option>
+            <option value="activo">Activo</option>
+            <option value="pausado">Pausado</option>
+            <option value="inactivo">Inactivo</option>
+          </select>
+        </label>
+        <label>Ingreso mensual (€)<input name="mrr" type="number" min="0" step="0.01" inputmode="decimal"></label>
+        <label>Responsable
+          <select name="responsable">
+            <option value="">Sin asignar</option>
+            <option value="agus">Agus</option>
+            <option value="santi">Santi</option>
+          </select>
+        </label>
+        <label>Último contacto<input name="ultimo_contacto" type="date"></label>
+        <label>Cumpleaños<input name="cumpleanos" type="date"></label>
+        <label class="ancho">Notas<textarea name="notas" rows="2"></textarea></label>
+      </div>
+      <div class="aviso" id="fichaAviso" hidden></div>
+      <div class="ficha-pie">
+        <button type="button" class="boton peligro" id="btnEliminar" hidden>Eliminar</button>
+        <span class="hueco"></span>
+        <button type="button" class="boton suave" id="btnCancelar">Cancelar</button>
+        <button type="submit" class="boton">Guardar</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="/js/panel-base.js?v=2"></script>
+  <script src="/js/panel-clientes.js?v=2"></script>
+</body>
+</html>

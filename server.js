@@ -64,6 +64,9 @@ app.get('/app', (req, res) => {
 app.get('/panel', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'panel.html'));
 });
+app.get('/panel/clientes', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'panel-clientes.html'));
+});
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

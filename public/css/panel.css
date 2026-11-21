@@ -50,16 +50,26 @@ h1 { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
 .estado { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--verde-suave); color: var(--verde); white-space: nowrap; }
 .estado::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .estado.pausado { background: var(--ambar-suave); color: var(--ambar); }
-.estado.baja { background: rgba(156, 163, 175, .14); color: var(--suave); }
+.estado.baja, .estado.inactivo { background: rgba(156, 163, 175, .14); color: var(--suave); }
+.estado.prospecto { background: var(--azul-suave); color: var(--azul-texto); }
 .nada { color: var(--suave); font-size: 13px; }
 .der { text-align: right; }
 .importe { font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .importe small { font-size: 12px; }
+.importe.sin { font-weight: 400; font-size: 14px; color: var(--suave); }
 .enlace { background: none; border: 0; padding: 0; color: var(--azul-texto); font: 500 13px Inter, sans-serif; cursor: pointer; }
 .vacio { padding: 48px 20px; text-align: center; color: var(--suave); }
 .vacio strong { display: block; color: var(--texto); font-size: 16px; margin-bottom: 4px; }
 .aviso { background: var(--coral-suave); color: var(--coral); border-radius: 8px; padding: 10px 14px; font-size: 13px; }
 .tabla .aviso { margin: 16px 20px; }
+
+/* Clientes: columnas propias y filtros */
+.fila.cli { grid-template-columns: 1.7fr 110px 1.2fr 100px 110px 120px 48px; }
+.filtros { display: flex; gap: 10px; margin-bottom: 14px; }
+.filtros input, .filtros select { background: var(--panel); border: 1px solid var(--borde); border-radius: 8px; padding: 10px 12px; color: var(--texto); font: 400 14px Inter, sans-serif; color-scheme: dark; }
+.filtros input { flex: 1; min-width: 0; max-width: 360px; }
+.filtros input::placeholder { color: var(--suave); }
+.filtros input:focus, .filtros select:focus { outline: 2px solid var(--azul); outline-offset: -1px; }
 
 /* Ficha de alta y edición */
 .velo { position: fixed; inset: 0; background: rgba(8, 12, 26, .72); display: grid; place-items: center; padding: 16px; overflow-y: auto; z-index: 10; }
@@ -86,7 +96,9 @@ h1 { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
   .total:first-child { border-top: 0; }
   .cifra { font-size: 20px; margin-top: 0; }
   .fila.cabeza { display: none; }
-  .fila { grid-template-columns: 1fr 1fr; gap: 12px 16px; padding: 18px 16px; }
+  .fila, .fila.cli { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 16px; padding: 18px 16px; }
+  .filtros { flex-direction: column; }
+  .filtros input { max-width: none; flex: none; }
   .fila:nth-child(2) { border-top: 0; }
   .c-estado { justify-self: end; }
   .c-chips, .c-accion { grid-column: 1 / -1; }

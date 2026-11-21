@@ -1,35 +1,16 @@
-// Panel nuevo de VOCAI (public/panel.html): asistentes de clientes, con sus conectores, el gasto
-// de IA del mes y la cuota fija. Usa la misma sesión que /app. El gasto se carga a mano.
-const token = localStorage.getItem('vocai_token');
-if (!token) window.location.href = '/';
-
-const $ = id => document.getElementById(id);
-const numero = n => Number(n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const texto = s => { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
+// Asistentes del panel nuevo (public/panel.html): conectores, gasto de IA del mes y cuota fija.
+// El gasto se carga a mano. La sesión, api() y la cabecera vienen de panel-base.js.
 const usd = n => `<small>USD</small>${numero(n)}`;
-const fechaCorta = f => new Date(f + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 
 let asistentes = [];
 let editando = null;
-
-async function api(metodo, ruta, cuerpo) {
-  const res = await fetch('/api' + ruta, {
-    method: metodo,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('vocai_token')}` },
-    body: cuerpo ? JSON.stringify(cuerpo) : undefined
-  });
-  if (res.status === 401) { localStorage.clear(); window.location.href = '/'; return new Promise(() => {}); }
-  const datos = await res.json();
-  if (!res.ok) throw new Error(datos.error || 'Error del servidor');
-  return datos;
-}
 
 function fila(a) {
   const conectores = a.conectores || [];
   return `
     <div class="fila">
       <div><div class="cliente">${texto(a.cliente)}</div><div class="pie">${texto(a.nombre)}${a.equipo ? ' · ' + texto(a.equipo) : ''}</div></div>
-      <div class="c-estado"><span class="estado ${texto(a.estado)}">${texto(a.estado.charAt(0).toUpperCase() + a.estado.slice(1))}</span></div>
+      <div class="c-estado"><span class="estado ${texto(a.estado)}">${texto(mayuscula(a.estado))}</span></div>
       <div class="chips c-chips">${conectores.length ? conectores.map(c => `<span class="chip">${texto(c)}</span>`).join('') : '<span class="nada">Sin conectores cargados</span>'}</div>
       <div class="der" data-r="Gasto de IA"><div class="importe">${usd(a.gasto_mes_usd)}</div><div class="pie">${a.gasto_actualizado ? 'al ' + fechaCorta(a.gasto_actualizado) : 'sin actualizar'}</div></div>
       <div class="der" data-r="Cuota fija"><div class="importe">${numero(a.cuota_fija_eur)} €</div><div class="pie">al mes</div></div>
@@ -114,12 +95,9 @@ async function eliminar() {
 }
 
 function iniciar() {
-  const usuario = JSON.parse(localStorage.getItem('vocai_user') || '{}');
-  const nombre = usuario.nombre || usuario.email || 'Usuario';
-  $('usuarioNombre').textContent = nombre;
-  $('btnSalir').textContent = nombre.charAt(0).toUpperCase();
+  iniciarCabecera();
   const mes = new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-  $('periodo').textContent = mes.charAt(0).toUpperCase() + mes.slice(1);
+  $('periodo').textContent = mayuscula(mes);
 
   $('btnNuevo').addEventListener('click', () => abrirFicha(null));
   $('btnCancelar').addEventListener('click', cerrarFicha);
@@ -129,12 +107,6 @@ function iniciar() {
   $('tabla').addEventListener('click', e => {
     const id = e.target.dataset.editar;
     if (id) abrirFicha(asistentes.find(a => a.id === id));
-  });
-  $('btnSalir').addEventListener('click', async () => {
-    if (!confirm('¿Cerrar sesión?')) return;
-    await fetch('/api/auth/logout', { method: 'POST', headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
-    localStorage.clear();
-    window.location.href = '/';
   });
   cargar();
 }
