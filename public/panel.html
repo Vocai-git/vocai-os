@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/panel.css?v=3">
+  <link rel="stylesheet" href="/css/panel.css?v=6">
 </head>
 <body>
 
@@ -41,7 +41,7 @@
 
     <section class="totales">
       <div class="total"><div class="rotulo">Asistentes activos</div><div class="cifra" id="totalActivos">–</div></div>
-      <div class="total"><div class="rotulo">Gasto de IA del mes</div><div class="cifra" id="totalGasto">–</div></div>
+      <div class="total"><div class="rotulo">Gasto del mes (IA y voz)</div><div class="cifra" id="totalGasto">–</div></div>
       <div class="total"><div class="rotulo">Cuotas fijas al mes</div><div class="cifra" id="totalCuotas">–</div></div>
     </section>
 
@@ -63,11 +63,16 @@
         </label>
         <label>Dónde corre<input name="equipo" placeholder="ej. PC del cliente"></label>
         <label class="ancho">Conectores (separados por coma)<input name="conectores" placeholder="ej. WhatsApp, Gmail, Calendar, ElevenLabs"></label>
-        <label>Gasto de IA del mes (USD)<input name="gasto_mes_usd" type="number" min="0" step="0.01" inputmode="decimal"></label>
+        <label>Gasto del mes (USD)<input name="gasto_mes_usd" type="number" min="0" step="0.01" inputmode="decimal"></label>
         <label>Gasto actualizado el<input name="gasto_actualizado" type="date"></label>
         <label>Cuota fija al mes (€)<input name="cuota_fija_eur" type="number" min="0" step="0.01" inputmode="decimal"></label>
         <label>Nombre de la clave de API<input name="clave_api" placeholder="solo el nombre, nunca la clave"></label>
         <label class="ancho">Notas<textarea name="notas" rows="2"></textarea></label>
+      </div>
+      <div class="reporte" id="reporte" hidden>
+        <div><strong>Reporte automático del gasto</strong><span id="reporteEstado"></span></div>
+        <button type="button" class="boton suave" id="btnClave">Generar clave</button>
+        <textarea id="reporteClave" rows="2" readonly hidden aria-label="Líneas para el archivo .env del asistente"></textarea>
       </div>
       <div class="aviso" id="fichaAviso" hidden></div>
       <div class="ficha-pie">
@@ -80,6 +85,6 @@
   </div>
 
   <script src="/js/panel-base.js?v=2"></script>
-  <script src="/js/panel.js?v=2"></script>
+  <script src="/js/panel.js?v=6"></script>
 </body>
 </html>

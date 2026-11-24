@@ -43,7 +43,7 @@ h1 { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
 
 /* Tabla de asistentes */
 .tabla { background: var(--panel); border: 1px solid var(--borde); border-radius: 12px; overflow: hidden; }
-.fila { display: grid; grid-template-columns: 1.5fr 110px 2fr 120px 110px 48px; gap: 16px; align-items: center; padding: 16px 20px; border-top: 1px solid var(--borde); }
+.fila { display: grid; grid-template-columns: 1.5fr 110px 2fr 150px 110px 48px; gap: 16px; align-items: center; padding: 16px 20px; border-top: 1px solid var(--borde); }
 .fila.cabeza { border-top: 0; padding: 12px 20px; font-size: 12px; color: var(--suave); font-weight: 500; }
 .cliente { font-weight: 600; font-size: 15px; }
 .pie { font-size: 12px; color: var(--suave); }
@@ -103,6 +103,11 @@ h1 { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
 .campos .ancho { grid-column: 1 / -1; }
 .campos input, .campos select, .campos textarea { background: var(--fondo); border: 1px solid var(--borde); border-radius: 8px; padding: 10px 12px; color: var(--texto); font: 400 14px Inter, sans-serif; width: 100%; color-scheme: dark; }
 .campos input:focus, .campos select:focus, .campos textarea:focus { outline: 2px solid var(--azul); outline-offset: -1px; }
+.reporte { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; border: 1px solid var(--borde); border-radius: 10px; padding: 12px 14px; font-size: 13px; }
+.reporte strong { display: block; color: var(--texto); font-weight: 600; }
+.reporte span { color: var(--suave); }
+.reporte textarea { grid-column: 1 / -1; background: var(--fondo); border: 1px solid var(--borde); border-radius: 8px; padding: 10px 12px; color: var(--texto); font: 12px ui-monospace, Consolas, monospace; resize: none; width: 100%; white-space: pre; overflow-x: auto; }
+.campos input:disabled { opacity: .45; }
 .ficha-pie { display: flex; gap: 10px; align-items: center; }
 .hueco { flex: 1; }
 
@@ -132,5 +137,6 @@ h1 { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
   .der { text-align: left; }
   .fila [data-r]::before { display: block; content: attr(data-r); font-size: 12px; color: var(--suave); margin-bottom: 2px; }
   .campos { grid-template-columns: 1fr; }
+  .reporte { grid-template-columns: 1fr; }
   .ficha { padding: 20px 16px; }
 }
