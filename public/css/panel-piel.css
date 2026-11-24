@@ -26,8 +26,8 @@ html.piel-nueva {
 /* Inter es más ancha que la tipografía de /app: el mes no cabía en el selector. */
 .piel-nueva .money-month-control input { width: 178px; }
 
-/* Vista heredada de Finanzas: el resumen del mes y la inversión viven ya en el panel nuevo. */
-.fin-completo .money-tabs button:nth-child(1), .fin-completo .money-tabs button:nth-child(3) { display: none; }
+/* Vista heredada de Finanzas: la inversión vive ya en el menú de arriba. La primera pestaña vuelve al resumen nuevo. */
+.fin-completo .money-tabs button:nth-child(3) { display: none; }
 
 /* Cabecera: la misma del panel nuevo (public/css/panel.css). */
 .piel-nueva .cima { flex: none; background: #101830; border-bottom: 1px solid #2b3c60; padding: 0 32px; height: 60px; display: flex; align-items: center; gap: 36px; font-size: 14px; }

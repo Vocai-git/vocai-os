@@ -13,10 +13,17 @@ const SECCIONES = {
 const MENU = [['/panel', 'Asistentes'], ['/panel/clientes', 'Clientes'], ['/panel/finanzas', 'Finanzas'], ['/panel/inversion', 'Inversión'], ['/panel/estadisticas', 'Estadísticas']];
 
 // Vista heredada de Finanzas (/panel/finanzas/completo?ver=…): abre la pestaña pedida desde el resumen nuevo.
-// El resumen del mes y la inversión ya tienen sitio propio en el panel nuevo, así que aquí se ocultan (panel-piel.css).
+// La inversión ya tiene sitio propio en el menú de arriba, así que aquí su pestaña se oculta (panel-piel.css).
 const PESTANA = `
   <script>
     document.documentElement.classList.add('fin-completo');
+    // La primera pestaña («Resumen del mes») vuelve al resumen nuevo en vez de abrir el heredado.
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('.money-tabs button');
+      if (!b || b !== b.parentNode.firstElementChild) return;
+      e.preventDefault(); e.stopPropagation();
+      location.href = '/panel/finanzas';
+    }, true);
     (function () {
       var q = new URLSearchParams(location.search), ver = q.get('ver'), intentos = 0;
       if (['records', 'invoices', 'documents', 'bank', 'home'].indexOf(ver) < 0) ver = 'records';
