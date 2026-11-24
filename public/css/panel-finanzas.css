@@ -121,3 +121,4 @@ i.gas { background: var(--coral); }
 }
 
 .acciones .enlace { white-space: nowrap; }
+.importe.tachado { text-decoration: line-through; color: var(--suave); font-weight: 500; }

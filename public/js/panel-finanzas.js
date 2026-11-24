@@ -92,22 +92,44 @@ function detalleHoy(tablero, s) {
   }).join('');
 }
 
+// Una compra que devolvieron entera no es un gasto. Se empareja con su reembolso (mismo proveedor, mismo
+// importe, mismo mes) y los dos quedan fuera de los totales; el resultado del mes no cambia.
+function reembolsados(hoja) {
+  const primera = d => (d.party || d.title || '').trim().split(/\s+/)[0].toLowerCase();
+  const ids = new Set();
+  let importe = 0;
+  for (const dev of hoja.groups.refund) {
+    const gasto = hoja.groups.expense.find(f => !ids.has(f.row.id) && f.amount === dev.amount && primera(f.row.data) === primera(dev.row.data));
+    if (!gasto) continue;
+    ids.add(gasto.row.id); ids.add(dev.row.id); importe += dev.amount;
+  }
+  return { ids, importe };
+}
+
 // ── El mes ───────────────────────────────────────────────────
 function elMes(tablero, hoja) {
-  const t = hoja.totals;
+  const t = hoja.totals, dev = reembolsados(hoja);
+  const gastoNeto = t.expense.amount - dev.importe, otrosReembolsos = t.refund.amount - dev.importe;
+  // Las barras de cada mes, con la misma regla.
+  const barras = tablero.trend.map(m => {
+    const h = m.month === mes ? hoja : FinanceReport.monthSheet(datos.records, m.month, HOY), d = m.month === mes ? dev : reembolsados(h);
+    return { month: m.month, revenue: h.totals.income.amount + h.totals.refund.amount - d.importe, expense: h.totals.expense.amount - d.importe };
+  });
   const anterior = FinanceReport.monthSheet(datos.records, tablero.previousMonth, HOY).result;
-  const tope = Math.max(1, ...tablero.trend.map(m => Math.max(m.revenue, m.expense)));
-  const columnas = tablero.trend.map(m => `
+  const tope = Math.max(1, ...barras.map(m => Math.max(m.revenue, m.expense)));
+  const columnas = barras.map(m => `
     <button class="col${m.month === mes ? ' on' : ''}" data-mes="${m.month}" title="${nombreMes(m.month)}: ingresos ${euro(m.revenue)}, gastos ${euro(m.expense)}">
       <span class="barras"><i class="ing" style="height:${m.revenue / tope * 100}%"></i><i class="gas" style="height:${m.expense / tope * 100}%"></i></span>
       <span class="mes">${nombreMes(m.month, true)}</span>
     </button>`).join('');
   const total = (rotulo, importe, pie, clase) => `<div class="total"><div class="rotulo">${rotulo}</div><div class="cifra ${clase || ''}">${euro(importe)}</div><div class="pie">${pie}</div></div>`;
-  const gastos = hoja.groups.expense;
+  const gastos = hoja.groups.expense.filter(f => !dev.ids.has(f.row.id));
   const mayor = gastos.reduce((a, b) => (!a || b.amount > a.amount ? b : a), null);
-  const frase = mayor && t.expense.amount
-    ? `El gasto más grande del mes fue <strong>${texto(nombre(mayor.row.data))}</strong>: ${euro(mayor.amount)}, el ${Math.round(mayor.amount / t.expense.amount * 100)} % de los gastos.`
-    : '';
+  const frases = [
+    mayor && gastoNeto ? `El gasto más grande del mes fue <strong>${texto(nombre(mayor.row.data))}</strong>: ${euro(mayor.amount)}, el ${Math.round(mayor.amount / gastoNeto * 100)} % de los gastos.` : '',
+    otrosReembolsos ? `El resultado incluye ${euro(otrosReembolsos)} de reembolsos.` : '',
+    dev.importe ? `No se cuentan ${euro(dev.importe)} de compras que devolvieron.` : ''
+  ].filter(Boolean).join(' ');
   return `
     <div class="cabeza-mes">
       <h2 class="bloque">${mayuscula(nombreMes(mes))}</h2>
@@ -123,42 +145,42 @@ function elMes(tablero, hoja) {
     </section>
     <section class="totales">
       ${total('Ingresos del mes', t.income.amount, t.income.pending ? `Cobrado ${euro(t.income.paid)} · falta ${euro(t.income.pending)}` : 'Todo cobrado')}
-      ${total('Gastos del mes', t.expense.amount, t.expense.pending ? `Pagado ${euro(t.expense.paid)} · falta ${euro(t.expense.pending)}` : 'Todo pagado')}
+      ${total('Gastos del mes', gastoNeto, t.expense.pending ? `Pagado ${euro(t.expense.paid - dev.importe)} · falta ${euro(t.expense.pending)}` : 'Todo pagado')}
       ${total('Resultado del mes', hoja.result, `${mayuscula(nombreMes(tablero.previousMonth, true))}: ${euro(anterior)}`, hoja.result < 0 ? 'mal' : 'bien')}
     </section>
-    ${frase ? `<p class="frase">${frase}${t.refund.amount ? ` El resultado incluye ${euro(t.refund.amount)} de reembolsos.` : ''}</p>` : ''}
-    ${ingresos(hoja)}
-    ${gastosPorTipo(hoja)}`;
+    ${frases ? `<p class="frase">${frases}</p>` : ''}
+    ${ingresos(hoja, dev)}
+    ${gastosPorTipo(hoja, dev, gastoNeto)}`;
 }
 
-function ingresos(hoja) {
-  const filas = [...hoja.groups.income, ...hoja.groups.refund.map(f => ({ ...f, reembolso: true }))];
+function ingresos(hoja, dev) {
+  const filas = [...hoja.groups.income, ...hoja.groups.refund.filter(f => !dev.ids.has(f.row.id)).map(f => ({ ...f, reembolso: true }))];
   return `
     <div class="cabeza-lista"><h3>Ingresos</h3><span class="pie">${filas.length ? 'Toca una fila para ver los cobros' : ''}</span></div>
     <section class="tabla">${filas.length ? filas.map(f => fila(f, true)).join('') : '<div class="vacio">Sin ingresos en este mes.</div>'}</section>`;
 }
 
-function gastosPorTipo(hoja) {
+function gastosPorTipo(hoja, dev, total) {
   const grupos = new Map();
   for (const f of hoja.groups.expense) {
     const c = FinanceReport.category(f.row);
-    const g = grupos.get(c.key) || { ...c, importe: 0, pendiente: 0, filas: [] };
-    g.importe += f.amount; g.pendiente += f.pending; g.filas.push(f);
+    const g = grupos.get(c.key) || { ...c, importe: 0, pendiente: 0, filas: [], devueltos: [] };
+    if (dev.ids.has(f.row.id)) g.devueltos.push(f);
+    else { g.importe += f.amount; g.pendiente += f.pending; g.filas.push(f); }
     grupos.set(c.key, g);
   }
-  const total = hoja.totals.expense.amount;
   const orden = [...grupos.values()].sort((a, b) => b.importe - a.importe);
   const html = orden.map(g => {
     const clave = 'tipo:' + g.key, abierto = abiertos.has(clave);
     return `
       <button class="grupo${abierto ? ' on' : ''}" data-abrir="${clave}" aria-expanded="${abierto}">
         <span class="flecha"></span>
-        <span class="g-nombre"><strong>${texto(g.label)}</strong><span class="pie">${g.filas.length} ${g.filas.length === 1 ? 'gasto' : 'gastos'}${g.pendiente ? ` · falta pagar ${euro(g.pendiente)}` : ''}</span></span>
+        <span class="g-nombre"><strong>${texto(g.label)}</strong><span class="pie">${g.filas.length} ${g.filas.length === 1 ? 'gasto' : 'gastos'}${g.pendiente ? ` · falta pagar ${euro(g.pendiente)}` : ''}${g.devueltos.length ? ` · ${g.devueltos.length} ${g.devueltos.length === 1 ? 'reembolsado' : 'reembolsados'}` : ''}</span></span>
         <span class="g-barra"><i style="width:${total ? g.importe / total * 100 : 0}%"></i></span>
         <span class="g-parte">${total ? Math.round(g.importe / total * 100) : 0} %</span>
         <span class="importe">${euro(g.importe)}</span>
       </button>
-      ${abierto ? `<div class="dentro">${g.filas.sort((a, b) => b.amount - a.amount).map(f => fila(f, false)).join('')}</div>` : ''}`;
+      ${abierto ? `<div class="dentro">${g.filas.sort((a, b) => b.amount - a.amount).map(f => fila(f, false)).join('')}${g.devueltos.map(f => fila(f, false, true)).join('')}</div>` : ''}`;
   }).join('');
   return `
     <div class="cabeza-lista"><h3>Gastos</h3><span class="pie">${orden.length ? 'Agrupados por tipo · toca uno para abrirlo' : ''}</span></div>
@@ -166,10 +188,11 @@ function gastosPorTipo(hoja) {
 }
 
 // Una fila de ingreso o gasto; al tocarla muestra sus cobros o pagos.
-function fila(f, esIngreso) {
+function fila(f, esIngreso, devuelto) {
   const r = f.row, d = r.data, clave = 'fila:' + r.id, abierto = abiertos.has(clave);
   const hecho = esIngreso ? 'Cobrado' : 'Pagado';
-  const estado = d.stage === 'forecast' ? '<span class="estado prospecto">Previsto</span>'
+  const estado = devuelto ? '<span class="estado inactivo">Reembolsado · no cuenta</span>'
+    : d.stage === 'forecast' ? '<span class="estado prospecto">Previsto</span>'
     : f.pending > 0 ? `<span class="estado pausado">Falta ${euro(f.pending)}</span>`
       : `<span class="estado">${hecho}</span>`;
   const parte = f.target ? Math.min(100, (f.paid + f.adjustment) / f.target * 100) : 100;
@@ -181,7 +204,7 @@ function fila(f, esIngreso) {
       <span class="flecha"></span>
       <span class="i-nombre"><strong>${texto(nombre(d))}</strong><span class="pie">${texto([f.reembolso ? 'Reembolso' : '', detalleDe(d), !esIngreso && f.payments.length ? fechaCorta(f.payments[f.payments.length - 1].date) : ''].filter(Boolean).join(' · '))}</span></span>
       <span class="i-avance">${esIngreso ? `<span class="g-barra"><i class="ing" style="width:${parte}%"></i></span>` : ''}${estado}</span>
-      <span class="importe">${euro(f.amount)}</span>
+      <span class="importe${devuelto ? ' tachado' : ''}">${euro(f.amount)}</span>
     </button>
     ${abierto ? `
     <div class="abierto">
