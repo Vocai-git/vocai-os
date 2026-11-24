@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOCAI — Socios</title>
+  <link rel="icon" href="/img/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/panel.css?v=5">
+  <link rel="stylesheet" href="/css/panel-finanzas.css?v=2">
+</head>
+<body>
+
+  <!-- Cuentas con los socios, en el panel nuevo: lo que VOCAI le debe a cada uno y lo que cada uno aportó. -->
+  <header class="cima">
+    <a class="logo" href="/panel">VOCAI</a>
+    <nav class="nav">
+      <a href="/panel">Asistentes</a>
+      <a href="/panel/clientes">Clientes</a>
+      <a class="on" href="/panel/finanzas">Finanzas</a>
+      <a href="/panel/inversion">Inversión</a>
+      <a href="/panel/estadisticas">Estadísticas</a>
+    </nav>
+    <div class="usuario">
+      <a class="anterior" href="/app">Panel anterior</a>
+      <span id="usuarioNombre"></span>
+      <button class="avatar" id="btnSalir" title="Cerrar sesión" aria-label="Cerrar sesión"></button>
+    </div>
+  </header>
+
+  <main>
+    <div class="titulo">
+      <div>
+        <h1>Finanzas</h1>
+        <div class="sub">Cuentas con los socios</div>
+      </div>
+    </div>
+
+    <nav class="subnav" aria-label="Secciones de finanzas">
+      <a href="/panel/finanzas">Resumen</a>
+      <a href="/panel/finanzas/completo?ver=records">Movimientos</a>
+      <a href="/panel/finanzas/completo?ver=invoices">Facturas</a>
+      <a class="on" href="/panel/finanzas/socios">Socios</a>
+      <details class="mas">
+        <summary>Más</summary>
+        <div>
+          <a href="/panel/finanzas/completo?ver=documents">Documentos</a>
+          <a href="/panel/finanzas/completo?ver=bank">Revisar banco</a>
+        </div>
+      </details>
+    </nav>
+
+    <div id="contenido"><div class="vacio">Cargando las cuentas…</div></div>
+  </main>
+
+  <script src="/js/panel-base.js?v=2"></script>
+  <script src="/js/finance-report.js"></script>
+  <script src="/js/finance-balances.js"></script>
+  <script src="/js/panel-socios.js?v=1"></script>
+</body>
+</html>

@@ -76,7 +76,7 @@ function detalleHoy(tablero, s) {
       <div class="linea"><div><strong>Banco de VOCAI</strong><div class="pie">Cuadrado con el extracto</div></div><div class="importe">${euro(s.cash.bank)}</div></div>
       <div class="linea"><div><strong>Efectivo de VOCAI</strong><div class="pie">Caja</div></div><div class="importe">${euro(s.cash.cash)}</div></div>
       ${deuda('Santiago', s.operating.santi)}${deuda('Agustín', s.operating.agus)}
-      <div class="linea fin"><a class="enlace" href="/panel/finanzas/completo?ver=home">Ver el detalle de las cuentas con los socios →</a></div>`;
+      <div class="linea fin"><a class="enlace" href="/panel/finanzas/socios">Ver el detalle de las cuentas con los socios →</a></div>`;
   }
   const cobro = panelHoy === 'cobrar';
   const lista = cobro ? tablero.pending.income : tablero.pending.expense;

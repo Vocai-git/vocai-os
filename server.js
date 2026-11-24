@@ -71,6 +71,9 @@ app.get('/panel/clientes', (req, res) => {
 app.get('/panel/finanzas', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'panel-finanzas.html'));
 });
+app.get('/panel/finanzas/socios', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'panel-finanzas-socios.html'));
+});
 app.get('/panel/finanzas/completo', (req, res) => {
   res.type('html').send(require('./config/panel-marco').pagina('finanzas'));
 });
