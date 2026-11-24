@@ -5,137 +5,111 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VOCAI OS — Login</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/img/logo.png">
   <style>
+    /* Mismo diseño que el panel nuevo (public/css/panel.css): navy, azul, Inter. */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Outfit', sans-serif;
-      background: #111111;
-      color: #ffffff;
+      font-family: Inter, system-ui, sans-serif;
+      background: #141d35;
+      color: #e0e4ec;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 24px 16px;
     }
 
-    .login-wrapper { width: 100%; max-width: 380px; }
+    .login-wrapper { width: 100%; max-width: 400px; }
 
-    .login-logo {
-      text-align: center;
-      margin-bottom: 36px;
+    .login-logo { text-align: center; margin-bottom: 28px; }
+
+    .login-logo-marca {
+      display: inline-block;
+      font-weight: 800;
+      font-size: 40px;
+      line-height: 1.1;
+      letter-spacing: -.03em;
+      background: linear-gradient(135deg, #2979FF, #FF6B6B);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
 
-    .login-logo img {
-      width: 140px;
-      display: block;
-      margin: 0 auto;
-    }
-
-    .login-logo-sub {
-      font-size: 11px;
-      color: #555;
-      margin-top: 8px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-    }
+    .login-logo-sub { font-size: 13px; color: #9ca3af; margin-top: 6px; }
 
     .login-card {
-      background: #1e1e1e;
-      border: 1px solid #2a2a2a;
+      background: #1e2a47;
+      border: 1px solid #2b3c60;
       border-radius: 14px;
-      padding: 32px 28px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      padding: 28px 24px;
     }
 
-    .login-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 22px;
-      font-weight: 800;
-      margin-bottom: 6px;
-    }
+    .login-title { font-size: 22px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 4px; }
 
-    .login-subtitle {
-      font-size: 14px;
-      color: #888;
-      margin-bottom: 28px;
-    }
+    .login-subtitle { font-size: 14px; color: #9ca3af; margin-bottom: 24px; }
 
-    .form-group { margin-bottom: 18px; }
+    .form-group { margin-bottom: 16px; }
 
-    .form-label {
-      display: block;
-      font-size: 11px;
-      font-weight: 600;
-      color: #888;
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-    }
+    .form-label { display: block; font-size: 12px; font-weight: 500; color: #9ca3af; margin-bottom: 6px; }
 
     .form-input {
       width: 100%;
-      background: #111111;
-      border: 1px solid #2a2a2a;
+      background: #141d35;
+      border: 1px solid #2b3c60;
       border-radius: 8px;
-      padding: 13px 14px;
-      font-family: 'Outfit', sans-serif;
-      font-size: 15px;
-      color: #fff;
-      transition: border-color 0.2s;
-      outline: none;
+      padding: 12px 14px;
+      font: 400 15px Inter, sans-serif;
+      color: #e0e4ec;
+      color-scheme: dark;
     }
 
-    .form-input:focus {
-      border-color: #FF6B6B;
-      box-shadow: 0 0 0 2px rgba(255,107,107,0.1);
-    }
+    .form-input:focus { outline: 2px solid #2979FF; outline-offset: -1px; }
 
-    .form-input::placeholder { color: #333; }
+    .form-input::placeholder { color: #5b6784; }
+
+    /* El autocompletado del navegador pinta el campo de blanco: se mantiene el fondo del panel. */
+    .form-input:-webkit-autofill, .form-input:-webkit-autofill:focus {
+      -webkit-text-fill-color: #e0e4ec;
+      box-shadow: 0 0 0 1000px #141d35 inset;
+      caret-color: #e0e4ec;
+    }
 
     .btn-login {
       width: 100%;
-      background: #FF6B6B;
-      color: white;
-      border: none;
+      background: #2979FF;
+      color: #fff;
+      border: 0;
       border-radius: 8px;
-      padding: 14px;
-      font-family: 'Outfit', sans-serif;
-      font-size: 15px;
-      font-weight: 600;
+      padding: 13px;
+      font: 600 15px Inter, sans-serif;
       cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
       margin-top: 8px;
     }
 
-    .btn-login:hover { opacity: 0.88; }
-    .btn-login:active { transform: scale(0.99); }
-    .btn-login:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-login:hover { background: #1f6bf0; }
+    .btn-login:disabled { opacity: .5; cursor: not-allowed; }
 
     .error-msg {
-      background: rgba(255,107,107,0.1);
-      border: 1px solid rgba(255,107,107,0.2);
+      background: rgba(255, 107, 107, .14);
       border-radius: 8px;
-      padding: 12px 14px;
+      padding: 10px 14px;
       font-size: 13px;
       color: #FF6B6B;
       margin-top: 14px;
       display: none;
     }
 
-    .footer-text {
-      text-align: center;
-      margin-top: 24px;
-      font-size: 12px;
-      color: #333;
-    }
+    .footer-text { text-align: center; margin-top: 22px; font-size: 12px; color: #6b7690; }
 
     .spinner {
       display: inline-block;
       width: 14px;
       height: 14px;
-      border: 2px solid rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.3);
       border-top-color: white;
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
@@ -149,13 +123,13 @@
 <body>
   <div class="login-wrapper">
     <div class="login-logo">
-      <img src="/img/logo.png" alt="VOCAI" style="width:120px; display:block; margin:0 auto; mix-blend-mode:screen">
-      <div class="login-logo-sub">Sistema Operativo</div>
+      <div class="login-logo-marca">VOCAI</div>
+      <div class="login-logo-sub">Panel de gestión</div>
     </div>
 
     <div class="login-card">
       <h1 class="login-title">Bienvenido</h1>
-      <p class="login-subtitle">Accede a tu panel de gestión</p>
+      <p class="login-subtitle">Entra con tu cuenta de VOCAI</p>
 
       <form id="loginForm">
         <div class="form-group">
@@ -176,8 +150,11 @@
 
   <script>
     // Check if already logged in
+    // Quien llega desde el panel nuevo (?ir=/panel...) vuelve ahí; el resto entra a /app como siempre.
+    const pedido = new URLSearchParams(location.search).get('ir') || '';
+    const destino = ['/panel', '/panel/clientes'].includes(pedido) ? pedido : '/app';
     const token = localStorage.getItem('vocai_token');
-    if (token) window.location.href = '/app';
+    if (token) window.location.href = destino;
 
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -205,7 +182,7 @@
         localStorage.setItem('vocai_refresh_token', data.refresh_token);
         localStorage.setItem('vocai_user', JSON.stringify(data.user));
 
-        window.location.href = '/app';
+        window.location.href = destino;
       } catch (err) {
         errorMsg.textContent = err.message;
         errorMsg.style.display = 'block';

@@ -1,7 +1,8 @@
 // Base común de las páginas del panel nuevo (/panel y /panel/...): sesión, llamadas a la API y cabecera.
 // Usa la misma sesión que /app.
+const ENTRADA = '/?ir=' + encodeURIComponent(location.pathname);
 const token = localStorage.getItem('vocai_token');
-if (!token) window.location.href = '/';
+if (!token) window.location.href = ENTRADA;
 
 const $ = id => document.getElementById(id);
 const numero = n => Number(n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -15,7 +16,7 @@ async function api(metodo, ruta, cuerpo) {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('vocai_token')}` },
     body: cuerpo ? JSON.stringify(cuerpo) : undefined
   });
-  if (res.status === 401) { localStorage.clear(); window.location.href = '/'; return new Promise(() => {}); }
+  if (res.status === 401) { localStorage.clear(); window.location.href = ENTRADA; return new Promise(() => {}); }
   const datos = await res.json();
   if (!res.ok) throw new Error(datos.error || 'Error del servidor');
   return datos;
@@ -30,6 +31,6 @@ function iniciarCabecera() {
     if (!confirm('¿Cerrar sesión?')) return;
     await fetch('/api/auth/logout', { method: 'POST', headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
     localStorage.clear();
-    window.location.href = '/';
+    window.location.href = ENTRADA;
   });
 }
