@@ -21,7 +21,8 @@ const enMadrid = formato => new Date().toLocaleDateString('sv-SE', { timeZone: '
 const mesActual = () => enMadrid(7);
 const hoy = () => enMadrid(10);
 // ElevenLabs no devuelve dinero, solo caracteres: se valoran con el precio del plan (USD por 1000 caracteres).
-const precioVoz = () => Number(process.env.ELEVENLABS_USD_POR_1000) || 0;
+// Por defecto, plan Creator mensual (24/11/2026): 22 USD / 121.000 créditos. Otro plan: variable ELEVENLABS_USD_POR_1000.
+const precioVoz = () => { const p = Number(process.env.ELEVENLABS_USD_POR_1000); return Number.isFinite(p) && p > 0 ? p : 0.18; };
 const cantidad = (v, tope) => { const n = Number(v); return Number.isFinite(n) && n >= 0 && n <= tope ? n : null; };
 
 router.get('/', auth, async (req, res) => {
