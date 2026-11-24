@@ -8,7 +8,9 @@ const SERVICIOS = { anthropic: 'IA', elevenlabs: 'Voz' };
 function origen(a) {
   if (!a.reporta) return a.gasto_actualizado ? 'a mano · ' + fechaCorta(a.gasto_actualizado) : 'sin actualizar';
   if (!a.desglose.length) return 'automático · sin datos este mes';
-  return a.desglose.map(u => `${SERVICIOS[u.servicio] || texto(u.servicio)} ${numero(u.usd)}`).join(' · ') + '<br>automático · ' + fechaCorta(a.gasto_actualizado);
+  // Un asistente que informa pero no manda gasto de IA es porque su Claude va por la suscripción, que no se cobra por uso.
+  const suscripcion = a.desglose.some(u => u.servicio === 'anthropic') ? '' : 'IA por suscripción de Claude, sin costo por uso · ';
+  return suscripcion + a.desglose.map(u => `${SERVICIOS[u.servicio] || texto(u.servicio)} ${numero(u.usd)}`).join(' · ') + '<br>automático · ' + fechaCorta(a.gasto_actualizado);
 }
 
 let asistentes = [];
