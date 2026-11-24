@@ -167,3 +167,5 @@ i.gas { background: var(--coral); }
   .mov5 .m-importe { text-align: left; }
 }
 .detalle { scrollbar-color: #2b3c60 transparent; scrollbar-width: thin; }
+.falta { color: var(--ambar); font-weight: 600; }
+.cabeza-lista .pie:has(.falta) { display: inline; }
