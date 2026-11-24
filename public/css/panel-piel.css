@@ -1,0 +1,49 @@
+/* Piel del panel nuevo para las secciones que aún usan los módulos de /app (config/panel-marco.js).
+   Solo actúa con html.piel-nueva, que /app nunca lleva: el panel anterior no cambia. */
+html.piel-nueva {
+  --bg: #141d35; --surface: #1e2a47; --surface-hover: #26345a; --sidebar-bg: #101830;
+  --text: #e0e4ec; --text-muted: #9ca3af; --text-dim: #6b7690;
+  --border: #2b3c60; --border-light: #344872;
+  --shadow: none; --shadow-lg: 0 8px 32px rgba(8, 12, 26, .5);
+  --sidebar-width: 0px;
+  scrollbar-color: #2b3c60 transparent;
+}
+.piel-nueva *::-webkit-scrollbar-thumb { background: #2b3c60; }
+.piel-nueva body, .piel-nueva body *:not(svg):not(svg *) { font-family: Inter, system-ui, sans-serif !important; }
+.piel-nueva h1, .piel-nueva h2, .piel-nueva h3 { letter-spacing: -.02em; }
+
+/* Fuera la barra lateral y la barra de título de /app; el contenido ocupa todo bajo la cabecera nueva. */
+.piel-nueva .sidebar, .piel-nueva .sidebar-overlay, .piel-nueva .topbar { display: none !important; }
+.piel-nueva body { display: flex; flex-direction: column; height: 100vh; }
+.piel-nueva .app-layout { flex: 1; min-height: 0; height: auto; }
+.piel-nueva .main-content { margin-left: 0; height: auto; }
+.piel-nueva .page-content { padding: 32px 40px 60px; max-width: 1400px; margin: 0 auto; }
+
+/* Azul como color de acción, igual que el resto del panel nuevo. El coral queda para gastos y avisos. */
+.piel-nueva .btn-primary { background: #2979FF; }
+.piel-nueva .money-workspace .money-tabs button.active { border-bottom-color: #2979FF; }
+
+/* Inter es más ancha que la tipografía de /app: el mes no cabía en el selector. */
+.piel-nueva .money-month-control input { width: 178px; }
+
+/* Cabecera: la misma del panel nuevo (public/css/panel.css). */
+.piel-nueva .cima { flex: none; background: #101830; border-bottom: 1px solid #2b3c60; padding: 0 32px; height: 60px; display: flex; align-items: center; gap: 36px; font-size: 14px; }
+.piel-nueva .cima a { text-decoration: none; }
+.piel-nueva .cima .logo { font-weight: 800; font-size: 22px; letter-spacing: -.03em; background: linear-gradient(135deg, #2979FF, #FF6B6B); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.piel-nueva .cima .nav { display: flex; gap: 6px; flex: 1; align-self: stretch; }
+.piel-nueva .cima .nav a { color: #9ca3af; font-weight: 500; white-space: nowrap; padding: 0 12px; display: flex; align-items: center; border-bottom: 2px solid transparent; }
+.piel-nueva .cima .nav a:hover, .piel-nueva .cima .nav a.on { color: #e0e4ec; }
+.piel-nueva .cima .nav a.on { border-bottom-color: #2979FF; }
+.piel-nueva .cima .usuario { display: flex; align-items: center; gap: 10px; color: #9ca3af; font-size: 13px; }
+.piel-nueva .cima .anterior { color: #9ca3af; border: 1px solid #2b3c60; border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 500; white-space: nowrap; margin-right: 6px; }
+.piel-nueva .cima .anterior:hover { color: #e0e4ec; }
+.piel-nueva .cima .avatar { width: 30px; height: 30px; border-radius: 50%; border: 0; background: #2979FF; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; }
+
+@media (max-width: 760px) {
+  .piel-nueva .cima { padding: 0 16px; gap: 0; height: auto; flex-wrap: wrap; }
+  .piel-nueva .cima .logo { padding: 14px 0; flex: 1; }
+  .piel-nueva .cima .usuario span { display: none; }
+  .piel-nueva .cima .nav { order: 3; flex: 0 0 calc(100% + 32px); margin: 0 -16px; padding: 0 8px; overflow-x: auto; border-top: 1px solid #2b3c60; gap: 0; }
+  .piel-nueva .cima .nav a { padding: 12px 10px; }
+  .piel-nueva .page-content { padding: 20px 16px 48px; }
+}
