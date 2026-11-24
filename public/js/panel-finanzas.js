@@ -23,6 +23,9 @@ const registro = id => datos.records.find(r => r.id === id);
 const pagado = d => (d.payments || []).reduce((s, p) => s + p.amount, 0);
 const porPagar = d => Math.max(0, d.amount - (d.irpf?.tax || 0));
 const nombre = d => d.party || d.title;
+// Todo gasto pagado tiene que llevar su factura adjunta. Los anteriores al cierre inicial no se revisan aquí.
+const sinFactura = r => r.data.kind === 'expense' && !r.included_in_opening && r.data.stage !== 'forecast'
+  && (r.data.payments || []).length > 0 && !datos.files.some(f => f.record_id === r.id);
 // El concepto, sin repetir el nombre que ya va en negrita («ManyChat · cuenta VOCAI» → «cuenta VOCAI»).
 const detalleDe = d => {
   if (!d.party || !d.title || d.title === d.party) return '';
@@ -164,18 +167,19 @@ function gastosPorTipo(hoja, dev, total) {
   const grupos = new Map();
   for (const f of hoja.groups.expense) {
     const c = FinanceReport.category(f.row);
-    const g = grupos.get(c.key) || { ...c, importe: 0, pendiente: 0, filas: [], devueltos: [] };
+    const g = grupos.get(c.key) || { ...c, importe: 0, pendiente: 0, sinFactura: 0, filas: [], devueltos: [] };
     if (dev.ids.has(f.row.id)) g.devueltos.push(f);
-    else { g.importe += f.amount; g.pendiente += f.pending; g.filas.push(f); }
+    else { g.importe += f.amount; g.pendiente += f.pending; g.filas.push(f); if (sinFactura(f.row)) g.sinFactura++; }
     grupos.set(c.key, g);
   }
   const orden = [...grupos.values()].sort((a, b) => b.importe - a.importe);
+  const faltan = orden.reduce((s, g) => s + g.sinFactura, 0);
   const html = orden.map(g => {
     const clave = 'tipo:' + g.key, abierto = abiertos.has(clave);
     return `
       <button class="grupo${abierto ? ' on' : ''}" data-abrir="${clave}" aria-expanded="${abierto}">
         <span class="flecha"></span>
-        <span class="g-nombre"><strong>${texto(g.label)}</strong><span class="pie">${g.filas.length} ${g.filas.length === 1 ? 'gasto' : 'gastos'}${g.pendiente ? ` · falta pagar ${euro(g.pendiente)}` : ''}${g.devueltos.length ? ` · ${g.devueltos.length} ${g.devueltos.length === 1 ? 'reembolsado' : 'reembolsados'}` : ''}</span></span>
+        <span class="g-nombre"><strong>${texto(g.label)}</strong><span class="pie">${g.filas.length} ${g.filas.length === 1 ? 'gasto' : 'gastos'}${g.pendiente ? ` · falta pagar ${euro(g.pendiente)}` : ''}${g.devueltos.length ? ` · ${g.devueltos.length} ${g.devueltos.length === 1 ? 'reembolsado' : 'reembolsados'}` : ''}${g.sinFactura ? ` · <b class="falta">${g.sinFactura} sin factura</b>` : ''}</span></span>
         <span class="g-barra"><i style="width:${total ? g.importe / total * 100 : 0}%"></i></span>
         <span class="g-parte">${total ? Math.round(g.importe / total * 100) : 0} %</span>
         <span class="importe">${euro(g.importe)}</span>
@@ -183,7 +187,7 @@ function gastosPorTipo(hoja, dev, total) {
       ${abierto ? `<div class="dentro">${g.filas.sort((a, b) => b.amount - a.amount).map(f => fila(f, false)).join('')}${g.devueltos.map(f => fila(f, false, true)).join('')}</div>` : ''}`;
   }).join('');
   return `
-    <div class="cabeza-lista"><h3>Gastos</h3><span class="pie">${orden.length ? 'Agrupados por tipo · toca uno para abrirlo' : ''}</span></div>
+    <div class="cabeza-lista"><h3>Gastos</h3><span class="pie">${orden.length ? (faltan ? `<b class="falta">${faltan} sin factura</b> · ` : 'Todos con factura · ') + 'toca un tipo para abrirlo' : ''}</span></div>
     <section class="tabla">${html || '<div class="vacio">Sin gastos en este mes.</div>'}</section>`;
 }
 
@@ -203,7 +207,7 @@ function fila(f, esIngreso, devuelto) {
     <button class="item${abierto ? ' on' : ''}" data-abrir="${clave}" aria-expanded="${abierto}">
       <span class="flecha"></span>
       <span class="i-nombre"><strong>${texto(nombre(d))}</strong><span class="pie">${texto([f.reembolso ? 'Reembolso' : '', detalleDe(d), !esIngreso && f.payments.length ? fechaCorta(f.payments[f.payments.length - 1].date) : ''].filter(Boolean).join(' · '))}</span></span>
-      <span class="i-avance">${esIngreso ? `<span class="g-barra"><i class="ing" style="width:${parte}%"></i></span>` : ''}${estado}</span>
+      <span class="i-avance">${esIngreso ? `<span class="g-barra"><i class="ing" style="width:${parte}%"></i></span>` : ''}${estado}${!esIngreso && !devuelto && sinFactura(r) ? '<span class="estado baja">Sin factura</span>' : ''}</span>
       <span class="importe${devuelto ? ' tachado' : ''}">${euro(f.amount)}</span>
     </button>
     ${abierto ? `
@@ -212,7 +216,7 @@ function fila(f, esIngreso, devuelto) {
       ${f.withholding ? `<div class="mov"><span class="pie">Retención de IRPF</span><strong>${euro(f.withholding)}</strong></div>` : ''}
       <div class="acciones">
         ${admitePago(r) ? `<button class="boton chico" data-pago="${r.id}">${esIngreso ? 'Registrar cobro' : 'Registrar pago'}</button>` : ''}
-        <a class="enlace" href="/panel/finanzas/completo?ver=records">Editar en Movimientos →</a>
+        <a class="enlace" href="/panel/finanzas/completo?ver=records">${!esIngreso && !devuelto && sinFactura(r) ? 'Adjuntar la factura en Movimientos →' : 'Editar en Movimientos →'}</a>
       </div>
     </div>` : ''}`;
 }
