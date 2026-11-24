@@ -176,14 +176,14 @@ function aportes() {
     </button>
     ${abiertos.has(clave) ? tabla(filas) : ''}`;
   return `
-    <div class="cabeza-lista"><h3>Lo que cada uno aportó al negocio</h3><span class="pie">El acuerdo es 50/50</span></div>
+    <div class="cabeza-lista"><h3>Lo que cada uno aportó al negocio</h3><a class="boton suave chico" href="/panel/inversion">Registrar aporte o compensación</a></div>
     <section class="tabla">
       <div class="mov5 cabeza"><span>Bloque</span><span>Santiago</span><span>Agustín</span><span>Mitad de cada uno</span><span class="der">Falta compensar</span></div>
       ${bloques}
       ${filasE.length ? desplegable(claveE, 'Aportes con fecha', `${filasE.length} ${filasE.length === 1 ? 'aporte anotado' : 'aportes anotados'} con su día.`, filasE) : ''}
       ${filasI.length ? desplegable(claveI, 'En qué se gastó la inversión inicial', `${filasI.length} compras de marzo y abril de 2026. De esos aportes está guardado el total de cada socio, no la fecha de cada entrega.`, filasI) : ''}
     </section>
-    <p class="frase abajo">Para registrar un aporte nuevo o una compensación entre socios: <a class="enlace" href="/panel/inversion">Inversión →</a></p>`;
+    <p class="frase abajo">El acuerdo entre los socios es 50/50.</p>`;
 }
 
 // ── Interacción ──────────────────────────────────────────────

@@ -10,7 +10,7 @@ const SECCIONES = {
   estadisticas: { modulo: 'marketing-analytics', titulo: 'Estadísticas' }
 };
 
-const MENU = [['/panel', 'Asistentes'], ['/panel/clientes', 'Clientes'], ['/panel/finanzas', 'Finanzas'], ['/panel/inversion', 'Inversión'], ['/panel/estadisticas', 'Estadísticas']];
+const MENU = [['/panel', 'Asistentes'], ['/panel/clientes', 'Clientes'], ['/panel/finanzas', 'Finanzas'], ['/panel/estadisticas', 'Estadísticas']];
 
 // Vista heredada de Finanzas (/panel/finanzas/completo?ver=…): abre la pestaña pedida desde el resumen nuevo.
 // La inversión ya tiene sitio propio en el menú de arriba, así que aquí su pestaña se oculta (panel-piel.css).
@@ -37,6 +37,17 @@ const PESTANA = `
     })();
   </script>`;
 
+// Registro de aportes y compensaciones (/panel/inversion): se llega desde Finanzas › Socios y se vuelve ahí.
+const VOLVER = `
+  <script>
+    document.documentElement.classList.add('fin-aportes');
+    document.addEventListener('DOMContentLoaded', function () {
+      var a = document.createElement('a');
+      a.className = 'volver-socios'; a.href = '/panel/finanzas/socios'; a.textContent = '← Volver a Socios';
+      var c = document.querySelector('.page-content') || document.body; c.parentNode.insertBefore(a, c);
+    });
+  </script>`;
+
 function pagina(seccion) {
   const s = Object.hasOwn(SECCIONES, seccion) ? SECCIONES[seccion] : null;
   if (!s) return null;
@@ -50,9 +61,9 @@ function pagina(seccion) {
     document.documentElement.classList.add('piel-nueva');
     document.documentElement.setAttribute('data-theme', 'dark');
     if (location.hash.slice(1) !== ${modulo}) history.replaceState(null, '', location.pathname + location.search + '#' + ${modulo});
-  </script>${seccion === 'finanzas' ? PESTANA : ''}
+  </script>${seccion === 'finanzas' ? PESTANA : seccion === 'inversion' ? VOLVER : ''}
 </head>`;
-  const enlaces = MENU.map(([ruta, nombre]) => `<a${ruta === '/panel/' + seccion ? ' class="on"' : ''} href="${ruta}">${nombre}</a>`).join('');
+  const enlaces = MENU.map(([ruta, nombre]) => `<a${ruta === '/panel/' + (seccion === 'inversion' ? 'finanzas' : seccion) ? ' class="on"' : ''} href="${ruta}">${nombre}</a>`).join('');
   const cima = `<body>
 <header class="cima">
   <a class="logo" href="/panel">VOCAI</a>
