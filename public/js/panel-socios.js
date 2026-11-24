@@ -30,9 +30,11 @@ function linea(r, importe, fecha, aproximada, corresponde) {
   if (!a && d.period_start && d.period_end) {
     a = d.period_start.slice(0, 7) === d.period_end.slice(0, 7) ? mayuscula(mesLargo(d.period_start)) : `De ${mesLargo(d.period_start)} a ${mesLargo(d.period_end)}`;
   }
-  if (!a) a = FinanceReport.category(r).label;
+  if (!a) { const c = FinanceReport.category(r); a = c.key === 'sin-categoria' ? (d.kind === 'income' ? 'Cobro de cliente' : 'Sin clasificar') : c.label; }
   const asunto = d.party && d.title && !sinAcentos(d.title).includes(sinAcentos(d.party).split(' ')[0]) ? `${d.title} · ${d.party}` : (d.title || d.party || 'Sin concepto');
-  return { importe, fecha: fecha || '', aproximada: !!aproximada || (fecha || '').length < 10, asunto: mayuscula(asunto), corresponde: a };
+  // En lo anterior al cierre inicial no consta el día del pago, pero sí el día en que se registró: se muestra, diciéndolo.
+  const registrada = (fecha || '').length < 10 && d.date && d.date.startsWith(fecha || '-') ? d.date : '';
+  return { importe, fecha: registrada || fecha || '', registrada: !!registrada, aproximada: !registrada && (!!aproximada || (fecha || '').length < 10), asunto: mayuscula(asunto), corresponde: a };
 }
 
 // Cuenta corriente de cada socio: pasos que suman o restan hasta lo que VOCAI le debe hoy.
@@ -139,7 +141,7 @@ function tabla(filas) {
       <div class="mov4 cabeza"><span>Día</span><span>Asunto</span><span>A qué corresponde</span><span class="der">Importe</span></div>
       ${orden.map(f => `
       <div class="mov4">
-        <span class="m-dia">${f.fecha.length >= 10 && !f.aproximada ? diaLargo(f.fecha) : f.fecha ? `${mayuscula(mesLargo(f.fecha))}<small>día sin anotar</small>` : 'Sin fecha'}</span>
+        <span class="m-dia">${f.fecha.length >= 10 && !f.aproximada ? diaLargo(f.fecha) + (f.registrada ? '<small>fecha de registro</small>' : '') : f.fecha ? `${mayuscula(mesLargo(f.fecha))}<small>día sin anotar</small>` : 'Sin fecha'}</span>
         <span class="m-asunto">${texto(f.asunto)}</span>
         <span class="m-a">${texto(f.corresponde)}</span>
         <span class="m-importe">${euro(f.importe)}</span>
