@@ -67,7 +67,14 @@ app.get('/panel', (req, res) => {
 app.get('/panel/clientes', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'panel-clientes.html'));
 });
-// Finanzas, Inversión y Estadísticas dentro del panel nuevo (config/panel-marco.js).
+// Finanzas: resumen propio del panel nuevo. La vista heredada, con todo, queda en /panel/finanzas/completo.
+app.get('/panel/finanzas', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'panel-finanzas.html'));
+});
+app.get('/panel/finanzas/completo', (req, res) => {
+  res.type('html').send(require('./config/panel-marco').pagina('finanzas'));
+});
+// Inversión y Estadísticas dentro del panel nuevo (config/panel-marco.js).
 app.get('/panel/:seccion', (req, res, next) => {
   const html = require('./config/panel-marco').pagina(req.params.seccion);
   if (!html) return next();

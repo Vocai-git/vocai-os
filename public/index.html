@@ -152,7 +152,7 @@
     // Check if already logged in
     // Al entrar se va al panel nuevo (o a la página suya que se pidió con ?ir=). El panel anterior sigue en /app.
     const pedido = new URLSearchParams(location.search).get('ir') || '';
-    const destino = ['/panel', '/panel/clientes'].includes(pedido) ? pedido : '/panel';
+    const destino = ['/panel', '/panel/clientes', '/panel/finanzas'].includes(pedido) ? pedido : '/panel';
     const token = localStorage.getItem('vocai_token');
     if (token) window.location.href = destino;
 

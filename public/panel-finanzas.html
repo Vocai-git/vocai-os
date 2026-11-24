@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOCAI — Finanzas</title>
+  <link rel="icon" href="/img/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/panel.css?v=5">
+  <link rel="stylesheet" href="/css/panel-finanzas.css?v=1">
+</head>
+<body>
+
+  <!-- Resumen de Finanzas del panel nuevo. Lee los mismos datos que la vista completa (/api/finance) y hace
+       las cuentas con el mismo código (finance-report.js). Altas, facturas y banco siguen en la vista completa. -->
+  <header class="cima">
+    <a class="logo" href="/panel">VOCAI</a>
+    <nav class="nav">
+      <a href="/panel">Asistentes</a>
+      <a href="/panel/clientes">Clientes</a>
+      <a class="on" href="/panel/finanzas">Finanzas</a>
+      <a href="/panel/inversion">Inversión</a>
+      <a href="/panel/estadisticas">Estadísticas</a>
+    </nav>
+    <div class="usuario">
+      <a class="anterior" href="/app">Panel anterior</a>
+      <span id="usuarioNombre"></span>
+      <button class="avatar" id="btnSalir" title="Cerrar sesión" aria-label="Cerrar sesión"></button>
+    </div>
+  </header>
+
+  <main>
+    <div class="titulo">
+      <div>
+        <h1>Finanzas</h1>
+        <div class="sub" id="alDia"></div>
+      </div>
+      <a class="boton" href="/panel/finanzas/completo?ver=records&nuevo=1">+ Añadir movimiento</a>
+    </div>
+
+    <nav class="subnav" aria-label="Secciones de finanzas">
+      <a class="on" href="/panel/finanzas">Resumen</a>
+      <a href="/panel/finanzas/completo?ver=records">Movimientos</a>
+      <a href="/panel/finanzas/completo?ver=invoices">Facturas</a>
+      <details class="mas">
+        <summary>Más</summary>
+        <div>
+          <a href="/panel/finanzas/completo?ver=documents">Documentos</a>
+          <a href="/panel/finanzas/completo?ver=bank">Revisar banco</a>
+          <a href="/panel/finanzas/completo?ver=home">Cuentas con los socios</a>
+        </div>
+      </details>
+    </nav>
+
+    <div id="contenido"><div class="vacio">Cargando las cuentas…</div></div>
+  </main>
+
+  <div class="velo" id="velo" hidden>
+    <form class="ficha" id="ficha" novalidate>
+      <h2 id="fichaTitulo">Registrar cobro</h2>
+      <div class="sub" id="fichaDetalle"></div>
+      <div class="campos">
+        <label>Importe (€)<input name="importe" inputmode="decimal" required></label>
+        <label>Fecha real<input name="fecha" type="date" required></label>
+        <label class="ancho"><span id="fichaCuenta">Entró en</span>
+          <select name="cuenta">
+            <option value="bank">Banco de VOCAI</option>
+            <option value="cash">Efectivo de VOCAI</option>
+            <option value="santi">Santiago (personal)</option>
+            <option value="agus">Agustín (personal)</option>
+          </select>
+        </label>
+      </div>
+      <div class="aviso" id="fichaAviso" hidden></div>
+      <div class="ficha-pie">
+        <span class="hueco"></span>
+        <button type="button" class="boton suave" id="btnCancelar">Cancelar</button>
+        <button type="submit" class="boton" id="btnGuardar">Confirmar</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="/js/panel-base.js?v=2"></script>
+  <script src="/js/finance-report.js"></script>
+  <script src="/js/panel-finanzas.js?v=1"></script>
+</body>
+</html>

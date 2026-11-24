@@ -12,6 +12,24 @@ const SECCIONES = {
 
 const MENU = [['/panel', 'Asistentes'], ['/panel/clientes', 'Clientes'], ['/panel/finanzas', 'Finanzas'], ['/panel/inversion', 'Inversión'], ['/panel/estadisticas', 'Estadísticas']];
 
+// Vista heredada de Finanzas (/panel/finanzas/completo?ver=…): abre la pestaña pedida desde el resumen nuevo.
+// El resumen del mes y la inversión ya tienen sitio propio en el panel nuevo, así que aquí se ocultan (panel-piel.css).
+const PESTANA = `
+  <script>
+    document.documentElement.classList.add('fin-completo');
+    (function () {
+      var q = new URLSearchParams(location.search), ver = q.get('ver'), intentos = 0;
+      if (['records', 'invoices', 'documents', 'bank', 'home'].indexOf(ver) < 0) ver = 'records';
+      var reloj = setInterval(function () {
+        if (++intentos > 100) return clearInterval(reloj);
+        if (typeof moneyState === 'undefined' || !moneyState.data || !document.querySelector('.money-tabs')) return;
+        clearInterval(reloj);
+        ver === 'records' ? moneyOpenRecords() : moneyView(ver);
+        if (q.get('nuevo') && !moneyState.data.review) moneyForm('expense');
+      }, 150);
+    })();
+  </script>`;
+
 function pagina(seccion) {
   const s = Object.hasOwn(SECCIONES, seccion) ? SECCIONES[seccion] : null;
   if (!s) return null;
@@ -24,8 +42,8 @@ function pagina(seccion) {
   <script>
     document.documentElement.classList.add('piel-nueva');
     document.documentElement.setAttribute('data-theme', 'dark');
-    if (location.hash.slice(1) !== ${modulo}) history.replaceState(null, '', location.pathname + '#' + ${modulo});
-  </script>
+    if (location.hash.slice(1) !== ${modulo}) history.replaceState(null, '', location.pathname + location.search + '#' + ${modulo});
+  </script>${seccion === 'finanzas' ? PESTANA : ''}
 </head>`;
   const enlaces = MENU.map(([ruta, nombre]) => `<a${ruta === '/panel/' + seccion ? ' class="on"' : ''} href="${ruta}">${nombre}</a>`).join('');
   const cima = `<body>

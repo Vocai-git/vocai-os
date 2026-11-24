@@ -1,0 +1,123 @@
+/* Resumen de Finanzas del panel nuevo (public/panel-finanzas.html). Se apoya en panel.css; aquí solo lo propio. */
+a.boton { display: inline-block; }
+.boton.chico { padding: 7px 12px; font-size: 13px; }
+.bien { color: var(--verde); }
+.mal { color: var(--coral); }
+
+/* Pestañas de la sección */
+.subnav { display: flex; gap: 4px; border-bottom: 1px solid var(--borde); margin-bottom: 28px; }
+.subnav > a, .mas summary { padding: 10px 14px; color: var(--suave); font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; }
+.subnav > a:hover, .subnav > a.on, .mas summary:hover, .mas[open] summary { color: var(--texto); }
+.subnav > a.on { border-bottom-color: var(--azul); }
+.mas { position: relative; }
+.mas summary { list-style: none; }
+.mas summary::-webkit-details-marker { display: none; }
+.mas summary::after { content: ''; display: inline-block; margin-left: 7px; border: 4px solid transparent; border-top: 5px solid currentColor; border-bottom: 0; vertical-align: middle; }
+.mas > div { position: absolute; top: 100%; left: 0; z-index: 5; min-width: 220px; margin-top: 6px; background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; padding: 6px; box-shadow: 0 8px 32px rgba(8, 12, 26, .5); }
+.mas > div a { display: block; padding: 9px 12px; border-radius: 6px; }
+.mas > div a:hover { background: var(--azul-suave); }
+
+h2.bloque { font-size: 19px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 12px; }
+.totales .cifra { white-space: nowrap; }
+.totales .pie { margin-top: 6px; }
+
+/* Las tres cifras de hoy se pueden tocar */
+.totales.hoy { margin-bottom: 12px; }
+.total.toca { background: none; border: 0; border-left: 1px solid var(--borde); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.total.toca:first-child { border-left: 0; border-radius: 12px 0 0 12px; }
+.total.toca:last-child { border-radius: 0 12px 12px 0; }
+.total.toca:hover { background: rgba(255, 255, 255, .03); }
+.total.toca.on { background: var(--azul-suave); }
+.total.toca .pie { color: var(--azul-texto); }
+.total.toca:focus-visible, .col:focus-visible, .grupo:focus-visible, .item:focus-visible { outline: 2px solid var(--azul); outline-offset: -2px; }
+.detalle-hoy { margin-bottom: 12px; }
+.linea { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-top: 1px solid var(--borde); }
+.linea:first-child { border-top: 0; }
+.linea > div:first-child { flex: 1; min-width: 0; }
+.linea.fin { padding: 12px 20px; }
+
+/* Mes: título, pasos y gráfico de seis meses */
+.cabeza-mes { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 36px 0 12px; }
+.cabeza-mes h2.bloque { margin-bottom: 0; }
+.pasos { display: flex; gap: 6px; }
+.pasos { flex: none; }
+.pasos button { white-space: nowrap; background: var(--panel); border: 1px solid var(--borde); border-radius: 8px; color: var(--texto); font: 500 13px Inter, sans-serif; padding: 7px 12px; cursor: pointer; }
+.pasos button:disabled { opacity: .4; cursor: default; }
+.grafico { padding: 18px 20px 14px; margin-bottom: 12px; }
+.columnas { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.col { background: none; border: 0; border-radius: 8px; padding: 8px 4px 6px; color: var(--suave); font: 500 12px Inter, sans-serif; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.col:hover { background: rgba(255, 255, 255, .03); }
+.col.on { background: var(--azul-suave); color: var(--texto); }
+.barras { display: flex; align-items: flex-end; gap: 4px; height: 76px; }
+.barras i { width: 14px; min-height: 2px; border-radius: 3px 3px 0 0; }
+i.ing { background: var(--verde); }
+i.gas { background: var(--coral); }
+.leyenda { display: flex; gap: 16px; align-items: center; margin-top: 10px; font-size: 12px; color: var(--suave); }
+.leyenda span:not(.pie) { display: inline-flex; align-items: center; gap: 6px; }
+.leyenda i { width: 8px; height: 8px; border-radius: 2px; }
+.leyenda .pie { margin-left: auto; }
+.frase { color: var(--suave); font-size: 13px; margin: -14px 0 0; }
+.frase strong { color: var(--texto); font-weight: 600; }
+
+/* Listas de ingresos y gastos */
+.cabeza-lista { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 32px 0 10px; }
+.cabeza-lista h3 { font-size: 16px; font-weight: 700; }
+.grupo, .item { width: 100%; background: none; border: 0; border-top: 1px solid var(--borde); color: inherit; font: inherit; text-align: left; cursor: pointer; display: grid; align-items: center; gap: 16px; padding: 15px 20px; }
+.tabla > .grupo:first-child, .tabla > .item:first-child { border-top: 0; }
+.grupo { grid-template-columns: 12px minmax(0, 1.3fr) minmax(0, 1.5fr) 44px 130px; }
+.item { grid-template-columns: 12px minmax(0, 1.6fr) minmax(0, 1.2fr) 130px; }
+.grupo:hover, .item:hover { background: rgba(255, 255, 255, .03); }
+.grupo .importe, .item .importe { text-align: right; }
+.item .importe { font-size: 15px; }
+.g-nombre, .i-nombre { display: flex; flex-direction: column; min-width: 0; }
+.g-nombre strong { font-size: 15px; font-weight: 600; }
+.i-nombre strong { font-weight: 600; }
+.i-nombre .pie { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flecha { width: 0; height: 0; border: 4px solid transparent; border-left: 6px solid var(--suave); transition: transform .15s; }
+.on > .flecha { transform: rotate(90deg) translateX(2px); }
+.g-barra { display: block; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .07); overflow: hidden; }
+.g-barra i { display: block; height: 100%; border-radius: 999px; background: var(--coral); }
+.g-barra i.ing { background: var(--verde); }
+.g-parte { color: var(--suave); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+.i-avance { display: flex; align-items: center; gap: 12px; }
+.i-avance .g-barra { flex: 1; }
+.dentro { background: rgba(8, 12, 26, .22); }
+.dentro .item { padding-left: 34px; }
+.abierto { padding: 4px 20px 16px 48px; }
+.dentro .abierto { padding-left: 62px; }
+.mov { display: flex; justify-content: space-between; gap: 16px; padding: 7px 0; font-size: 13px; border-bottom: 1px dashed var(--borde); font-variant-numeric: tabular-nums; }
+.acciones { display: flex; align-items: center; gap: 16px; margin-top: 12px; }
+.ficha .sub { margin-top: -12px; }
+
+@media (max-width: 760px) {
+  .titulo { align-items: flex-start; }
+  .subnav { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; margin: 0 -16px 22px; padding: 0 8px; }
+  .subnav > a, .mas summary { margin-bottom: 0; }
+  .mas { position: static; }
+  .mas > div { left: 16px; right: 16px; top: auto; }
+  .totales .total { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; }
+  .totales .cifra { grid-column: 2; grid-row: 1 / 3; font-size: 20px; }
+  .totales .pie { grid-column: 1; margin-top: 0; }
+  .total.toca { border-left: 0; border-top: 1px solid var(--borde); }
+  .total.toca:first-child { border-top: 0; border-radius: 12px 12px 0 0; }
+  .total.toca:last-child { border-radius: 0 0 12px 12px; }
+  .linea { flex-wrap: wrap; padding: 14px 16px; gap: 10px 12px; }
+  .linea > div:first-child { flex: 0 0 100%; }
+  .linea .boton { margin-left: auto; }
+  .grafico { padding: 14px 10px 12px; }
+  .columnas { gap: 2px; }
+  .barras { height: 64px; }
+  .barras i { width: 11px; }
+  .leyenda .pie { display: none; }
+  .frase { margin-top: -14px; }
+  .grupo { grid-template-columns: 12px minmax(0, 1fr) auto; gap: 8px 12px; padding: 14px 16px; }
+  .grupo .g-barra { grid-column: 2 / 3; grid-row: 2; }
+  .grupo .g-parte { grid-column: 3; grid-row: 2; }
+  .item { grid-template-columns: 12px minmax(0, 1fr) auto; gap: 8px 12px; padding: 14px 16px; }
+  .item .i-avance { grid-column: 2 / -1; grid-row: 2; }
+  .dentro .item { padding-left: 24px; }
+  .abierto, .dentro .abierto { padding: 2px 16px 14px 40px; }
+  .cabeza-lista .pie { display: none; }
+}
+
+.acciones .enlace { white-space: nowrap; }
