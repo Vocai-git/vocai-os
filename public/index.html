@@ -150,9 +150,9 @@
 
   <script>
     // Check if already logged in
-    // Quien llega desde el panel nuevo (?ir=/panel...) vuelve ahí; el resto entra a /app como siempre.
+    // Al entrar se va al panel nuevo (o a la página suya que se pidió con ?ir=). El panel anterior sigue en /app.
     const pedido = new URLSearchParams(location.search).get('ir') || '';
-    const destino = ['/panel', '/panel/clientes'].includes(pedido) ? pedido : '/app';
+    const destino = ['/panel', '/panel/clientes'].includes(pedido) ? pedido : '/panel';
     const token = localStorage.getItem('vocai_token');
     if (token) window.location.href = destino;
 
