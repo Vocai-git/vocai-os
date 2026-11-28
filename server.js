@@ -34,6 +34,7 @@ app.use('/api/proposals', require('./routes/proposals'));
 app.use('/api/goals', require('./routes/goals'));
 app.use('/api/episodes', require('./routes/episodes'));
 app.use('/api/agents', require('./routes/agents'));
+app.use('/api/assistants/caja', require('./routes/caja-negra')); // antes que /api/assistants: tiene rutas con /:id
 app.use('/api/assistants', require('./routes/assistants'));
 app.use('/api/my-tasks', require('./routes/my-tasks'));
 app.use('/api/my-events', require('./routes/my-events'));

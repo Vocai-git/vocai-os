@@ -24,3 +24,6 @@ db/finance_opening_*.sql
 config/finance-opening.private.json
 config/finance-history.private.json
 config/finance-*.private.json
+
+# Claves generadas por scripts (caja negra, correo): nunca al repositorio
+*.private.txt
